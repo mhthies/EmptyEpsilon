@@ -28,6 +28,7 @@
 #include "tutorialGame.h"
 
 #include "hardware/hardwareController.h"
+#include "hardware/midiController.h"
 #ifdef __WIN32__
 #include "discord.h"
 #endif
@@ -307,6 +308,12 @@ int main(int argc, char** argv)
         else
             hardware_controller->loadConfiguration("hardware.ini");
     }
+
+#ifdef WITH_MIDI
+    if (PreferencesManager::get("enable_midi","1") == "1") {
+        P<MidiController> midi_controller = new MidiController();
+    }
+#endif
 
 #ifdef __WIN32__
     new DiscordRichPresence();

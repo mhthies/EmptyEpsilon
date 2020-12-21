@@ -258,7 +258,7 @@ set(SOURCES
 	src/hardware/devices/uDMXDevice.cpp
 	src/hardware/devices/virtualOutputDevice.cpp
 	src/hardware/devices/philipsHueDevice.cpp
-)
+	src/hardware/midiController.cpp)
 
 if(WIN32)
     list(APPEND SOURCES EmptyEpsilon.rc src/discord.cpp)
@@ -422,6 +422,18 @@ endif()
 # Opus for voice chat
 add_subdirectory("${SERIOUS_PROTON_DIR}/src/libopus/" "${CMAKE_CURRENT_BINARY_DIR}/libopus")
 target_link_libraries(${EXECUTABLE_NAME} opus)
+
+# For MIDI use RtMidi
+find_package(PkgConfig)
+pkg_check_modules(PC_RTMIDI rtmidi)
+if(PC_RTMIDI_FOUND)
+	target_link_libraries(${EXECUTABLE_NAME} ${PC_RTMIDI_LIBRARIES})
+	target_link_directories(${EXECUTABLE_NAME} PRIVATE ${PC_RTMIDI_LIBRARY_DIRS})
+	target_include_directories(${EXECUTABLE_NAME} PRIVATE ${PC_RTMIDI_INCLUDE_DIRS})
+	target_compile_definitions(${EXECUTABLE_NAME} PRIVATE -DWITH_MIDI)
+endif()
+
+
 
 # Some magical Win 32 stuff
 if(WIN32)
