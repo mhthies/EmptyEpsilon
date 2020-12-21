@@ -297,14 +297,16 @@ int main(int argc, char** argv)
     nar->addKeyActivation(sf::Keyboard::Key::Tilde, 0);
     nar->addKeyActivation(sf::Keyboard::Key::BackSpace, 1);
 
-    P<HardwareController> hardware_controller = new HardwareController();
+    if (PreferencesManager::get("enable_dmx","1") == "1") {
+        P<HardwareController> hardware_controller = new HardwareController();
 #ifdef CONFIG_DIR
-    hardware_controller->loadConfiguration(CONFIG_DIR "hardware.ini");
+        hardware_controller->loadConfiguration(CONFIG_DIR "hardware.ini");
 #endif
-    if (getenv("HOME"))
-        hardware_controller->loadConfiguration(string(getenv("HOME")) + "/.emptyepsilon/hardware.ini");
-    else
-        hardware_controller->loadConfiguration("hardware.ini");
+        if (getenv("HOME"))
+            hardware_controller->loadConfiguration(string(getenv("HOME")) + "/.emptyepsilon/hardware.ini");
+        else
+            hardware_controller->loadConfiguration("hardware.ini");
+    }
 
 #ifdef __WIN32__
     new DiscordRichPresence();
