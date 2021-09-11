@@ -1,3 +1,13 @@
+This Michael's private fork of EmptyEpsilon with some custom mods:
+
+- Support for using a *Behringer X-Touch Compact* MIDI controller as an interactive hardware interface for the *Engineering* station
+    - Requires *rtmidi* to be avialable via pkgconfig
+    - Requires building with `WITH_MIDI` cmake option
+    - Requires the `enable_midi` configuration variable to be set to 1 (e.g. by passing `enable_midi=1` as cli option to EE)
+- New option `enable_dmx` for disabling DMX support (useful for running multiple EE instances on one computer, with one controlling the DMX)
+
+---
+
 ![EmptyEpsilon logo](https://raw.githubusercontent.com/daid/EmptyEpsilon/master/resources/logo_full.png)
 
 Started as a cross-platform, open-source "clone" of [Artemis Spaceship Bridge Simulator](https://www.artemisspaceshipbridge.com/), **EmptyEpsilon** has already deviated from Artemis with new features and gameplay, including a Game Master mode and multiple AI factions. We strive to get EmptyEpsilon working on all major platforms (Windows, Linux, and OS X), but only Windows support is guaranteed.
