@@ -12,6 +12,7 @@
 #include "spaceObjects/blackHole.h"
 #include "spaceObjects/nebula.h"
 #include "spaceObjects/spaceship.h"
+#include "spaceObjects/missiles/missileWeapon.h"
 #include "spaceObjects/planet.h"
 
 class JSONGenerator
@@ -268,21 +269,37 @@ void GameStateLogger::writeObjectEntry(JSONGenerator& json, P<SpaceObject> obj)
     json.endArray();
     json.write("rotation", obj->getRotation());
     P<SpaceShip> ship = obj;
+
     if (ship)
     {
         writeShipEntry(json, ship);
-    }else{
+    }
+    else
+    {
         P<SpaceStation> station = obj;
+
         if (station)
         {
             writeStationEntry(json, station);
-        }else{
-            P<Planet> planet = obj;
-            if (planet)
+        }
+        else
+        {
+            P<MissileWeapon> missile = obj;
+
+            if (missile)
             {
-                writePlanetEntry(json, planet);
+                writeMissileEntry(json, missile);
             }
-    }
+            else
+            {
+                P<Planet> planet = obj;
+
+                if (planet)
+                {
+                    writePlanetEntry(json, planet);
+                }
+            }
+        }
     }
 }
 
@@ -369,10 +386,14 @@ void GameStateLogger::writeShipEntry(JSONGenerator& json, P<SpaceShip> ship)
                 JSONGenerator system = systems.createDict(getSystemName(ESystem(n)).c_str());
                 system.write("health", ship->systems[n].health);
                 system.write("power_level", ship->systems[n].power_level);
+                system.write("power_rate_per_second", ship->systems[n].power_rate_per_second);
                 system.write("power_request", ship->systems[n].power_request);
                 system.write("heat", ship->systems[n].heat_level);
+                system.write("heat_rate_per_second", ship->systems[n].heat_rate_per_second);
                 system.write("coolant_level", ship->systems[n].coolant_level);
+                system.write("coolant_rate_per_second", ship->systems[n].coolant_rate_per_second);
                 system.write("coolant_request", ship->systems[n].coolant_request);
+                system.write("power_factor", ship->systems[n].power_factor);
             }
         }
     }
@@ -415,6 +436,8 @@ void GameStateLogger::writeShipEntry(JSONGenerator& json, P<SpaceShip> ship)
         config.write("turn_speed", ship->turn_speed);
         config.write("impulse_speed", ship->impulse_max_speed);
         config.write("impulse_acceleration", ship->impulse_acceleration);
+        config.write("impulse_reverse_speed", ship->impulse_max_reverse_speed);
+        config.write("impulse_reverse_acceleration", ship->impulse_reverse_acceleration);
         config.write("hull", ship->hull_max);
         if (ship->has_warp_drive)
             config.write("warp", ship->warp_speed_per_warp_level);
@@ -510,6 +533,23 @@ void GameStateLogger::writeStationEntry(JSONGenerator& json, P<SpaceStation> sta
                 json.arrayWrite(station->shield_max[n]);
             config.endArray();
         }
+    }
+}
+
+void GameStateLogger::writeMissileEntry(JSONGenerator& json, P<MissileWeapon> missile)
+{
+    json.write("category_modifier", missile->category_modifier);
+
+    // A missile's owner might not exist when we log data. Skip the owner_id if so.
+    if (missile->owner)
+    {
+        json.write("owner_id", missile->owner->getMultiplayerId());
+    }
+
+    // Don't bother writing a target ID if it's unguided or targetless.
+    if (missile->target_id != -1)
+    {
+        json.write("target_id", missile->target_id);
     }
 }
 

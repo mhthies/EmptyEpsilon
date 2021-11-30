@@ -1,11 +1,12 @@
 -- Name: Quick Basic
--- Description: Different version of the basic scenario. Which intended to play out quicker. There is only a single small station to defend.
---- This scenario is designed to be ran on conventions. As you can run a 4 player crew in 20 minutes trough a game with minimal experience.
+-- Description: Different version of the Basic scenario intended to play out quicker. There is only a single small station to defend.
 ---
---- This scenario is designed for the provided player ship of type Phobos (or Atlantis on Advanced).
+--- This scenario is designed to be ran at conventions, since you can run a 4-player crew with minimal experience through a game in 20 minutes.
+---
+--- This scenario is designed for the provided player Phobos-type ship (or an Atlantis in the Advanced variant).
 -- Type: Convention
--- Variation[Advanced]: Give the players a stronger Atlantis instead of the Phobos. Which is more difficult to control, but has more firepower and defense. Increases enemy strengh as well.
--- Variation[GM Start]: The scenario is not started until the GM gives the start sign. This gives some time for a new crew to get a feeling for the controls before the actual scenario starts.
+-- Variation[Advanced]: Give the players a stronger Atlantis instead of the Phobos. The Atlantis is more difficult to control, but has more firepower and defense. Also increases enemy strength.
+-- Variation[GM Start]: The scenario is not started until the GM signals for it to start. This gives some time for a new crew to get a feeling for the controls before the actual scenario starts.
 
 --- Scenario
 -- @script scenario_01_quick_basic
@@ -329,24 +330,27 @@ function startScenario()
     local station = friendlyList[1]
     station:sendCommsMessage(
         player,
-        string.format([[%s, your objective is to fend off the incoming Kraylor attack.
+        string.format(_([[%s, your objective is to fend off the incoming Kraylor attack.
+
 Please inform your Captain and crew that you have a total of %d minutes for this mission.
+
 The mission started at the arrival of this message.
-Good Luck.]], player:getCallSign(), gametimeleft / 60)
+
+Good luck.]]), player:getCallSign(), gametimeleft / 60)
     )
     scenario_started = true
 end
 
 --- Return condition as string.
 function getCondition()
-    local condition = "green"
+    local condition = _("green")
     for i = 1, player:getShieldCount() do
         if player:getShieldLevel(i) < player:getShieldMax(i) * 0.8 then
-            condition = "yellow"
+            condition = _("yellow")
         end
     end
     if player:getHull() < player:getHullMax() * 0.8 then
-        condition = "red"
+        condition = _("red")
     end
     return condition
 end
@@ -358,12 +362,12 @@ function update(delta)
     if not scenario_started then
         if not player:isValid() then
             victory("Kraylor")
-            local text = "Mission: FAILED (ship lost before mission started)"
+            local text = _("Mission: FAILED (ship lost before mission started)")
             globalMessage(text)
             setBanner(text)
             return
         end
-        setBanner("Mission: PREPARING")
+        setBanner(_("Mission: PREPARING"))
         if delta > 0 and getScenarioVariation() ~= "GM Start" then
             -- Start the scenario when the game is not paused and we are not waiting for the GM to start the game.
             startScenario()
@@ -373,20 +377,20 @@ function update(delta)
         gametimeleft = gametimeleft - delta
         if gametimeleft < 0 then
             victory("Kraylor")
-            local text = "Mission: FAILED (time has run out)"
+            local text = _("Mission: FAILED (time has run out)")
             globalMessage(text)
             setBanner(text)
             return
         end
         if gametimeleft < timewarning then
             if timewarning <= 1 * 60 then -- Less then 1 minutes left.
-                friendlyList[1]:sendCommsMessage(player, string.format([[%s, you have 1 minute remaining.]], player:getCallSign(), timewarning / 60))
+                friendlyList[1]:sendCommsMessage(player, string.format(_([[%s, you have %d minute remaining.]]), player:getCallSign(), timewarning / 60))
                 timewarning = timewarning - 2 * 60
             elseif timewarning <= 5 * 60 then -- Less then 5 minutes left. Warn ever 2 minutes instead of every 5.
-                friendlyList[1]:sendCommsMessage(player, string.format([[%s, you have %d minutes remaining.]], player:getCallSign(), timewarning / 60))
+                friendlyList[1]:sendCommsMessage(player, string.format(_([[%s, you have %d minutes remaining.]]), player:getCallSign(), timewarning / 60))
                 timewarning = timewarning - 2 * 60
             else
-                friendlyList[1]:sendCommsMessage(player, string.format([[%s, you have %d minutes remaining of mission time.]], player:getCallSign(), timewarning / 60))
+                friendlyList[1]:sendCommsMessage(player, string.format(_([[%s, you have %d minutes remaining of mission time.]]), player:getCallSign(), timewarning / 60))
                 timewarning = timewarning - 5 * 60
             end
         end
@@ -409,7 +413,7 @@ function update(delta)
         -- Note that players can win even if they destroy the enemies by blowing themselves up.
         if enemy_count == 0 then
             victory("Human Navy")
-            local text = string.format("Mission: SUCCESS (%d seconds left)", math.floor(gametimeleft))
+            local text = string.format(_("Mission: SUCCESS (%d seconds left)"), math.floor(gametimeleft))
             globalMessage(text)
             setBanner(text)
             return
@@ -418,7 +422,7 @@ function update(delta)
         -- If last player ship is destroyed, the Humans (players) lose.
         if not player:isValid() then
             victory("Kraylor")
-            local text = "Mission: FAILED (all your ships destroyed)"
+            local text = _("Mission: FAILED (all your ships destroyed)")
             globalMessage(text)
             setBanner(text)
             return
@@ -427,7 +431,7 @@ function update(delta)
         -- If all allies are destroyed, the Humans (players) lose.
         if friendly_count == 0 then
             victory("Kraylor")
-            local text = "Mission: FAILED (no friendlies left)"
+            local text = _("Mission: FAILED (no friendlies left)")
             globalMessage(text)
             setBanner(text)
             return
@@ -443,6 +447,6 @@ function update(delta)
 
         -- Set banner for cinematic and top down views.
         local condition = getCondition()
-        setBanner(string.format("Mission in progress - Time left: %d:%02d - Enemies: %d - Condition: %s", math.floor(gametimeleft / 60), math.floor(gametimeleft % 60), enemy_count, condition))
+        setBanner(string.format(_("Mission in progress - Time left: %d:%02d - Enemies: %d - Condition: %s"), math.floor(gametimeleft / 60), math.floor(gametimeleft % 60), enemy_count, condition))
     end
 end

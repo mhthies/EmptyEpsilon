@@ -15,6 +15,7 @@
 #include "menus/mainMenus.h"
 #include "menus/autoConnectScreen.h"
 #include "menus/shipSelectionScreen.h"
+#include "menus/optionsMenu.h"
 #include "mouseCalibrator.h"
 #include "factionInfo.h"
 #include "gameGlobalInfo.h"
@@ -28,8 +29,10 @@
 #include "tutorialGame.h"
 
 #include "hardware/hardwareController.h"
+#if WITH_MIDI
 #include "hardware/midiController.h"
-#ifdef __WIN32__
+#endif
+#if WITH_DISCORD
 #include "discord.h"
 #endif
 
@@ -38,6 +41,8 @@
 #include <mach-o/dyld.h>
 #include <libgen.h>
 #endif
+
+#include "shaderRegistry.h"
 
 sf::Vector3f camera_position;
 float camera_yaw;
@@ -101,7 +106,7 @@ int main(int argc, char** argv)
 #else
     Logging::setLogLevel(LOGLEVEL_INFO);
 #endif
-#if defined(__WIN32__) && !defined(DEBUG)
+#if defined(_WIN32) && !defined(DEBUG)
     Logging::setLogFile("EmptyEpsilon.log");
 #endif
 #ifdef CONFIG_DIR
@@ -127,15 +132,17 @@ int main(int argc, char** argv)
         int port = defaultServerPort;
         string password = "";
         int listenPort = defaultServerPort;
+        string proxyName = "";
         auto parts = PreferencesManager::get("proxy").split(":");
         string host = parts[0];
         if (parts.size() > 1) port = parts[1].toInt();
         if (parts.size() > 2) password = parts[2].upper();
         if (parts.size() > 3) listenPort = parts[3].toInt();
+        if (parts.size() > 4) proxyName = parts[4];
         if (host == "listen")
-            new GameServerProxy(password, listenPort);
+            new GameServerProxy(password, listenPort, proxyName);
         else
-            new GameServerProxy(host, port, password, listenPort);
+            new GameServerProxy(host, port, password, listenPort, proxyName);
         engine->runMainLoop();
         return 0;
     }
@@ -158,7 +165,7 @@ int main(int argc, char** argv)
     new DirectoryResourceProvider("resources/");
     new DirectoryResourceProvider("scripts/");
     new DirectoryResourceProvider("packs/SolCommand/");
-    PackResourceProvider::addPackResourcesForDirectory("packs");
+    PackResourceProvider::addPackResourcesForDirectory("packs/");
     if (getenv("HOME"))
     {
         new DirectoryResourceProvider(string(getenv("HOME")) + "/.emptyepsilon/resources/");
@@ -175,7 +182,7 @@ int main(int argc, char** argv)
     textureManager.setDefaultRepeated(true);
     textureManager.setAutoSprite(false);
     textureManager.getTexture("Tokka_WalkingMan.png", sf::Vector2i(6, 1)); //Setup the sprite mapping.
-    i18n::load("locale/" + PreferencesManager::get("language", "en") + ".po");
+    i18n::load("locale/main." + PreferencesManager::get("language", "en") + ".po");
 
     if (PreferencesManager::get("httpserver").toInt() != 0)
     {
@@ -185,12 +192,12 @@ int main(int argc, char** argv)
         LOG(INFO) << "Enabling HTTP script access on port: " << port_nr;
         LOG(INFO) << "NOTE: This is potentially a risk!";
         HttpServer* server = new HttpServer(port_nr);
-        server->addHandler(new HttpRequestFileHandler("www"));
+        server->addHandler(new HttpRequestFileHandler(PreferencesManager::get("www_directory","www")));
         server->addHandler(new HttpScriptHandler());
     }
 
     colorConfig.load();
-    hotkeys.load();
+    HotkeyConfig::get().load();
     joystick.load();
 
     if (PreferencesManager::get("username", "") == "")
@@ -209,9 +216,9 @@ int main(int argc, char** argv)
         effectLayer = new RenderLayer(objectLayer);
         hudLayer = new RenderLayer(effectLayer);
         mouseLayer = new RenderLayer(hudLayer);
-        glitchPostProcessor = new PostProcessor("glitch", mouseLayer);
+        glitchPostProcessor = new PostProcessor("shaders/glitch", mouseLayer);
         glitchPostProcessor->enabled = false;
-        warpPostProcessor = new PostProcessor("warp", glitchPostProcessor);
+        warpPostProcessor = new PostProcessor("shaders/warp", glitchPostProcessor);
         warpPostProcessor->enabled = false;
         defaultRenderLayer = objectLayer;
 
@@ -231,6 +238,7 @@ int main(int argc, char** argv)
             window_manager->setTitle("EmptyEpsilon - " + PreferencesManager::get("instance_name"));
         window_manager->setAllowVirtualResize(true);
         engine->registerObject("windowManager", window_manager);
+        ShaderRegistry::Shader::initialize();
     }
     if (PreferencesManager::get("touchscreen").toInt())
     {
@@ -261,11 +269,11 @@ int main(int argc, char** argv)
     if (PreferencesManager::get("disable_shaders").toInt())
         PostProcessor::setEnable(false);
 
-    P<ResourceStream> main_font_stream = getResourceStream("gui/fonts/BebasNeue Regular.otf");
+    P<ResourceStream> main_font_stream = getResourceStream(PreferencesManager::get("font_regular", "gui/fonts/BebasNeue Regular.otf"));
     main_font = new sf::Font();
     main_font->loadFromStream(**main_font_stream);
 
-    P<ResourceStream> bold_font_stream = getResourceStream("gui/fonts/BebasNeue Bold.otf");
+    P<ResourceStream> bold_font_stream = getResourceStream(PreferencesManager::get("font_bold", "gui/fonts/BebasNeue Bold.otf"));
     bold_font = new sf::Font();
     bold_font->loadFromStream(**bold_font_stream);
 
@@ -294,9 +302,11 @@ int main(int argc, char** argv)
             }
         }
     }
+
+    // Set up voice chat and key bindings.
     NetworkAudioRecorder* nar = new NetworkAudioRecorder();
-    nar->addKeyActivation(sf::Keyboard::Key::Tilde, 0);
-    nar->addKeyActivation(sf::Keyboard::Key::BackSpace, 1);
+    nar->addKeyActivation(HotkeyConfig::get().getKeyByHotkey("BASIC", "VOICE_CHAT_ALL"), 0);
+    nar->addKeyActivation(HotkeyConfig::get().getKeyByHotkey("BASIC", "VOICE_CHAT_SHIP"), 1);
 
     if (PreferencesManager::get("enable_dmx","1") == "1") {
         P<HardwareController> hardware_controller = new HardwareController();
@@ -315,9 +325,18 @@ int main(int argc, char** argv)
     }
 #endif
 
-#ifdef __WIN32__
-    new DiscordRichPresence();
+#if WITH_DISCORD
+    {
+        std::filesystem::path discord_sdk
+        {
+#ifdef RESOURCE_BASE_DIR
+        RESOURCE_BASE_DIR
 #endif
+        };
+        discord_sdk /= std::filesystem::path{ "plugins" } / DynamicLibrary::add_native_suffix("discord_game_sdk");
+        new DiscordRichPresence(discord_sdk);
+    }
+#endif // WITH_DISCORD
 
     returnToMainMenu();
     engine->runMainLoop();
@@ -351,7 +370,7 @@ int main(int argc, char** argv)
         // MFC TODO: Fix me -- save prefs to user prefs dir on Windows.
         if (getenv("HOME"))
         {
-#ifdef __WIN32__
+#ifdef _WIN32
             mkdir((string(getenv("HOME")) + "/.emptyepsilon").c_str());
 #else
             mkdir((string(getenv("HOME")) + "/.emptyepsilon").c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
@@ -413,4 +432,9 @@ void returnToShipSelection()
     {
         new ShipSelectionScreen();
     }
+}
+
+void returnToOptionMenu()
+{
+    new OptionsMenu();
 }

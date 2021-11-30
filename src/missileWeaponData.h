@@ -46,11 +46,8 @@ public:
     string fire_sound;
 
     static const MissileWeaponData& getDataFor(EMissileWeapons type);
+
+    static const float convertSizeToCategoryModifier(EMissileSizes size);
+    static const EMissileSizes convertCategoryModifierToSize(float size);
 };
-
-#ifdef _MSC_VER
-// MFC: GCC does proper external template instantiation, VC++ doesn't.
-#include "missileWeaponData.hpp"
-#endif
-
 #endif//MISSILE_WEAPON_DATA_H

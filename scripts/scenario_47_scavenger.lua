@@ -92,6 +92,7 @@ function init()
 	efficient_battery_diagnostic = false
 	prefix_length = 0
 	suffix_index = 0
+	accumulated_delta = 0
 	contract_eligible = false			--should start out as false
 	transition_contract_message = false	--should start out as false
 	contract_station = {}
@@ -142,6 +143,7 @@ function init()
 		local expand_distance = 0
 		local new_x, new_y = vectorFromAngle(random(0,360),random(4000,20000+expand_distance))
 		repeat
+			far_enough = true
 			new_x, new_y = vectorFromAngle(random(0,360),random(4000,20000+expand_distance))
 			new_x = new_x + ref_x
 			new_y = new_y + ref_y

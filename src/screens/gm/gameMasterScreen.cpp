@@ -1,6 +1,7 @@
+#include "gameMasterScreen.h"
+#include "shipTemplate.h"
 #include "main.h"
 #include "gameGlobalInfo.h"
-#include "gameMasterScreen.h"
 #include "objectCreationView.h"
 #include "globalMessageEntryView.h"
 #include "tweak.h"
@@ -112,6 +113,10 @@ GameMasterScreen::GameMasterScreen()
             {
                 jammer_tweak_dialog->open(obj);
             }
+            else if (P<Asteroid>(obj))
+            {
+                asteroid_tweak_dialog->open(obj);
+            }
             else
             {
                 object_tweak_dialog->open(obj);
@@ -147,7 +152,7 @@ GameMasterScreen::GameMasterScreen()
         {
             if (n == index)
             {
-                callback.callback.call();
+                callback.callback.call<void>();
                 return;
             }
             n++;
@@ -198,6 +203,8 @@ GameMasterScreen::GameMasterScreen()
     station_tweak_dialog->hide();
     jammer_tweak_dialog = new GuiObjectTweak(this, TW_Jammer);
     jammer_tweak_dialog->hide();
+    asteroid_tweak_dialog = new GuiObjectTweak(this, TW_Asteroid);
+    asteroid_tweak_dialog->hide();
 
     global_message_entry = new GuiGlobalMessageEntryView(this);
     global_message_entry->hide();
@@ -252,7 +259,11 @@ void GameMasterScreen::update(float delta)
         if (ship)
         {
             if (player_ship_selector->indexByValue(string(n)) == -1)
+            {
                 player_ship_selector->addEntry(ship->getTypeName() + " " + ship->getCallSign(), string(n));
+            } else {
+                player_ship_selector->setEntryName(player_ship_selector->indexByValue(string(n)),ship->getCallSign());
+            }
 
             if (ship->isCommsBeingHailedByGM() || ship->isCommsChatOpenToGM())
             {
@@ -310,7 +321,7 @@ void GameMasterScreen::update(float delta)
 
     if (targets.getTargets().size() == 1)
     {
-        selection_info["Position"] = string(targets.getTargets()[0]->getPosition().x, 0) + "," + string(targets.getTargets()[0]->getPosition().y, 0);
+        selection_info[trMark("gm_info", "Position")] = string(targets.getTargets()[0]->getPosition().x, 0) + "," + string(targets.getTargets()[0]->getPosition().y, 0);
     }
 
     unsigned int cnt = 0;
@@ -322,7 +333,7 @@ void GameMasterScreen::update(float delta)
             info_items[cnt]->setSize(GuiElement::GuiSizeMax, 30);
         }else{
             info_items[cnt]->show();
-            info_items[cnt]->setKey(i->first)->setValue(i->second);
+            info_items[cnt]->setKey(tr("gm_info", i->first))->setValue(i->second);
         }
         cnt++;
     }

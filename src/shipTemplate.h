@@ -3,6 +3,7 @@
 
 #include <unordered_map>
 #include <unordered_set>
+#include <optional>
 #include "engine.h"
 #include "modelData.h"
 
@@ -109,8 +110,8 @@ public:
     float hull;
     int shield_count;
     float shield_level[max_shield_count];
-    float impulse_speed, turn_speed, warp_speed;
-    float impulse_acceleration;
+    float impulse_speed, impulse_reverse_speed, turn_speed, warp_speed;
+    float impulse_acceleration, impulse_reverse_acceleration;
     float combat_maneuver_boost_speed;
     float combat_maneuver_strafe_speed;
     bool has_jump_drive, has_cloaking;
@@ -119,8 +120,8 @@ public:
     int weapon_storage[MW_Count];
 
     string radar_trace;
-    float long_range_radar_range = 30000.0f;
-    float short_range_radar_range = 5000.0f;
+    float long_range_radar_range;
+    float short_range_radar_range;
     string impulse_sound_file;
 
     std::vector<ShipRoomTemplate> rooms;
@@ -170,7 +171,7 @@ public:
     void setTubeDirection(int index, float direction);
     void setHull(float amount) { hull = amount; }
     void setShields(std::vector<float> values);
-    void setSpeed(float impulse, float turn, float acceleration);
+    void setSpeed(float impulse, float turn, float acceleration, std::optional<float> reverse_speed, std::optional<float> reverse_acceleration);
     void setCombatManeuver(float boost, float strafe);
     void setWarpSpeed(float warp);
     void setJumpDrive(bool enabled);
@@ -202,10 +203,4 @@ REGISTER_MULTIPLAYER_ENUM(ESystem);
 
 /* Define script conversion function for the ShipTemplate::TemplateType enum. */
 template<> void convert<ShipTemplate::TemplateType>::param(lua_State* L, int& idx, ShipTemplate::TemplateType& tt);
-
-#ifdef _MSC_VER
-// MFC: GCC does proper external template instantiation, VC++ doesn't.
-#include "shipTemplate.hpp"
-#endif /* _MSC_VER */
-
 #endif//SHIP_TEMPLATE_H

@@ -51,7 +51,7 @@ TutorialGame::TutorialGame(bool repeated_tutorial, string filename)
     this->viewport = nullptr;
     this->repeated_tutorial = repeated_tutorial;
 
-    i18n::load("locale/" + PreferencesManager::get("language", "en") + ".po");
+    i18n::load("locale/main." + PreferencesManager::get("language", "en") + ".po");
     i18n::load("locale/tutorial." + PreferencesManager::get("language", "en") + ".po");
     script = new ScriptObject();
     script->registerObject(this, "tutorial");
@@ -90,7 +90,7 @@ void TutorialGame::createScreens()
     text = new GuiScrollText(frame, "", "");
     text->setTextSize(20)->setPosition(20, 20, ATopLeft)->setSize(900 - 40, 200 - 40);
     next_button = new GuiButton(frame, "", tr("Next"), [this]() {
-        _onNext.call();
+        _onNext.call<void>();
     });
     next_button->setTextSize(30)->setPosition(-20, -20, ABottomRight)->setSize(300, 30);
 

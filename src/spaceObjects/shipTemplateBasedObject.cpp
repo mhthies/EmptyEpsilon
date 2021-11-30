@@ -1,9 +1,18 @@
 #include "shipTemplateBasedObject.h"
 
 #include "scriptInterface.h"
+
+#include "i18n.h"
+
 REGISTER_SCRIPT_SUBCLASS_NO_CREATE(ShipTemplateBasedObject, SpaceObject)
 {
-    /// Set the ship template to be used for this station. Stations use ship-templates to define hull/shields/looks
+    /// Set the template to be used for this ship or station. Templates define hull/shields/looks etc.
+    /// Examples:
+    /// CpuShip():setTemplate("Phobos T3")
+    /// PlayerSpaceship():setTemplate("Phobos M3P")
+    /// SpaceStation():setTemplate("Large Station")
+    /// WARNING: Using a string that is not a valid template name lets the game crash! This is case-sensitive.
+    /// See `scripts/shipTemplates.lua` for the existing templates.
     REGISTER_SCRIPT_CLASS_FUNCTION(ShipTemplateBasedObject, setTemplate);
     /// [Depricated]
     REGISTER_SCRIPT_CLASS_FUNCTION(ShipTemplateBasedObject, setShipTemplate);
@@ -65,6 +74,11 @@ REGISTER_SCRIPT_SUBCLASS_NO_CREATE(ShipTemplateBasedObject, SpaceObject)
     REGISTER_SCRIPT_CLASS_FUNCTION(ShipTemplateBasedObject, getRestocksMissilesDocked);
     REGISTER_SCRIPT_CLASS_FUNCTION(ShipTemplateBasedObject, setRestocksMissilesDocked);
 
+    REGISTER_SCRIPT_CLASS_FUNCTION(ShipTemplateBasedObject, getLongRangeRadarRange);
+    REGISTER_SCRIPT_CLASS_FUNCTION(ShipTemplateBasedObject, getShortRangeRadarRange);
+    REGISTER_SCRIPT_CLASS_FUNCTION(ShipTemplateBasedObject, setLongRangeRadarRange);
+    REGISTER_SCRIPT_CLASS_FUNCTION(ShipTemplateBasedObject, setShortRangeRadarRange);
+
     /// [Depricated]
     REGISTER_SCRIPT_CLASS_FUNCTION(ShipTemplateBasedObject, getFrontShield);
     /// [Depricated]
@@ -103,6 +117,9 @@ ShipTemplateBasedObject::ShipTemplateBasedObject(float collision_range, string m
     }
     hull_strength = hull_max = 100.0;
 
+    long_range_radar_range = 30000.0f;
+    short_range_radar_range = 5000.0f;
+
     registerMemberReplication(&template_name);
     registerMemberReplication(&type_name);
     registerMemberReplication(&shield_count);
@@ -116,6 +133,8 @@ ShipTemplateBasedObject::ShipTemplateBasedObject(float collision_range, string m
     registerMemberReplication(&impulse_sound_file);
     registerMemberReplication(&hull_strength, 0.5);
     registerMemberReplication(&hull_max);
+    registerMemberReplication(&long_range_radar_range, 0.5);
+    registerMemberReplication(&short_range_radar_range, 0.5);
 
     callsign = "[" + string(getMultiplayerId()) + "]";
 
@@ -213,11 +232,22 @@ void ShipTemplateBasedObject::draw3DTransparent()
 
 void ShipTemplateBasedObject::update(float delta)
 {
+    // All ShipTemplateBasedObjects should have a valid template.
+    // If this object lacks a template, or has an inconsistent template...
     if (!ship_template || ship_template->getName() != template_name)
     {
+        // Attempt to align the object's template to its reported template name.
         ship_template = ShipTemplate::getTemplate(template_name);
+
+        // If the template still doesn't exist, destroy the object.
         if (!ship_template)
+        {
+            LOG(ERROR) << "ShipTemplateBasedObject with ID " << string(getMultiplayerId()) << " lacked a template, so it was destroyed.";
+            destroy();
             return;
+        }
+
+        // If it does exist, set up its collider and model.
         ship_template->setCollisionData(this);
         model_info.setData(ship_template->model_data);
     }
@@ -238,12 +268,14 @@ void ShipTemplateBasedObject::update(float delta)
 std::unordered_map<string, string> ShipTemplateBasedObject::getGMInfo()
 {
     std::unordered_map<string, string> ret;
-    ret["CallSign"] = callsign;
-    ret["Type"] = type_name;
-    ret["Hull"] = string(hull_strength) + "/" + string(hull_max);
+    ret[trMark("gm_info", "CallSign")] = callsign;
+    ret[trMark("gm_info", "Type")] = type_name;
+    ret[trMark("gm_info", "Hull")] = string(hull_strength) + "/" + string(hull_max);
     for(int n=0; n<shield_count; n++)
     {
-        ret["Shield" + string(n + 1)] = string(shield_level[n]) + "/" + string(shield_max[n]);
+        // Note, translators: this is a compromise.
+        // Because of the deferred translation the variable parameter can't be forwarded, so it'll always be a suffix.
+        ret[trMark("gm_info", "Shield") + string(n + 1)] = string(shield_level[n]) + "/" + string(shield_max[n]);
     }
     return ret;
 }
@@ -295,9 +327,9 @@ void ShipTemplateBasedObject::takeDamage(float damage_amount, DamageInfo info)
         {
             if (info.instigator)
             {
-                on_taking_damage.call(P<ShipTemplateBasedObject>(this), P<SpaceObject>(info.instigator));
+                on_taking_damage.call<void>(P<ShipTemplateBasedObject>(this), P<SpaceObject>(info.instigator));
             } else {
-                on_taking_damage.call(P<ShipTemplateBasedObject>(this));
+                on_taking_damage.call<void>(P<ShipTemplateBasedObject>(this));
             }
         }
     }
@@ -317,9 +349,9 @@ void ShipTemplateBasedObject::takeHullDamage(float damage_amount, DamageInfo& in
         {
             if (info.instigator)
             {
-                on_destruction.call(P<ShipTemplateBasedObject>(this), P<SpaceObject>(info.instigator));
+                on_destruction.call<void>(P<ShipTemplateBasedObject>(this), P<SpaceObject>(info.instigator));
             } else {
-                on_destruction.call(P<ShipTemplateBasedObject>(this));
+                on_destruction.call<void>(P<ShipTemplateBasedObject>(this));
             }
         }
         destroy();
@@ -347,6 +379,10 @@ void ShipTemplateBasedObject::setTemplate(string template_name)
     shield_count = ship_template->shield_count;
     for(int n=0; n<shield_count; n++)
         shield_level[n] = shield_max[n] = ship_template->shield_level[n];
+
+    // Set the ship's radar ranges.
+    long_range_radar_range = ship_template->long_range_radar_range;
+    short_range_radar_range = ship_template->short_range_radar_range;
 
     radar_trace = ship_template->radar_trace;
     impulse_sound_file = ship_template->impulse_sound_file;
