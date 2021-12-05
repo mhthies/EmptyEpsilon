@@ -344,6 +344,7 @@ target_compile_definitions(seriousproton_deps
 )
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC WITH_DISCORD=$<BOOL:${WITH_DISCORD}>)
+target_compile_definitions(${PROJECT_NAME} PUBLIC WITH_MIDI=$<BOOL:${WITH_MIDI}>)
 
 target_include_directories(${PROJECT_NAME}
     PUBLIC
