@@ -3,6 +3,7 @@
 #include "shipTemplate.h"
 #include "spaceObjects/spaceObject.h"
 #include "mesh.h"
+#include "multiplayer_server.h"
 
 #include "scriptInterface.h"
 
@@ -19,6 +20,9 @@ REGISTER_SCRIPT_CLASS(ShipTemplate)
     /// Sets the type of template. Defaults to normal ships, so then it does not need to be set.
     /// Example: template:setType("ship"), template:setType("playership"), template:setType("station")
     REGISTER_SCRIPT_CLASS_FUNCTION(ShipTemplate, setType);
+    /// Hides this template from GM creation features and science database.
+    /// Hidden templates exists mainly for backwards compatibility of scripts.
+    REGISTER_SCRIPT_CLASS_FUNCTION(ShipTemplate, hidden);
     /// Set the default AI behaviour. EE has 3 types of AI coded into the game right now: "default", "fighter", "missilevolley"
     REGISTER_SCRIPT_CLASS_FUNCTION(ShipTemplate, setDefaultAI);
     /// Set the 3D model to be used for this template. The model referers to data set in the model_data.lua file.
@@ -159,7 +163,7 @@ ShipTemplate::ShipTemplate()
         weapon_storage[n] = 0;
     long_range_radar_range = 30000.0f;
     short_range_radar_range = 5000.0f;
-    radar_trace = "RadarArrow.png";
+    radar_trace = "radar/arrow.png";
     impulse_sound_file = "sfx/engine.wav";
     default_ai_name = "default";
 }
@@ -224,9 +228,9 @@ void ShipTemplate::setTubeSize(int index, EMissileSizes size)
 
 void ShipTemplate::setType(TemplateType type)
 {
-    if (radar_trace == "RadarArrow.png" && type == Station)
+    if (radar_trace == "radar/arrow.png" && type == Station)
     {
-        radar_trace = "RadarBlip.png";
+        radar_trace = "radar/blip.png";
     }
     if (type == Station)
         repair_docked = true;
@@ -284,10 +288,10 @@ void ShipTemplate::setBeamWeaponTurret(int index, float arc, float direction, fl
     beams[index].setTurretRotationRate(rotation_rate);
 }
 
-sf::Vector2i ShipTemplate::interiorSize()
+glm::ivec2 ShipTemplate::interiorSize()
 {
-    sf::Vector2i min_pos(1000, 1000);
-    sf::Vector2i max_pos(0, 0);
+    glm::ivec2 min_pos(1000, 1000);
+    glm::ivec2 max_pos(0, 0);
     for(unsigned int n=0; n<rooms.size(); n++)
     {
         min_pos.x = std::min(min_pos.x, rooms[n].position.x);
@@ -295,20 +299,20 @@ sf::Vector2i ShipTemplate::interiorSize()
         max_pos.x = std::max(max_pos.x, rooms[n].position.x + rooms[n].size.x);
         max_pos.y = std::max(max_pos.y, rooms[n].position.y + rooms[n].size.y);
     }
-    if (min_pos != sf::Vector2i(1, 1))
+    if (min_pos != glm::ivec2(1, 1))
     {
-        sf::Vector2i offset = sf::Vector2i(1, 1) - min_pos;
+        glm::ivec2 offset = glm::ivec2(1, 1) - min_pos;
         for(unsigned int n=0; n<rooms.size(); n++)
             rooms[n].position += offset;
         for(unsigned int n=0; n<doors.size(); n++)
             doors[n].position += offset;
         max_pos += offset;
     }
-    max_pos += sf::Vector2i(1, 1);
+    max_pos += glm::ivec2(1, 1);
     return max_pos;
 }
 
-ESystem ShipTemplate::getSystemAtRoom(sf::Vector2i position)
+ESystem ShipTemplate::getSystemAtRoom(glm::ivec2 position)
 {
     for(unsigned int n=0; n<rooms.size(); n++)
     {
@@ -323,7 +327,7 @@ void ShipTemplate::setCollisionData(P<SpaceObject> object)
     model_data->setCollisionData(object);
 }
 
-void ShipTemplate::setShields(std::vector<float> values)
+void ShipTemplate::setShields(const std::vector<float>& values)
 {
     shield_count = std::min(max_shield_count, int(values.size()));
     for(int n=0; n<shield_count; n++)
@@ -411,7 +415,7 @@ void ShipTemplate::setDefaultAI(string default_ai_name)
     this->default_ai_name = default_ai_name;
 }
 
-void ShipTemplate::setDockClasses(std::vector<string> classes)
+void ShipTemplate::setDockClasses(const std::vector<string>& classes)
 {
     can_be_docked_by_class = std::unordered_set<string>(classes.begin(), classes.end());
 }
@@ -475,24 +479,24 @@ void ShipTemplate::setWeaponStorage(EMissileWeapons weapon, int amount)
     }
 }
 
-void ShipTemplate::addRoom(sf::Vector2i position, sf::Vector2i size)
+void ShipTemplate::addRoom(glm::ivec2 position, glm::ivec2 size)
 {
     rooms.push_back(ShipRoomTemplate(position, size, SYS_None));
 }
 
-void ShipTemplate::addRoomSystem(sf::Vector2i position, sf::Vector2i size, ESystem system)
+void ShipTemplate::addRoomSystem(glm::ivec2 position, glm::ivec2 size, ESystem system)
 {
     rooms.push_back(ShipRoomTemplate(position, size, system));
 }
 
-void ShipTemplate::addDoor(sf::Vector2i position, bool horizontal)
+void ShipTemplate::addDoor(glm::ivec2 position, bool horizontal)
 {
     doors.push_back(ShipDoorTemplate(position, horizontal));
 }
 
 void ShipTemplate::setRadarTrace(string trace)
 {
-    radar_trace = trace;
+    radar_trace = "radar/" + trace;
 }
 
 void ShipTemplate::setLongRangeRadarRange(float range)

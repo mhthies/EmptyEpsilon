@@ -69,8 +69,8 @@ private:
         CD_BoxSelect,
         CD_DragObjects
     } click_and_drag_state;
-    sf::Vector2f drag_start_position;
-    sf::Vector2f drag_previous_position;
+    glm::vec2 drag_start_position{};
+    glm::vec2 drag_previous_position{};
 
     GuiButton* create_button;
     GuiButton* cancel_action_button;
@@ -79,13 +79,11 @@ public:
     GameMasterScreen();
     virtual ~GameMasterScreen();
 
-    virtual void update(float delta);
+    virtual void update(float delta) override;
 
-    void onMouseDown(sf::Vector2f position);
-    void onMouseDrag(sf::Vector2f position);
-    void onMouseUp(sf::Vector2f position);
-
-    virtual void onKey(sf::Event::KeyEvent key, int unicode);
+    void onMouseDown(sp::io::Pointer::Button button, glm::vec2 position);
+    void onMouseDrag(glm::vec2 position);
+    void onMouseUp(glm::vec2 position);
 
     PVector<SpaceObject> getSelection();
 

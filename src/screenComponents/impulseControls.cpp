@@ -13,15 +13,15 @@ GuiImpulseControls::GuiImpulseControls(GuiContainer* owner, string id)
         if (my_spaceship)
             my_spaceship->commandImpulse(value);
     });
-    slider->addSnapValue(0.0, 0.1)->setPosition(0, 0, ATopLeft)->setSize(50, GuiElement::GuiSizeMax);
+    slider->addSnapValue(0.0, 0.1)->setPosition(0, 0, sp::Alignment::TopLeft)->setSize(50, GuiElement::GuiSizeMax);
 
     label = new GuiKeyValueDisplay(this, id, 0.5, tr("slider", "Impulse"), "0%");
-    label->setTextSize(30)->setPosition(50, 0, ATopLeft)->setSize(40, GuiElement::GuiSizeMax);
+    label->setTextSize(30)->setPosition(50, 0, sp::Alignment::TopLeft)->setSize(40, GuiElement::GuiSizeMax);
 
-    (new GuiPowerDamageIndicator(this, id + "_DPI", SYS_Impulse, ATopCenter))->setSize(50, GuiElement::GuiSizeMax);
+    (new GuiPowerDamageIndicator(this, id + "_DPI", SYS_Impulse, sp::Alignment::TopCenter))->setSize(50, GuiElement::GuiSizeMax);
 }
 
-void GuiImpulseControls::onDraw(sf::RenderTarget& window)
+void GuiImpulseControls::onDraw(sp::RenderTarget& target)
 {
     if (my_spaceship)
     {
@@ -30,19 +30,25 @@ void GuiImpulseControls::onDraw(sf::RenderTarget& window)
     }
 }
 
-void GuiImpulseControls::onHotkey(const HotkeyResult& key)
+void GuiImpulseControls::onUpdate()
 {
-    if (key.category == "HELMS" && my_spaceship)
+    if (my_spaceship)
     {
-        if (key.hotkey == "INC_IMPULSE")
-            my_spaceship->commandImpulse(std::min(1.0f, slider->getValue() + 0.1f));
-        else if (key.hotkey == "DEC_IMPULSE")
-            my_spaceship->commandImpulse(std::max(-1.0f, slider->getValue() - 0.1f));
-        else if (key.hotkey == "ZERO_IMPULSE")
+        float change = keys.helms_increase_impulse.getValue() - keys.helms_decrease_impulse.getValue();
+        if (change != 0.0f)
+            my_spaceship->commandImpulse(std::min(1.0f, slider->getValue() + change * 0.1f));
+        if (keys.helms_zero_impulse.getDown())
             my_spaceship->commandImpulse(0.0f);
-        else if (key.hotkey == "MAX_IMPULSE")
+        if (keys.helms_max_impulse.getDown())
             my_spaceship->commandImpulse(1.0f);
-        else if (key.hotkey == "MIN_IMPULSE")
+        if (keys.helms_min_impulse.getDown())
             my_spaceship->commandImpulse(-1.0f);
+        
+        float set_value = keys.helms_set_impulse.getValue();
+        if (set_value != my_spaceship->impulse_request && (set_value != 0.0f || set_active))
+        {
+            my_spaceship->commandImpulse(set_value);
+            set_active = set_value != 0.0f; //Make sure the next update is send, even if it is back to zero.
+        }
     }
 }

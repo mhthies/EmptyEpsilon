@@ -1,7 +1,6 @@
 #include "gui2_container.h"
 #include "gui2_element.h"
 #include "gui2_canvas.h"
-#include "input.h"
 
 GuiContainer::~GuiContainer()
 {
@@ -12,9 +11,8 @@ GuiContainer::~GuiContainer()
     }
 }
 
-void GuiContainer::drawElements(sf::FloatRect parent_rect, sf::RenderTarget& window)
+void GuiContainer::drawElements(glm::vec2 mouse_position, sp::Rect parent_rect, sp::RenderTarget& renderer)
 {
-    sf::Vector2f mouse_position = InputHandler::getMousePos();
     for(auto it = elements.begin(); it != elements.end(); )
     {
         GuiElement* element = *it;
@@ -38,8 +36,8 @@ void GuiContainer::drawElements(sf::FloatRect parent_rect, sf::RenderTarget& win
 
             if (element->visible)
             {
-                element->onDraw(window);
-                element->drawElements(element->rect, window);
+                element->onDraw(renderer);
+                element->drawElements(mouse_position, element->rect, renderer);
             }
 
             it++;
@@ -47,73 +45,38 @@ void GuiContainer::drawElements(sf::FloatRect parent_rect, sf::RenderTarget& win
     }
 }
 
-void GuiContainer::drawDebugElements(sf::FloatRect parent_rect, sf::RenderTarget& window)
+void GuiContainer::drawDebugElements(sp::Rect parent_rect, sp::RenderTarget& renderer)
 {
-    sf::Vector2f mouse_position = InputHandler::getMousePos();
     for(GuiElement* element : elements)
     {
         if (element->visible)
         {
-            sf::RectangleShape draw_rect(sf::Vector2f(element->rect.width, element->rect.height));
-            draw_rect.setPosition(element->rect.left, element->rect.top);
-            draw_rect.setFillColor(sf::Color(255, 255, 255, 5));
-            draw_rect.setOutlineColor(sf::Color::Magenta);
-            draw_rect.setOutlineThickness(2.0);
-            window.draw(draw_rect);
+            renderer.fillRect(element->rect, glm::u8vec4(255, 255, 255, 5));
+            //TODO_GFX: renderer.outlineRect(element->rect, glm::u8vec4(255, 0, 255, 255));
 
-            element->drawDebugElements(element->rect, window);
+            element->drawDebugElements(element->rect, renderer);
 
-            if (element->rect.contains(mouse_position))
-                element->drawText(window, sf::FloatRect(element->rect.left, element->rect.top - 20, element->rect.width, 20), element->id, ATopLeft, 20, main_font, sf::Color::Red);
+            renderer.drawText(sp::Rect(element->rect.position.x, element->rect.position.y - 20, element->rect.size.x, 20), element->id, sp::Alignment::TopLeft, 20, main_font, glm::u8vec4(255, 0, 0, 255));
         }
     }
 }
 
-GuiElement* GuiContainer::getClickElement(sf::Vector2f mouse_position)
+GuiElement* GuiContainer::getClickElement(sp::io::Pointer::Button button, glm::vec2 position, sp::io::Pointer::ID id)
 {
     for(std::list<GuiElement*>::reverse_iterator it = elements.rbegin(); it != elements.rend(); it++)
     {
         GuiElement* element = *it;
 
-        if (element->hover && element->visible && element->enabled)
+        if (element->visible && element->enabled && element->rect.contains(position))
         {
-            GuiElement* clicked = element->getClickElement(mouse_position);
+            GuiElement* clicked = element->getClickElement(button, position, id);
             if (clicked)
                 return clicked;
-            if (element->onMouseDown(mouse_position))
+            if (element->onMouseDown(button, position, id))
             {
                 return element;
             }
         }
     }
     return nullptr;
-}
-
-void GuiContainer::forwardKeypressToElements(const HotkeyResult& key)
-{
-    for(GuiElement* element : elements)
-    {
-        if (element->isVisible())
-        {
-            if (element->isEnabled())
-                element->onHotkey(key);
-            element->forwardKeypressToElements(key);
-        }
-    }
-}
-
-bool GuiContainer::forwardJoystickAxisToElements(const AxisAction& axisAction)
-{
-    for(GuiElement* element : elements)
-    {
-        if (element->isVisible())
-        {
-            if (element->isEnabled())
-                if (element->onJoystickAxis(axisAction))
-                    return true;
-            if (element->forwardJoystickAxisToElements(axisAction))
-                return true;
-        }
-    }
-    return false;
 }

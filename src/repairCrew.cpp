@@ -1,4 +1,8 @@
 #include "repairCrew.h"
+#include "random.h"
+#include "multiplayer_client.h"
+#include "multiplayer_server.h"
+#include <SDL_assert.h>
 
 const static int16_t CMD_SET_TARGET_POSITION = 0x0000;
 
@@ -47,7 +51,7 @@ public:
     int width;
     int height;
 
-    PathMap(const sf::Vector2i &size) : pathMap(size.x*size.y), width(size.x), height(size.y) {
+    PathMap(const glm::ivec2 &size) : pathMap(size.x*size.y), width(size.x), height(size.y) {
         // init all interior down/right doors (not right or bottom edge)
         for (int x = 0; x < width-1; x++) {
             for (int y = 0; y < height-1; y++) {
@@ -58,12 +62,12 @@ public:
     }
 
     inline PathNode& Node(int x, int y) {
-        assert(x >= 0 && x < width && y >= 0 && y < height);
+        SDL_assert(x >= 0 && x < width && y >= 0 && y < height);
         return pathMap[y*width + x];
     }
 };
 
-ERepairCrewDirection pathFind(sf::Vector2i start_pos, sf::Vector2i target_pos, P<ShipTemplate> t)
+ERepairCrewDirection pathFind(glm::ivec2 start_pos, glm::ivec2 target_pos, P<ShipTemplate> t)
 {
     PathMap map(t->interiorSize());
 
@@ -92,11 +96,11 @@ ERepairCrewDirection pathFind(sf::Vector2i start_pos, sf::Vector2i target_pos, P
         }
     }
 
-    std::vector<sf::Vector2i> search_points;
+    std::vector<glm::ivec2> search_points;
     search_points.push_back(start_pos);
     while(search_points.size() > 0)
     {
-        sf::Vector2i pos = search_points[0];
+        glm::ivec2 pos = search_points[0];
         if (pos == target_pos)
             return map.Node(pos.x,pos.y).arrive_direction;
         search_points.erase(search_points.begin());
@@ -105,25 +109,25 @@ ERepairCrewDirection pathFind(sf::Vector2i start_pos, sf::Vector2i target_pos, P
         {
             map.Node(pos.x + 1,pos.y).arrive_direction = map.Node(pos.x,pos.y).arrive_direction;
             if (map.Node(pos.x + 1,pos.y).arrive_direction == RC_None) map.Node(pos.x + 1,pos.y).arrive_direction = RC_Right;
-            search_points.push_back(sf::Vector2i(pos.x + 1, pos.y));
+            search_points.push_back(glm::ivec2(pos.x + 1, pos.y));
         }
         if (pos.x > 0 && map.Node(pos.x - 1,pos.y).right && map.Node(pos.x - 1,pos.y).arrive_direction == RC_None)
         {
             map.Node(pos.x - 1,pos.y).arrive_direction = map.Node(pos.x,pos.y).arrive_direction;
             if (map.Node(pos.x - 1,pos.y).arrive_direction == RC_None) map.Node(pos.x - 1,pos.y).arrive_direction = RC_Left;
-            search_points.push_back(sf::Vector2i(pos.x - 1, pos.y));
+            search_points.push_back(glm::ivec2(pos.x - 1, pos.y));
         }
         if (map.Node(pos.x,pos.y).down && map.Node(pos.x,pos.y + 1).arrive_direction == RC_None)
         {
             map.Node(pos.x,pos.y + 1).arrive_direction = map.Node(pos.x,pos.y).arrive_direction;
             if (map.Node(pos.x,pos.y + 1).arrive_direction == RC_None) map.Node(pos.x,pos.y + 1).arrive_direction = RC_Down;
-            search_points.push_back(sf::Vector2i(pos.x, pos.y + 1));
+            search_points.push_back(glm::ivec2(pos.x, pos.y + 1));
         }
         if (pos.y > 0 && map.Node(pos.x,pos.y - 1).down && map.Node(pos.x,pos.y - 1).arrive_direction == RC_None)
         {
             map.Node(pos.x,pos.y - 1).arrive_direction = map.Node(pos.x,pos.y).arrive_direction;
             if (map.Node(pos.x,pos.y - 1).arrive_direction == RC_None) map.Node(pos.x,pos.y - 1).arrive_direction = RC_Up;
-            search_points.push_back(sf::Vector2i(pos.x, pos.y - 1));
+            search_points.push_back(glm::ivec2(pos.x, pos.y - 1));
         }
     }
 
@@ -158,21 +162,22 @@ void RepairCrew::update(float delta)
         return;
     }
 
-    if (position.x < -0.5)
+    if (position.x < -0.5f)
     {
         ship->ship_template->interiorSize();
         int n=irandom(0, ship->ship_template->rooms.size() - 1);
-        position = sf::Vector2f(ship->ship_template->rooms[n].position + sf::Vector2i(irandom(0, ship->ship_template->rooms[n].size.x - 1), irandom(0, ship->ship_template->rooms[n].size.y - 1)));
-        target_position = sf::Vector2i(position);
+        position.x = ship->ship_template->rooms[n].position.x + irandom(0, ship->ship_template->rooms[n].size.x - 1);
+        position.y = ship->ship_template->rooms[n].position.y + irandom(0, ship->ship_template->rooms[n].size.y - 1);
+        target_position = glm::ivec2(position.x, position.y);
     }
 
     action_delay -= delta;
-    sf::Vector2i pos = sf::Vector2i(position + sf::Vector2f(0.5, 0.5));
+    glm::ivec2 pos = glm::ivec2(position.x + 0.5f, position.y + 0.5f);
     switch(action)
     {
     case RC_Idle:
         {
-            action_delay = 1.0 / move_speed;
+            action_delay = 1.0f / move_speed;
             if (pos != target_position)
             {
                 ERepairCrewDirection new_direction = pathFind(pos, target_position, ship->ship_template);
@@ -182,29 +187,29 @@ void RepairCrew::update(float delta)
                     direction = new_direction;
                 }
             }
-            position = sf::Vector2f(pos);
+            position = glm::vec2{pos.x, pos.y};
 
             ESystem system = ship->ship_template->getSystemAtRoom(pos);
             if (system != SYS_None)
             {
                 ship->systems[system].health += repair_per_second * delta;
-                if (ship->systems[system].health > 1.0)
+                if (ship->systems[system].health > 1.0f)
                     ship->systems[system].health = 1.0;
                 ship->systems[system].hacked_level -= repair_per_second * delta;
-                if (ship->systems[system].hacked_level < 0.0)
+                if (ship->systems[system].hacked_level < 0.0f)
                     ship->systems[system].hacked_level = 0.0;
             }
-            if (ship->auto_repair_enabled && pos == target_position && (system == SYS_None || !ship->hasSystem(system) || ship->systems[system].health == 1.0))
+            if (ship->auto_repair_enabled && pos == target_position && (system == SYS_None || !ship->hasSystem(system) || ship->systems[system].health == 1.0f))
             {
                 int n=irandom(0, SYS_COUNT - 1);
 
-                if (ship->hasSystem(ESystem(n)) && ship->systems[n].health < 1.0)
+                if (ship->hasSystem(ESystem(n)) && ship->systems[n].health < 1.0f)
                 {
                     for(unsigned int idx=0; idx<ship->ship_template->rooms.size(); idx++)
                     {
                         if (ship->ship_template->rooms[idx].system == ESystem(n))
                         {
-                            target_position = ship->ship_template->rooms[idx].position + sf::Vector2i(irandom(0, ship->ship_template->rooms[idx].size.x - 1), irandom(0, ship->ship_template->rooms[idx].size.y - 1));
+                            target_position = ship->ship_template->rooms[idx].position + glm::ivec2(irandom(0, ship->ship_template->rooms[idx].size.x - 1), irandom(0, ship->ship_template->rooms[idx].size.y - 1));
                         }
                     }
                 }
@@ -220,13 +225,13 @@ void RepairCrew::update(float delta)
         case RC_Up: position.y -= delta * move_speed; break;
         case RC_Down: position.y += delta * move_speed; break;
         }
-        if (action_delay < 0.0)
+        if (action_delay < 0.0f)
             action = RC_Idle;
         break;
     }
 }
 
-void RepairCrew::onReceiveClientCommand(int32_t client_id, sf::Packet& packet)
+void RepairCrew::onReceiveClientCommand(int32_t client_id, sp::io::DataBuffer& packet)
 {
     int16_t command;
     packet >> command;
@@ -234,7 +239,7 @@ void RepairCrew::onReceiveClientCommand(int32_t client_id, sf::Packet& packet)
     {
     case CMD_SET_TARGET_POSITION:
         {
-            sf::Vector2i pos;
+            glm::ivec2 pos;
             packet >> pos;
             if (!isTargetPositionTaken(pos))
             {
@@ -245,14 +250,14 @@ void RepairCrew::onReceiveClientCommand(int32_t client_id, sf::Packet& packet)
     }
 }
 
-void RepairCrew::commandSetTargetPosition(sf::Vector2i position)
+void RepairCrew::commandSetTargetPosition(glm::ivec2 position)
 {
-    sf::Packet packet;
+    sp::io::DataBuffer packet;
     packet << CMD_SET_TARGET_POSITION << position;
     sendClientCommand(packet);
 }
 
-bool RepairCrew::isTargetPositionTaken(sf::Vector2i pos)
+bool RepairCrew::isTargetPositionTaken(glm::ivec2 pos)
 {
     foreach(RepairCrew, c, repairCrewList)
     {

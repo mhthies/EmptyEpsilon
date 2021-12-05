@@ -27,12 +27,12 @@ RelayScreen::RelayScreen(GuiContainer* owner, bool allow_comms)
     radar = new GuiRadarView(this, "RELAY_RADAR", 50000.0f, &targets);
     radar->longRange()->enableWaypoints()->enableCallsigns()->setStyle(GuiRadarView::Rectangular)->setFogOfWarStyle(GuiRadarView::FriendlysShortRangeFogOfWar);
     radar->setAutoCentering(false);
-    radar->setPosition(0, 0, ATopLeft)->setSize(GuiElement::GuiSizeMax, GuiElement::GuiSizeMax);
+    radar->setPosition(0, 0, sp::Alignment::TopLeft)->setSize(GuiElement::GuiSizeMax, GuiElement::GuiSizeMax);
     radar->setCallbacks(
-        [this](sf::Vector2f position) { //down
+        [this](sp::io::Pointer::Button button, glm::vec2 position) { //down
             if (mode == TargetSelection && targets.getWaypointIndex() > -1 && my_spaceship)
             {
-                if (sf::length(my_spaceship->waypoints[targets.getWaypointIndex()] - position) < 1000.0)
+                if (glm::length(my_spaceship->waypoints[targets.getWaypointIndex()] - position) < 1000.0f)
                 {
                     mode = MoveWaypoint;
                     drag_waypoint_index = targets.getWaypointIndex();
@@ -40,13 +40,13 @@ RelayScreen::RelayScreen(GuiContainer* owner, bool allow_comms)
             }
             mouse_down_position = position;
         },
-        [this](sf::Vector2f position) { //drag
+        [this](glm::vec2 position) { //drag
             if (mode == TargetSelection)
                 radar->setViewPosition(radar->getViewPosition() - (position - mouse_down_position));
             if (mode == MoveWaypoint && my_spaceship)
                 my_spaceship->commandMoveWaypoint(drag_waypoint_index, position);
         },
-        [this](sf::Vector2f position) { //up
+        [this](glm::vec2 position) { //up
             switch(mode)
             {
             case TargetSelection:
@@ -76,7 +76,7 @@ RelayScreen::RelayScreen(GuiContainer* owner, bool allow_comms)
         radar->setViewPosition(my_spaceship->getPosition());
 
     GuiAutoLayout* sidebar = new GuiAutoLayout(this, "SIDE_BAR", GuiAutoLayout::LayoutVerticalTopToBottom);
-    sidebar->setPosition(-20, 150, ATopRight)->setSize(250, GuiElement::GuiSizeMax);
+    sidebar->setPosition(-20, 150, sp::Alignment::TopRight)->setSize(250, GuiElement::GuiSizeMax);
 
     info_callsign = new GuiKeyValueDisplay(sidebar, "SCIENCE_CALLSIGN", 0.4, tr("Callsign"), "");
     info_callsign->setSize(GuiElement::GuiSizeMax, 30);
@@ -88,13 +88,13 @@ RelayScreen::RelayScreen(GuiContainer* owner, bool allow_comms)
         zoom_label->setText(tr("Zoom: {zoom}x").format({{"zoom", string(50000.0f / value, 1.0f)}}));
         radar->setDistance(value);
     });
-    zoom_slider->setPosition(20, -70, ABottomLeft)->setSize(250, 50);
+    zoom_slider->setPosition(20, -70, sp::Alignment::BottomLeft)->setSize(250, 50);
     zoom_label = new GuiLabel(zoom_slider, "", "Zoom: 1.0x", 30);
     zoom_label->setSize(GuiElement::GuiSizeMax, GuiElement::GuiSizeMax);
 
     // Option buttons for comms, waypoints, and probes.
     option_buttons = new GuiAutoLayout(this, "BUTTONS", GuiAutoLayout::LayoutVerticalTopToBottom);
-    option_buttons->setPosition(20, 50, ATopLeft)->setSize(250, GuiElement::GuiSizeMax);
+    option_buttons->setPosition(20, 50, sp::Alignment::TopLeft)->setSize(250, GuiElement::GuiSizeMax);
 
     // Open comms button.
     if (allow_comms == true)
@@ -157,7 +157,7 @@ RelayScreen::RelayScreen(GuiContainer* owner, bool allow_comms)
 
     // Bottom layout.
     GuiAutoLayout* layout = new GuiAutoLayout(this, "", GuiAutoLayout::LayoutVerticalBottomToTop);
-    layout->setPosition(-20, -70, ABottomRight)->setSize(300, GuiElement::GuiSizeMax);
+    layout->setPosition(-20, -70, sp::Alignment::BottomRight)->setSize(300, GuiElement::GuiSizeMax);
 
     // Alert level buttons.
     alert_level_button = new GuiToggleButton(layout, "", tr("Alert level"), [this](bool value)
@@ -183,7 +183,7 @@ RelayScreen::RelayScreen(GuiContainer* owner, bool allow_comms)
         alert_level_buttons.push_back(alert_button);
     }
 
-    (new GuiCustomShipFunctions(this, relayOfficer, ""))->setPosition(-20, 240, ATopRight)->setSize(250, GuiElement::GuiSizeMax);
+    (new GuiCustomShipFunctions(this, relayOfficer, ""))->setPosition(-20, 240, sp::Alignment::TopRight)->setSize(250, GuiElement::GuiSizeMax);
 
     hacking_dialog = new GuiHackingDialog(this, "");
 
@@ -194,13 +194,13 @@ RelayScreen::RelayScreen(GuiContainer* owner, bool allow_comms)
     }
 }
 
-void RelayScreen::onDraw(sf::RenderTarget& window)
+void RelayScreen::onDraw(sp::RenderTarget& renderer)
 {
     ///Handle mouse wheel
-    float mouse_wheel_delta = InputHandler::getMouseWheelDelta();
-    if (mouse_wheel_delta != 0.0)
+    float mouse_wheel_delta = keys.zoom_in.getValue() - keys.zoom_out.getValue();
+    if (mouse_wheel_delta != 0.0f)
     {
-        float view_distance = radar->getDistance() * (1.0 - (mouse_wheel_delta * 0.1f));
+        float view_distance = radar->getDistance() * (1.0f - (mouse_wheel_delta * 0.1f));
         if (view_distance > 50000.0f)
             view_distance = 50000.0f;
         if (view_distance < 6250.0f)
@@ -212,7 +212,7 @@ void RelayScreen::onDraw(sf::RenderTarget& window)
     }
     ///!
 
-    GuiOverlay::onDraw(window);
+    GuiOverlay::onDraw(renderer);
 
     info_faction->setValue("-");
 
@@ -252,7 +252,7 @@ void RelayScreen::onDraw(sf::RenderTarget& window)
 
             // If the target is within the short-range radar range/5U of the
             // object, consider it near a friendly object.
-            if (obj->getPosition() - target->getPosition() < r)
+            if (glm::length2(obj->getPosition() - target->getPosition()) < r * r)
             {
                 near_friendly = true;
                 break;

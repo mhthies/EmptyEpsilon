@@ -1,7 +1,10 @@
 #ifndef FACTION_INFO_H
 #define FACTION_INFO_H
 
-#include "engine.h"
+#include "P.h"
+#include "stringImproved.h"
+#include <glm/gtc/type_precision.hpp>
+
 
 class FactionInfo;
 extern PVector<FactionInfo> factionInfo;
@@ -19,7 +22,7 @@ private:
 public:
     FactionInfo();
 
-    sf::Color gm_color;
+    glm::u8vec4 gm_color;
 
     std::vector<EFactionVsFactionState> states;
 
@@ -48,7 +51,7 @@ public:
      * \param g Green component.
      * \param b Blue component.
      */
-    void setGMColor(int r, int g, int b) { gm_color = sf::Color(r, g, b); }
+    void setGMColor(int r, int g, int b) { gm_color = glm::u8vec4(r, g, b, 255); }
     /*!
      * \brief Set description of faction.
      * \param description

@@ -15,8 +15,7 @@ public:
     GuiSelfDestructButton(GuiContainer* owner, string id);
 
     virtual void onUpdate() override;
-    virtual void onDraw(sf::RenderTarget& window) override;
-    virtual void onHotkey(const HotkeyResult& key) override;
+    virtual void onDraw(sp::RenderTarget& target) override;
 };
 
 #endif//SELF_DESTRUCT_BUTTON_H

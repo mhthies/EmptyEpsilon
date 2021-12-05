@@ -1,11 +1,16 @@
 #ifndef SPACE_OBJECT_H
 #define SPACE_OBJECT_H
 
-#include "engine.h"
+#include "collisionable.h"
+#include "multiplayer.h"
+#include "scriptInterface.h"
 #include "featureDefs.h"
 #include "modelInfo.h"
 #include "factionInfo.h"
 #include "shipTemplate.h"
+#include "graphics/renderTarget.h"
+
+#include <glm/mat4x4.hpp>
 
 enum EDamageType
 {
@@ -19,7 +24,7 @@ class DamageInfo
 public:
     P<SpaceObject> instigator;
     EDamageType type;
-    sf::Vector2f location;
+    glm::vec2 location{0, 0};
     int frequency;
     ESystem system_target;
 
@@ -27,7 +32,7 @@ public:
     : instigator(), type(DT_Energy), location(0, 0), frequency(-1), system_target(SYS_None)
     {}
 
-    DamageInfo(P<SpaceObject> instigator, EDamageType type, sf::Vector2f location)
+    DamageInfo(P<SpaceObject> instigator, EDamageType type, glm::vec2 location)
     : instigator(instigator), type(type), location(location), frequency(-1), system_target(SYS_None)
     {}
 };
@@ -73,6 +78,15 @@ enum EScannedState
     SS_FullScan
 };
 
+/*! Radar rendering layer.
+* Allow relative ordering of objects for drawing
+*/
+enum class ERadarLayer
+{
+    Background,
+    Default
+};
+
 class SpaceObject;
 class PlayerSpaceship;
 extern PVector<SpaceObject> space_object_list;
@@ -109,7 +123,7 @@ public:
     SpaceObject(float collisionRange, string multiplayerName, float multiplayer_significant_range=-1);
     virtual ~SpaceObject();
 
-    float getRadius() { return object_radius; }
+    float getRadius() const { return object_radius; }
     void setRadius(float radius) { object_radius = radius; setCollisionRadius(radius); }
 
     bool hasWeight() { return has_weight; }
@@ -120,6 +134,7 @@ public:
     float getRadarSignatureGravity() { return radar_signature.gravity; }
     float getRadarSignatureElectrical() { return radar_signature.electrical; }
     float getRadarSignatureBiological() { return radar_signature.biological; }
+    virtual ERadarLayer getRadarLayer() const { return ERadarLayer::Default; }
 
     string getDescription(EScannedState state)
     {
@@ -171,9 +186,9 @@ public:
 
     virtual void draw3D();
     virtual void draw3DTransparent() {}
-    virtual void drawOnRadar(sf::RenderTarget& window, sf::Vector2f position, float scale, float rotation, bool longRange);
-    virtual void drawOnGMRadar(sf::RenderTarget& window, sf::Vector2f position, float scale, float rotation, bool longRange);
-    virtual void destroy();
+    virtual void drawOnRadar(sp::RenderTarget& window, glm::vec2 position, float scale, float rotation, bool longRange);
+    virtual void drawOnGMRadar(sp::RenderTarget& window, glm::vec2 position, float scale, float rotation, bool longRange);
+    virtual void destroy() override;
 
     virtual void setCallSign(string new_callsign) { callsign = new_callsign; }
     virtual string getCallSign() { return callsign; }
@@ -204,7 +219,7 @@ public:
     virtual std::unordered_map<string, string> getGMInfo() { return std::unordered_map<string, string>(); }
     virtual string getExportLine() { return ""; }
 
-    static void damageArea(sf::Vector2f position, float blast_range, float min_damage, float max_damage, DamageInfo info, float min_range);
+    static void damageArea(glm::vec2 position, float blast_range, float min_damage, float max_damage, DamageInfo info, float min_range);
 
     bool isEnemy(P<SpaceObject> obj);
     bool isFriendly(P<SpaceObject> obj);
@@ -228,11 +243,15 @@ public:
 
     ScriptSimpleCallback on_destroyed;
 
+    glm::mat4 getModelTransform() const { return getModelMatrix(); }
+
 protected:
+    virtual glm::mat4 getModelMatrix() const;
     ModelInfo model_info;
     bool has_weight = true;
 };
 
+template<> void convert<EDamageType>::param(lua_State* L, int& idx, EDamageType& dt);
 // Define a script conversion function for the DamageInfo structure.
 template<> void convert<DamageInfo>::param(lua_State* L, int& idx, DamageInfo& di);
 // Function to convert a lua parameter to a scan state.

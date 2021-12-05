@@ -9,7 +9,7 @@ GuiCustomShipFunctions::GuiCustomShipFunctions(GuiContainer* owner, ECrewPositio
 {
 }
 
-void GuiCustomShipFunctions::onDraw(sf::RenderTarget& window)
+void GuiCustomShipFunctions::onDraw(sp::RenderTarget& target)
 {
     if (!my_spaceship)
         return;
@@ -69,6 +69,7 @@ void GuiCustomShipFunctions::createEntries()
             e.element->destroy();
     }
     entries.clear();
+    std::sort(my_spaceship->custom_functions.begin(), my_spaceship->custom_functions.end());
     for(PlayerSpaceship::CustomShipFunction& csf : my_spaceship->custom_functions)
     {
         entries.emplace_back();

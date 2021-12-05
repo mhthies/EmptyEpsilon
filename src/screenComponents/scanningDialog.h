@@ -30,8 +30,8 @@ private:
 public:
     GuiScanningDialog(GuiContainer* owner, string id);
 
-    virtual void onDraw(sf::RenderTarget& window) override;
-    virtual bool onJoystickAxis(const AxisAction& axisAction) override;
+    virtual void onDraw(sp::RenderTarget& target) override;
+    virtual void onUpdate() override;
 
     void setupParameters();
     void updateSignal();

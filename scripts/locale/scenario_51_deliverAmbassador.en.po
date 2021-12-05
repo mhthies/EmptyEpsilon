@@ -5,17 +5,21 @@ msgstr ""
 # Scenario description
 msgid ""
 "Unrest on Goltin 7 requires the skills of ambassador Gremus. Your mission: "
-"transport the ambassador wherever needed. You may encounter resistance.You "
-"are not flying a destroyer bristling with weapons. You are on a transport "
-"freighter with weapons bolted on as an afterthought. These weapons are "
-"pointed behind you to deter any marauding pirates. You won't necessarily be "
-"able to just destroy any enemies that might attempt to stop you from "
+"transport the ambassador wherever needed. You may encounter resistance.\n"
+"\n"
+"You are not flying a destroyer bristling with weapons. You are on a "
+"transport freighter with weapons bolted on as an afterthought. These weapons "
+"are pointed behind you to deter any marauding pirates. You won't necessarily "
+"be able to just destroy any enemies that might attempt to stop you from "
 "accomplishing your mission, you may have to evade. The navy wants you to "
 "succeed, so has fitted your ship with warp drive and a single diverse "
 "ordnance weapons tube which includes nuclear capability. If you get lost or "
-"forget your orders, check in with stations for information.Player ship: "
-"Template model: Flavia P. Falcon. Suggest turning music volume to 10% and "
-"sound volume to 100% on serverVersion 4"
+"forget your orders, check in with stations for information.\n"
+"\n"
+"Player ship: Template model: Flavia P. Falcon. Suggest turning music volume "
+"to 10% and sound volume to 100% on server\n"
+"\n"
+"Version 4"
 msgstr ""
 
 #: scripts/scenario_51_deliverAmbassador.lua:21
@@ -248,7 +252,6 @@ msgid "Also increased the top speed of your impulse engine"
 msgstr ""
 
 #: scripts/scenario_51_deliverAmbassador.lua:605
-#: scripts/scenario_51_deliverAmbassador.lua:813
 msgctxt "audioButton"
 msgid "|> AMBGREMUS021"
 msgstr ""
@@ -322,6 +325,11 @@ msgstr ""
 
 #: scripts/scenario_51_deliverAmbassador.lua:730
 msgctxt "warningMsgScience"
+msgid "Warning"
+msgstr ""
+
+#: scripts/scenario_51_deliverAmbassador.lua:730
+msgctxt "warningMsgScience"
 msgid "The readings on the Pangora artifact have changed"
 msgstr ""
 
@@ -350,6 +358,11 @@ msgid ""
 "[AMBGREMUS032](Ambassador Gremus) Thanks for transporting me, %s. I will "
 "need artifact research for successful negotiation. Please return with that "
 "research when you can."
+msgstr ""
+
+#: scripts/scenario_51_deliverAmbassador.lua:813
+msgctxt "audioButton"
+msgid "|> AMBGREMUS032"
 msgstr ""
 
 #: scripts/scenario_51_deliverAmbassador.lua:837
@@ -568,6 +581,7 @@ msgid "Has anyone reported seeing artifacts near Science-37?"
 msgstr ""
 
 #: scripts/scenario_51_deliverAmbassador.lua:1041
+#: scripts/scenario_51_deliverAmbassador.lua:1259
 msgid ""
 "Freighters doing business here occasionally report an object on approximate "
 "heading zero from Science-37 station"
@@ -734,10 +748,4 @@ msgstr ""
 
 #: scripts/scenario_51_deliverAmbassador.lua:1171
 msgid "Added a waypoint to your navigation system for Balindor Prime"
-msgstr ""
-
-#: scripts/scenario_51_deliverAmbassador.lua:1259
-msgid ""
-"Freighters doing business here occasionally report an objecton approximate "
-"heading zero from Science-37 station"
 msgstr ""

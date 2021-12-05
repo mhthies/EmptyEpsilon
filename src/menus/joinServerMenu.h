@@ -3,6 +3,8 @@
 
 #include "gui/gui2_canvas.h"
 #include "serverBrowseMenu.h"
+#include "io/network/address.h"
+
 
 class GuiLabel;
 class GuiPanel;
@@ -10,7 +12,7 @@ class GuiTextEntry;
 
 class JoinServerScreen : public GuiCanvas, public Updatable
 {
-    sf::IpAddress ip;
+    sp::io::network::Address ip;
     GuiLabel* status_label;
     GuiPanel* password_entry_box;
     GuiTextEntry* password_entry;
@@ -18,9 +20,9 @@ class JoinServerScreen : public GuiCanvas, public Updatable
 
     ServerBrowserMenu::SearchSource source;
 public:
-    JoinServerScreen(ServerBrowserMenu::SearchSource source, sf::IpAddress ip);
+    JoinServerScreen(ServerBrowserMenu::SearchSource source, sp::io::network::Address ip);
 
-    virtual void update(float delta);
+    virtual void update(float delta) override;
 };
 
 #endif//JOIN_SERVER_MENU_H

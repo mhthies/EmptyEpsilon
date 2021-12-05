@@ -1,6 +1,8 @@
 #include "epsilonServer.h"
 #include "playerInfo.h"
 #include "gameGlobalInfo.h"
+#include "soundManager.h"
+#include "multiplayer_client.h"
 #include "preferenceManager.h"
 #include "GMActions.h"
 #include "main.h"
@@ -22,7 +24,7 @@ EpsilonServer::EpsilonServer()
         for(auto proxy : PreferencesManager::get("serverproxy").split(":"))
         {
             if (proxy != "")
-                connectToProxy(sf::IpAddress(proxy));
+                connectToProxy(sp::io::network::Address(proxy));
         }
     }
 }

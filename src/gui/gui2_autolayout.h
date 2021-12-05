@@ -22,9 +22,9 @@ private:
 public:
     GuiAutoLayout(GuiContainer* owner, string id, ELayoutMode mode);
 
-    virtual void onDraw(sf::RenderTarget& window);
+    virtual void onDraw(sp::RenderTarget& target) override;
 protected:
-    virtual void drawElements(sf::FloatRect parent_rect, sf::RenderTarget& window);
+    virtual void drawElements(glm::vec2 mouse_position, sp::Rect parent_rect, sp::RenderTarget& target) override;
 };
 
 #endif//GUI2_AUTOLAYOUT_H

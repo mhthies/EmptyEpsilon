@@ -12,11 +12,11 @@ protected:
     std::vector<GuiButton*> buttons;
     float text_size;
     float button_height;
-    EGuiAlign text_alignment;
-    sf::Color selected_color;
-    sf::Color unselected_color;
+    sp::Alignment text_alignment;
+    glm::u8vec4 selected_color;
+    glm::u8vec4 unselected_color;
     GuiScrollbar* scroll;
-    sf::FloatRect last_rect;
+    sp::Rect last_rect;
 public:
     GuiListbox(GuiContainer* owner, string id, func_t func);
 
@@ -25,11 +25,11 @@ public:
 
     GuiListbox* scrollTo(int index);
 
-    virtual void onDraw(sf::RenderTarget& window);
-    virtual bool onMouseDown(sf::Vector2f position);
-    virtual void onMouseUp(sf::Vector2f position);
+    virtual void onDraw(sp::RenderTarget& target) override;
+    virtual bool onMouseDown(sp::io::Pointer::Button button, glm::vec2 position, sp::io::Pointer::ID id) override;
+    virtual void onMouseUp(glm::vec2 position, sp::io::Pointer::ID id) override;
 private:
-    virtual void entriesChanged();
+    virtual void entriesChanged() override;
 };
 
 #endif//GUI2_LISTBOX_H

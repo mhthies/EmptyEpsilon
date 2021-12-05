@@ -1,8 +1,11 @@
-#include <SFML/OpenGL.hpp>
+#include <graphics/opengl.h>
 #include "artifact.h"
 #include "explosionEffect.h"
 #include "playerSpaceship.h"
 #include "main.h"
+#include "random.h"
+
+#include <glm/ext/matrix_transform.hpp>
 
 #include "scriptInterface.h"
 
@@ -42,7 +45,7 @@ REGISTER_SCRIPT_SUBCLASS(Artifact, SpaceObject)
     /// Let the artifact rotate. For reference, normal asteroids in the game have spins between 0.1 and 0.8.
     REGISTER_SCRIPT_CLASS_FUNCTION(Artifact, setSpin);
     /// Set the icon to be used for this artifact on the radar.
-    /// For example, artifact:setRadarTraceIcon("RadarArrow.png") will show an arrow instead of a dot for this artifact.
+    /// For example, artifact:setRadarTraceIcon("arrow.png") will show an arrow instead of a dot for this artifact.
     REGISTER_SCRIPT_CLASS_FUNCTION(Artifact, setRadarTraceIcon);
     /// Scales the radar trace. Setting to 0 restores to standard autoscaling.
     /// Setting to 1 is needed for mimicking ship traces.
@@ -59,9 +62,9 @@ Artifact::Artifact()
   model_data_name(current_model_data_name),
   artifact_spin(0.0f),
   allow_pickup(false),
-  radar_trace_icon("RadarBlip.png"),
+  radar_trace_icon("radar/blip.png"),
   radar_trace_scale(0),
-  radar_trace_color(sf::Color(255, 255, 255))
+  radar_trace_color(glm::u8vec4(255, 255, 255, 255))
 {
     setRotation(random(0, 360));
     model_info.setData(current_model_data_name);
@@ -82,40 +85,24 @@ void Artifact::update(float delta)
     }
 }
 
-void Artifact::draw3D()
+void Artifact::drawOnRadar(sp::RenderTarget& renderer, glm::vec2 position, float scale, float rotation, bool long_range)
 {
-#if FEATURE_3D_RENDERING
-    if (artifact_spin != 0.0) {
-        glRotatef(engine->getElapsedTime() * artifact_spin, 0, 0, 1);
-    }
-    SpaceObject::draw3D();
-#endif//FEATURE_3D_RENDERING
-}
-
-void Artifact::drawOnRadar(sf::RenderTarget& window, sf::Vector2f position, float scale, float rotation, bool long_range)
-{
-    sf::Sprite object_sprite;
-    textureManager.setTexture(object_sprite, radar_trace_icon);
-    object_sprite.setRotation(getRotation());
-    object_sprite.setPosition(position);
-    object_sprite.setColor(radar_trace_color);
     // radar trace scaling, via script or automatically
     float size;
     if (radar_trace_scale > 0)
     {
         if (long_range)
-            size =radar_trace_scale * 0.7;
+            size = radar_trace_scale * 0.7f;
         else
             size = radar_trace_scale;
     }
     else
     {
-        size = getRadius() * scale / object_sprite.getTextureRect().width * 2;
-        if (size < 0.2)
-            size = 0.2;
+        size = getRadius() * scale / 16;
+        if (size < 0.2f)
+            size = 0.2f;
     }
-    object_sprite.setScale(size, size);
-    window.draw(object_sprite);
+    renderer.drawRotatedSprite(radar_trace_icon, position, size * 32.0f, getRotation() - rotation, radar_trace_color);
 }
 
 void Artifact::collide(Collisionable* target, float force)
@@ -185,7 +172,7 @@ void Artifact::setSpin(float spin)
 
 void Artifact::setRadarTraceIcon(string icon)
 {
-    radar_trace_icon = icon;
+    radar_trace_icon = "radar/" + icon;
 }
 
 void Artifact::setRadarTraceScale(float scale)
@@ -216,4 +203,13 @@ string Artifact::getExportLine()
     if (allow_pickup)
         ret += ":allowPickup(true)";
     return ret;
+}
+
+glm::mat4 Artifact::getModelMatrix() const
+{
+    auto matrix = SpaceObject::getModelMatrix();
+
+    if (artifact_spin != 0.f)
+        matrix = glm::rotate(matrix, glm::radians(engine->getElapsedTime() * artifact_spin), glm::vec3(0.f, 0.f, 1.f));
+    return matrix;
 }

@@ -1,7 +1,7 @@
 #ifndef GAME_STATE_LOGGER_H
 #define GAME_STATE_LOGGER_H
 
-#include "engine.h"
+#include "Updatable.h"
 
 class SpaceObject;
 class SpaceShip;
@@ -27,14 +27,14 @@ public:
     void start();
     void stop();
 
-    virtual void update(float delta);
+    virtual void update(float delta) override;
 
 private:
     FILE* log_file;
     float logging_interval;
     float logging_delay;
     float start_time;
-    std::map<int, sf::Vector2f> static_objects;
+    std::map<int, glm::vec2> static_objects;
 
     void logGameState();
     bool isStatic(P<SpaceObject> obj);

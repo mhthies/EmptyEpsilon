@@ -1,13 +1,13 @@
-#include <GL/glew.h>
-#include <SFML/OpenGL.hpp>
+#include <graphics/opengl.h>
+#include <glm/gtc/type_ptr.hpp>
 #include "main.h"
 #include "electricExplosionEffect.h"
 #include "glObjects.h"
 #include "shaderRegistry.h"
-
-#if FEATURE_3D_RENDERING
-gl::Buffers<2> ElectricExplosionEffect::particlesBuffers(gl::Unitialized{});
-#endif
+#include "random.h"
+#include "tween.h"
+#include "soundManager.h"
+#include "textureManager.h"
 
 /// ElectricExplosionEffect is a visible electrical explosion, as seen from EMP missiles
 /// Example: ElectricExplosionEffect():setPosition(500,5000):setSize(20)
@@ -23,55 +23,17 @@ ElectricExplosionEffect::ElectricExplosionEffect()
 {
     has_weight = false;
     on_radar = false;
-    size = 1.0;
+    size = 1.f;
 
     setCollisionRadius(1.0);
     lifetime = maxLifetime;
     for(int n=0; n<particleCount; n++)
-        particleDirections[n] = sf::normalize(sf::Vector3f(random(-1, 1), random(-1, 1), random(-1, 1))) * random(0.8, 1.2);
+        particleDirections[n] = glm::normalize(glm::vec3(random(-1, 1), random(-1, 1), random(-1, 1))) * random(0.8f, 1.2f);
 
     registerMemberReplication(&size);
     registerMemberReplication(&on_radar);
-#if FEATURE_3D_RENDERING
-    if (!particlesBuffers[0] && gl::isAvailable())
-    {
-        particlesBuffers = gl::Buffers<2>();
 
-        
-        // Each vertex is a position and a texcoords.
-        // The two arrays are maintained separately (texcoords are fixed, vertices position change).
-        constexpr size_t vertex_size = sizeof(sf::Vector3f) + sizeof(sf::Vector2f);
-        gl::ScopedBufferBinding vbo(GL_ARRAY_BUFFER, particlesBuffers[0]);
-        gl::ScopedBufferBinding ebo(GL_ELEMENT_ARRAY_BUFFER, particlesBuffers[1]);
-
-        // VBO
-        glBufferData(GL_ARRAY_BUFFER, max_quad_count * 4 * vertex_size, nullptr, GL_DYNAMIC_DRAW);
-
-        // Create initial data.
-        std::array<uint8_t, 6 * max_quad_count> indices;
-        std::array<sf::Vector2f, 4 * max_quad_count> texcoords;
-        for (auto i = 0U; i < max_quad_count; ++i)
-        {
-            auto quad_offset = 4 * i;
-            texcoords[quad_offset + 0] = { 0.f, 1.f };
-            texcoords[quad_offset + 1] = { 1.f, 1.f };
-            texcoords[quad_offset + 2] = { 1.f, 0.f };
-            texcoords[quad_offset + 3] = { 0.f, 0.f };
-
-            indices[6 * i + 0] = quad_offset + 0;
-            indices[6 * i + 1] = quad_offset + 2;
-            indices[6 * i + 2] = quad_offset + 1;
-            indices[6 * i + 3] = quad_offset + 0;
-            indices[6 * i + 4] = quad_offset + 3;
-            indices[6 * i + 5] = quad_offset + 2;
-        }
-
-        // Update texcoords
-        glBufferSubData(GL_ARRAY_BUFFER, max_quad_count * 4 * sizeof(sf::Vector3f), texcoords.size() * sizeof(sf::Vector2f), texcoords.data());
-        // Upload indices
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(uint8_t), indices.data(), GL_STATIC_DRAW);
-    }
-#endif
+    static_assert(4 * max_quad_count <= std::numeric_limits<uint16_t>::max(), "Quad count is too large, busts u16 indices size!");
 }
 
 //due to a suspected compiler bug this deconstructor needs to be explicitly defined
@@ -79,64 +41,68 @@ ElectricExplosionEffect::~ElectricExplosionEffect()
 {
 }
 
-#if FEATURE_3D_RENDERING
 void ElectricExplosionEffect::draw3DTransparent()
 {
     float f = (1.0f - (lifetime / maxLifetime));
     float scale;
-    float alpha = 0.5;
+    float alpha = 0.5f;
     if (f < 0.2f)
     {
-        scale = (f / 0.2f) * 0.8;
+        scale = (f / 0.2f) * 0.8f;
     }else{
-        scale = Tween<float>::easeOutQuad(f, 0.2, 1.0, 0.8f, 1.0f);
-        alpha = Tween<float>::easeInQuad(f, 0.2, 1.0, 0.5f, 0.0f);
+        scale = Tween<float>::easeOutQuad(f, 0.2f, 1.f, 0.8f, 1.0f);
+        alpha = Tween<float>::easeInQuad(f, 0.2f, 1.f, 0.5f, 0.0f);
     }
 
+    auto model_matrix = getModelMatrix();
+    auto explosion_matrix = glm::scale(model_matrix, glm::vec3(scale * size));
     ShaderRegistry::ScopedShader shader(ShaderRegistry::Shaders::Basic);
 
-    glPushMatrix();
-    Mesh* m = Mesh::getMesh("sphere.obj");
+    Mesh* m = Mesh::getMesh("mesh/sphere.obj");
     {
+        glUniformMatrix4fv(shader.get().uniform(ShaderRegistry::Uniforms::Model), 1, GL_FALSE, glm::value_ptr(explosion_matrix));
         glUniform4f(shader.get().uniform(ShaderRegistry::Uniforms::Color), alpha, alpha, alpha, 1.f);
-        glBindTexture(GL_TEXTURE_2D, textureManager.getTexture("electric_sphere_texture.png")->getNativeHandle());
+        textureManager.getTexture("texture/electric_sphere_texture.png")->bind();
 
         gl::ScopedVertexAttribArray positions(shader.get().attribute(ShaderRegistry::Attributes::Position));
         gl::ScopedVertexAttribArray texcoords(shader.get().attribute(ShaderRegistry::Attributes::Texcoords));
         gl::ScopedVertexAttribArray normals(shader.get().attribute(ShaderRegistry::Attributes::Normal));
 
-        glScalef(scale * size, scale * size, scale * size);
         m->render(positions.get(), texcoords.get(), normals.get());
 
-        glScalef(0.5f, 0.5f, 0.5f);
+        glUniformMatrix4fv(shader.get().uniform(ShaderRegistry::Uniforms::Model), 1, GL_FALSE, glm::value_ptr(glm::scale(explosion_matrix, glm::vec3(.5f))));
         m->render(positions.get(), texcoords.get(), normals.get());
         
     }
-    glPopMatrix();
 
-    scale = Tween<float>::easeInCubic(f, 0.0, 1.0, 0.3f, 3.0f);
-    float r = Tween<float>::easeOutQuad(f, 0.0, 1.0, 1.0f, 0.0f);
-    float g = Tween<float>::easeOutQuad(f, 0.0, 1.0, 1.0f, 0.0f);
-    float b = Tween<float>::easeInQuad(f, 0.0, 1.0, 1.0f, 0.0f);
+    scale = Tween<float>::easeInCubic(f, 0.f, 1.f, 0.3f, 3.0f);
+    float r = Tween<float>::easeOutQuad(f, 0.f, 1.f, 1.0f, 0.0f);
+    float g = Tween<float>::easeOutQuad(f, 0.f, 1.f, 1.0f, 0.0f);
+    float b = Tween<float>::easeInQuad(f, 0.f, 1.f, 1.0f, 0.0f);
 
-    std::array<sf::Vector3f, 4 * max_quad_count> vertices;
+    std::vector<glm::vec3> vertices(4 * max_quad_count);
 
-    glBindTexture(GL_TEXTURE_2D, textureManager.getTexture("particle.png")->getNativeHandle());
+    textureManager.getTexture("particle.png")->bind();
 
     shader = ShaderRegistry::ScopedShader(ShaderRegistry::Shaders::Billboard);
+
+    glUniformMatrix4fv(shader.get().uniform(ShaderRegistry::Uniforms::Model), 1, GL_FALSE, glm::value_ptr(model_matrix));
 
     gl::ScopedVertexAttribArray positions(shader.get().attribute(ShaderRegistry::Attributes::Position));
     gl::ScopedVertexAttribArray texcoords(shader.get().attribute(ShaderRegistry::Attributes::Texcoords));
 
     glUniform4f(shader.get().uniform(ShaderRegistry::Uniforms::Color), r, g, b, size / 32.0f);
 
+    if (!particlesBuffers[0])
+        initializeParticles();
+
     gl::ScopedBufferBinding vbo(GL_ARRAY_BUFFER, particlesBuffers[0]);
     gl::ScopedBufferBinding ebo(GL_ELEMENT_ARRAY_BUFFER, particlesBuffers[1]);
     
 
     // Set up attribs
-    glVertexAttribPointer(positions.get(), 3, GL_FLOAT, GL_FALSE, sizeof(sf::Vector3f), (GLvoid*)0);
-    glVertexAttribPointer(texcoords.get(), 2, GL_FLOAT, GL_FALSE, sizeof(sf::Vector2f), (GLvoid*)(vertices.size() * sizeof(sf::Vector3f)));
+    glVertexAttribPointer(positions.get(), 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (GLvoid*)0);
+    glVertexAttribPointer(texcoords.get(), 2, GL_FLOAT, GL_FALSE, sizeof(glm::vec2), (GLvoid*)(vertices.size() * sizeof(glm::vec3)));
 
 
     const size_t quad_count = max_quad_count;
@@ -147,7 +113,7 @@ void ElectricExplosionEffect::draw3DTransparent()
         // setup quads
         for (auto p = 0U; p < active_quads; ++p)
         {
-            sf::Vector3f v = particleDirections[n + p] * scale * size;
+            glm::vec3 v = particleDirections[n + p] * scale * size;
             vertices[4 * p + 0] = v;
             vertices[4 * p + 1] = v;
             vertices[4 * p + 2] = v;
@@ -155,26 +121,21 @@ void ElectricExplosionEffect::draw3DTransparent()
         }
 
         // upload
-        glBufferSubData(GL_ARRAY_BUFFER, 0, vertices.size() * sizeof(sf::Vector3f), vertices.data());
+        glBufferSubData(GL_ARRAY_BUFFER, 0, vertices.size() * sizeof(glm::vec3), vertices.data());
         
-        glDrawElements(GL_TRIANGLES, 6 * active_quads, GL_UNSIGNED_BYTE, nullptr);
+        glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(6 * active_quads), GL_UNSIGNED_SHORT, nullptr);
         n += active_quads;
     }
 }
-#endif//FEATURE_3D_RENDERING
 
-void ElectricExplosionEffect::drawOnRadar(sf::RenderTarget& window, sf::Vector2f position, float scale, float rotation, bool long_range)
+void ElectricExplosionEffect::drawOnRadar(sp::RenderTarget& renderer, glm::vec2 position, float scale, float rotation, bool long_range)
 {
     if (!on_radar)
         return;
     if (long_range)
         return;
 
-    sf::CircleShape circle(size * scale);
-    circle.setOrigin(size * scale, size * scale);
-    circle.setPosition(position);
-    circle.setFillColor(sf::Color(0, 0, 255, 64 * (lifetime / maxLifetime)));
-    window.draw(circle);
+    renderer.fillCircle(position, size * scale, glm::u8vec4(0, 0, 255, 64 * (lifetime / maxLifetime)));
 }
 
 void ElectricExplosionEffect::update(float delta)
@@ -184,4 +145,43 @@ void ElectricExplosionEffect::update(float delta)
     lifetime -= delta;
     if (lifetime < 0)
         destroy();
+}
+
+void ElectricExplosionEffect::initializeParticles()
+{
+    particlesBuffers = gl::Buffers<2>();
+
+
+    // Each vertex is a position and a texcoords.
+    // The two arrays are maintained separately (texcoords are fixed, vertices position change).
+    constexpr size_t vertex_size = sizeof(glm::vec3) + sizeof(glm::vec2);
+    gl::ScopedBufferBinding vbo(GL_ARRAY_BUFFER, particlesBuffers[0]);
+    gl::ScopedBufferBinding ebo(GL_ELEMENT_ARRAY_BUFFER, particlesBuffers[1]);
+
+    // VBO
+    glBufferData(GL_ARRAY_BUFFER, max_quad_count * 4 * vertex_size, nullptr, GL_STREAM_DRAW);
+
+    // Create initial data.
+    std::vector<uint16_t> indices(6 * max_quad_count);
+    std::vector<glm::vec2> texcoords(4* max_quad_count);
+    for (auto i = 0U; i < max_quad_count; ++i)
+    {
+        auto quad_offset = 4 * i;
+        texcoords[quad_offset + 0] = { 0.f, 1.f };
+        texcoords[quad_offset + 1] = { 1.f, 1.f };
+        texcoords[quad_offset + 2] = { 1.f, 0.f };
+        texcoords[quad_offset + 3] = { 0.f, 0.f };
+
+        indices[6 * i + 0] = quad_offset + 0;
+        indices[6 * i + 1] = quad_offset + 2;
+        indices[6 * i + 2] = quad_offset + 1;
+        indices[6 * i + 3] = quad_offset + 0;
+        indices[6 * i + 4] = quad_offset + 3;
+        indices[6 * i + 5] = quad_offset + 2;
+    }
+
+    // Update texcoords
+    glBufferSubData(GL_ARRAY_BUFFER, max_quad_count * 4 * sizeof(glm::vec3), texcoords.size() * sizeof(glm::vec2), texcoords.data());
+    // Upload indices
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(uint16_t), indices.data(), GL_STATIC_DRAW);
 }

@@ -1,7 +1,8 @@
 #ifndef PLAYER_INFO_H
 #define PLAYER_INFO_H
 
-#include "engine.h"
+#include "multiplayer.h"
+#include "scriptInterface.h"
 
 enum ECrewPosition
 {
@@ -46,6 +47,8 @@ public:
 
     PlayerInfo();
 
+    void reset();
+
     bool isOnlyMainScreen();
 
     void commandSetCrewPosition(ECrewPosition position, bool active);
@@ -53,7 +56,7 @@ public:
     void commandSetMainScreen(bool enabled);
     void commandSetMainScreenControl(bool control);
     void commandSetName(const string& name);
-    virtual void onReceiveClientCommand(int32_t client_id, sf::Packet& packet);
+    virtual void onReceiveClientCommand(int32_t client_id, sp::io::DataBuffer& packet) override;
 
     void spawnUI();
 };

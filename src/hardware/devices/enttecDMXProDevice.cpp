@@ -3,7 +3,6 @@
 #include "logging.h"
 
 EnttecDMXProDevice::EnttecDMXProDevice()
-: update_thread(&EnttecDMXProDevice::updateLoop, this)
 {
     port = nullptr;
     for(int n=0; n<512; n++)
@@ -16,7 +15,7 @@ EnttecDMXProDevice::~EnttecDMXProDevice()
     if (run_thread)
     {
         run_thread = false;
-        update_thread.wait();
+        update_thread.join();
     }
     if (port)
         delete port;
@@ -41,7 +40,7 @@ bool EnttecDMXProDevice::configure(std::unordered_map<string, string> settings)
     if (port)
     {
         run_thread = true;
-        update_thread.launch();
+        update_thread = std::thread(&EnttecDMXProDevice::updateLoop, this);
         return true;
     }
     return false;
@@ -51,7 +50,7 @@ bool EnttecDMXProDevice::configure(std::unordered_map<string, string> settings)
 void EnttecDMXProDevice::setChannelData(int channel, float value)
 {
     if (channel >= 0 && channel < channel_count)
-        channel_data[channel] = int((value * 255.0) + 0.5);
+        channel_data[channel] = int((value * 255.0f) + 0.5f);
 }
 
 //Return the number of output channels supported by this device.
@@ -75,6 +74,6 @@ void EnttecDMXProDevice::updateLoop()
         port->send(end_code, sizeof(end_code));
 
         //Delay a bit before sending again.
-        sf::sleep(sf::milliseconds(100));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 }

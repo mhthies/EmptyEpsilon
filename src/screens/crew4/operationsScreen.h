@@ -29,9 +29,9 @@ private:
     GuiButton* place_waypoint_button;
     GuiButton* delete_waypoint_button;
 
-    sf::Vector2f mouse_down_position;
+    glm::vec2 mouse_down_position{0, 0};
 public:
     OperationScreen(GuiContainer* owner);
-    virtual void onDraw(sf::RenderTarget& window);
+    virtual void onDraw(sp::RenderTarget& target) override;
 };
 #endif//OPERATIONS_SCREEN_H

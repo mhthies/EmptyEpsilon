@@ -2,6 +2,7 @@
 #define PATH_PLANNER_H
 
 #include "spaceObjects/spaceObject.h"
+#include <list>
 
 class PathPlannerManager : public Updatable
 {
@@ -19,7 +20,7 @@ class PathPlannerManager : public Updatable
     std::unordered_map<uint32_t, std::list<PathPlannerAvoidObject> > small_objects;
 
 public:
-    virtual void update(float delta);
+    virtual void update(float delta) override;
 
     void addAvoidObject(P<SpaceObject> source, float size);
 
@@ -29,7 +30,7 @@ public:
 };
 
 //The path planner is used to plan a route trough the world map without hitting any objects.
-class PathPlanner : public sf::NonCopyable
+class PathPlanner : sp::NonCopyable
 {
 private:
     unsigned int insert_idx, remove_idx, remove_idx2;
@@ -38,13 +39,13 @@ private:
 public:
     PathPlanner(float my_size);
 
-    std::vector<sf::Vector2f> route;
+    std::vector<glm::vec2> route;
 
-    void plan(sf::Vector2f start, sf::Vector2f end);
+    void plan(glm::vec2 start, glm::vec2 end);
     void clear();
 private:
-    void recursivePlan(sf::Vector2f start, sf::Vector2f end, int& recursion_counter);
-    bool checkToAvoid(sf::Vector2f start, sf::Vector2f end, sf::Vector2f& new_point, sf::Vector2f* alt_point=NULL);
+    void recursivePlan(glm::vec2 start, glm::vec2 end, int& recursion_counter);
+    bool checkToAvoid(glm::vec2 start, glm::vec2 end, glm::vec2& new_point, glm::vec2* alt_point=NULL);
 };
 
 #endif//PATH_PLANNER_H

@@ -12,7 +12,6 @@ class GuiCombatManeuver;
 class HelmsScreen : public GuiOverlay
 {
 private:
-    GuiOverlay* background_gradient;
     GuiOverlay* background_crosses;
 
     GuiKeyValueDisplay* energy_display;
@@ -26,9 +25,8 @@ private:
 public:
     HelmsScreen(GuiContainer* owner);
 
-    virtual void onDraw(sf::RenderTarget& window) override;
-    virtual void onHotkey(const HotkeyResult& key) override;
-    virtual bool onJoystickAxis(const AxisAction& axisAction) override;
+    virtual void onDraw(sp::RenderTarget& target) override;
+    virtual void onUpdate() override;
 };
 
 #endif//HELMS_SCREEN_H

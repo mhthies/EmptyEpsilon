@@ -14,7 +14,7 @@ private:
 public:
     GuiGlobalMessage(GuiContainer* owner);
 
-    virtual void onDraw(sf::RenderTarget& window);
+    virtual void onDraw(sp::RenderTarget& target) override;
 };
 
 #endif//GLOBAL_MESSAGE_H

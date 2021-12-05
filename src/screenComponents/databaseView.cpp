@@ -23,7 +23,7 @@ DatabaseViewComponent::DatabaseViewComponent(GuiContainer* owner)
         selected_entry = findEntryById(id);
         display();
     });
-    item_list->setPosition(0, 0, ATopLeft)->setMargins(20, 20, 20, 130)->setSize(navigation_width, GuiElement::GuiSizeMax);
+    item_list->setPosition(0, 0, sp::Alignment::TopLeft)->setMargins(20, 20, 20, 130)->setSize(navigation_width, GuiElement::GuiSizeMax);
     display();
 }
 
@@ -134,7 +134,7 @@ void DatabaseViewComponent::display()
         database_entry->destroy();
 
     database_entry = new GuiElement(this, "DATABASE_ENTRY");
-    database_entry->setPosition(navigation_width, 0, ATopLeft)->setMargins(20)->setSize(GuiElement::GuiSizeMax, GuiElement::GuiSizeMax);
+    database_entry->setPosition(navigation_width, 0, sp::Alignment::TopLeft)->setMargins(20)->setSize(GuiElement::GuiSizeMax, GuiElement::GuiSizeMax);
 
     fillListBox();
 
@@ -151,7 +151,7 @@ void DatabaseViewComponent::display()
         left_column_width = 400;
     }
     GuiAutoLayout* right = new GuiAutoLayout(database_entry, "DATABASE_ENTRY_RIGHT", GuiAutoLayout::LayoutHorizontalRows);
-    right->setPosition(left_column_width, 0, ATopLeft)->setMargins(0)->setSize(GuiElement::GuiSizeMax, GuiElement::GuiSizeMax);
+    right->setPosition(left_column_width, 0, sp::Alignment::TopLeft)->setMargins(0)->setSize(GuiElement::GuiSizeMax, GuiElement::GuiSizeMax);
     if (has_image_or_model)
     {
         GuiElement* visual = (new GuiElement(right, "DATABASE_VISUAL_ELEMENT"))->setMargins(0, 0, 0, 40)->setSize(GuiElement::GuiSizeMax, GuiElement::GuiSizeMax);
@@ -159,11 +159,16 @@ void DatabaseViewComponent::display()
         if (selected_entry->hasModelData())
         {
             (new GuiRotatingModelView(visual, "DATABASE_MODEL_VIEW", selected_entry->getModelData()))->setMargins(-100, -50)->setSize(GuiElement::GuiSizeMax, has_text ? GuiElement::GuiSizeMax : 450);
+            if(selected_entry->getImage() != "")
+            {
+                (new GuiImage(visual, "DATABASE_IMAGE", selected_entry->image))->setMargins(0)->setSize(32, 32);
+            }
         }
-
-        if(selected_entry->getImage() != "")
+        else if(selected_entry->getImage() != "")
         {
-            (new GuiImage(visual, "DATABASE_IMAGE", selected_entry->image))->setScaleUp(false)->setMargins(0)->setSize(GuiElement::GuiSizeMax, GuiElement::GuiSizeMax);
+            auto image = new GuiImage(visual, "DATABASE_IMAGE", selected_entry->image);
+            image->setMargins(-100, -50);
+            image->setSize(GuiElement::GuiSizeMax, has_text ? GuiElement::GuiSizeMax : 450);
         }
     }
     if (has_text)
@@ -185,7 +190,7 @@ void DatabaseViewComponent::display()
     if (has_key_values)
     {
         GuiAutoLayout* left = new GuiAutoLayout(database_entry, "DATABASE_ENTRY_LEFT", GuiAutoLayout::LayoutVerticalTopToBottom);
-        left->setPosition(0, 0, ATopLeft)->setMargins(0, 0, 20, 0)->setSize(left_column_width, GuiElement::GuiSizeMax);
+        left->setPosition(0, 0, sp::Alignment::TopLeft)->setMargins(0, 0, 20, 0)->setSize(left_column_width, GuiElement::GuiSizeMax);
 
         for(unsigned int n=0; n<selected_entry->keyValuePairs.size(); n++)
         {

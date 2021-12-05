@@ -2,7 +2,7 @@
 -- Description: Two, three or four species battle for ultimate dominion. Designed as a replayable player versus player (PVP) scenario for individuals or teams. Terrain is randomly symmetrically generated for every game. Use GM screen to adjust parameters
 ---
 --- Version 1 (debuted 23Jan2021 for online event)
--- Type: Player vs Player with or without teams
+-- Category: PvP
 -- Variation[Easy]: More resources, services and reputation
 -- Variation[Hard]: Fewer resources, services and reputation
 
@@ -3531,7 +3531,7 @@ function enforcer(enemyFaction)
 		end
 	end)
 	ship:setTypeName("Enforcer")
-	ship:setRadarTrace("radar_ktlitan_destroyer.png")			--different radar trace
+	ship:setRadarTrace("ktlitan_destroyer.png")			--different radar trace
 	ship:setWarpDrive(true)										--warp (vs none)
 	ship:setWarpSpeed(600)
 	ship:setImpulseMaxSpeed(100)								--faster impulse (vs 60)
@@ -3613,7 +3613,7 @@ function predator(enemyFaction)
 	ship:setWeaponStorage("Homing", 32)		
 	ship:setWeaponStorageMax("HVLI",0)							--less (vs 10)
 	ship:setWeaponStorage("HVLI", 0)
-	ship:setRadarTrace("radar_missile_cruiser.png")				--different radar trace
+	ship:setRadarTrace("missile_cruiser.png")				--different radar trace
 	local predator_db = queryScienceDatabase("Ships","Frigate","Predator")
 	if predator_db == nil then
 		local frigate_db = queryScienceDatabase("Ships","Frigate")

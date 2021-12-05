@@ -19,13 +19,13 @@ public:
     void setRange(float range) { this->range = range; }
     float getRange() { return range; }
 
-    virtual void drawOnRadar(sf::RenderTarget& window, sf::Vector2f position, float scale, float rotation, bool long_range) override;
+    virtual void drawOnRadar(sp::RenderTarget& renderer, glm::vec2 position, float scale, float rotation, bool long_range) override;
 
     virtual bool canBeTargetedBy(P<SpaceObject> other)  override { return true; }
     virtual void takeDamage(float damage_amount, DamageInfo info) override;
 
-    static bool isWarpJammed(sf::Vector2f position);
-    static sf::Vector2f getFirstNoneJammedPosition(sf::Vector2f start, sf::Vector2f end);
+    static bool isWarpJammed(glm::vec2 position);
+    static glm::vec2 getFirstNoneJammedPosition(glm::vec2 start, glm::vec2 end);
 
     void onTakingDamage(ScriptSimpleCallback callback);
     void onDestruction(ScriptSimpleCallback callback);

@@ -23,15 +23,16 @@ private:
     GuiOverlay* pause_overlay;
     GuiOverlay* victory_overlay;
     GuiLabel* victory_label;
+
 public:
     GuiIndicatorOverlays(GuiContainer* owner);
     virtual ~GuiIndicatorOverlays();
 
-    virtual void onDraw(sf::RenderTarget& window);
+    virtual void onDraw(sp::RenderTarget& target) override;
+    virtual bool onMouseDown(sp::io::Pointer::Button button, glm::vec2 position, sp::io::Pointer::ID id) override;
 
-    virtual bool onMouseDown(sf::Vector2f position);
 private:
-    void drawAlertLevel(sf::RenderTarget& window);
+    void drawAlertLevel(sp::RenderTarget& renderer);
 };
 
 #endif//INDICATOR_OVERLAYS_H

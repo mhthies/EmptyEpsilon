@@ -2,7 +2,9 @@
 
 #include "scriptInterface.h"
 
+#include "tween.h"
 #include "i18n.h"
+
 
 REGISTER_SCRIPT_SUBCLASS_NO_CREATE(ShipTemplateBasedObject, SpaceObject)
 {
@@ -56,7 +58,7 @@ REGISTER_SCRIPT_SUBCLASS_NO_CREATE(ShipTemplateBasedObject, SpaceObject)
     /// A seperate call to setShield is needed for that.
     REGISTER_SCRIPT_CLASS_FUNCTION(ShipTemplateBasedObject, setShieldsMax);
     /// Set the icon to be used for this object on the radar.
-    /// For example, station:setRadarTrace("RadarArrow.png") will show an arrow instead of a dot for this station.
+    /// For example, station:setRadarTrace("arrow.png") will show an arrow instead of a dot for this station.
     REGISTER_SCRIPT_CLASS_FUNCTION(ShipTemplateBasedObject, setRadarTrace);
     /// Set the sound file to be used for this object's impulse engines.
     /// Requires a string for a filename relative to the resources path.
@@ -142,71 +144,60 @@ ShipTemplateBasedObject::ShipTemplateBasedObject(float collision_range, string m
     registerMemberReplication(&can_be_destroyed);
 }
 
-void ShipTemplateBasedObject::drawShieldsOnRadar(sf::RenderTarget& window, sf::Vector2f position, float scale, float rotation, float sprite_scale, bool show_levels)
+void ShipTemplateBasedObject::drawShieldsOnRadar(sp::RenderTarget& renderer, glm::vec2 position, float scale, float rotation, float sprite_scale, bool show_levels)
 {
     if (!getShieldsActive())
         return;
     if (shield_count == 1)
     {
-        sf::Sprite objectSprite;
-        textureManager.setTexture(objectSprite, "shield_circle.png");
-        objectSprite.setPosition(position);
-
-        objectSprite.setScale(sprite_scale * 0.25f * 1.5f, sprite_scale * 0.25f * 1.5f);
-
-        sf::Color color = sf::Color(255, 255, 255, 64);
+        glm::u8vec4 color = glm::u8vec4(255, 255, 255, 64);
         if (show_levels)
         {
             float level = shield_level[0] / shield_max[0];
-            color = Tween<sf::Color>::linear(level, 1.0f, 0.0f, sf::Color(128, 128, 255, 128), sf::Color(255, 0, 0, 64));
+            color = Tween<glm::u8vec4>::linear(level, 1.0f, 0.0f, glm::u8vec4(128, 128, 255, 128), glm::u8vec4(255, 0, 0, 64));
         }
-        if (shield_hit_effect[0] > 0.0)
+        if (shield_hit_effect[0] > 0.0f)
         {
-            color = Tween<sf::Color>::linear(shield_hit_effect[0], 0.0f, 1.0f, color, sf::Color(255, 0, 0, 128));
+            color = Tween<glm::u8vec4>::linear(shield_hit_effect[0], 0.0f, 1.0f, color, glm::u8vec4(255, 0, 0, 128));
         }
-        objectSprite.setColor(color);
-
-        window.draw(objectSprite);
+        renderer.drawSprite("shield_circle.png", position, sprite_scale * 0.25f * 1.5f * 256.0f, color);
     }else if (shield_count > 1) {
         float direction = getRotation()-rotation;
         float arc = 360.0f / float(shield_count);
 
         for(int n=0; n<shield_count; n++)
         {
-            sf::Color color = sf::Color(255, 255, 255, 64);
+            glm::u8vec4 color = glm::u8vec4(255, 255, 255, 64);
             if (show_levels)
             {
                 float level = shield_level[n] / shield_max[n];
-                color = Tween<sf::Color>::linear(level, 1.0f, 0.0f, sf::Color(128, 128, 255, 128), sf::Color(255, 0, 0, 64));
+                color = Tween<glm::u8vec4>::linear(level, 1.0f, 0.0f, glm::u8vec4(128, 128, 255, 128), glm::u8vec4(255, 0, 0, 64));
             }
-            if (shield_hit_effect[n] > 0.0)
+            if (shield_hit_effect[n] > 0.0f)
             {
-                color = Tween<sf::Color>::linear(shield_hit_effect[n], 0.0f, 1.0f, color, sf::Color(255, 0, 0, 128));
+                color = Tween<glm::u8vec4>::linear(shield_hit_effect[n], 0.0f, 1.0f, color, glm::u8vec4(255, 0, 0, 128));
             }
-            sf::VertexArray a(sf::TrianglesFan, 4);
-            sf::Vector2f delta_a = sf::vector2FromAngle(direction - arc / 2.0f);
-            sf::Vector2f delta_b = sf::vector2FromAngle(direction);
-            sf::Vector2f delta_c = sf::vector2FromAngle(direction + arc / 2.0f);
-            a[0].position = position + delta_b * sprite_scale * 32.0f * 0.05f;
-            a[1].position = a[0].position + delta_a * sprite_scale * 32.0f * 1.5f;
-            a[2].position = a[0].position + delta_b * sprite_scale * 32.0f * 1.5f;
-            a[3].position = a[0].position + delta_c * sprite_scale * 32.0f * 1.5f;
-            a[0].texCoords = sf::Vector2f(128, 128);
-            a[1].texCoords = sf::Vector2f(128, 128) + delta_a * 128.0f;
-            a[2].texCoords = sf::Vector2f(128, 128) + delta_b * 128.0f;
-            a[3].texCoords = sf::Vector2f(128, 128) + delta_c * 128.0f;
-            a[0].color = color;
-            a[1].color = color;
-            a[2].color = color;
-            a[3].color = color;
-            window.draw(a, textureManager.getTexture("shield_circle.png"));
 
+            glm::vec2 delta_a = vec2FromAngle(direction - arc / 2.0f);
+            glm::vec2 delta_b = vec2FromAngle(direction);
+            glm::vec2 delta_c = vec2FromAngle(direction + arc / 2.0f);
+            
+            auto p0 = position + delta_b * sprite_scale * 32.0f * 0.05f;
+            renderer.drawTexturedQuad("shield_circle.png",
+                p0,
+                p0 + delta_a * sprite_scale * 32.0f * 1.5f,
+                p0 + delta_b * sprite_scale * 32.0f * 1.5f,
+                p0 + delta_c * sprite_scale * 32.0f * 1.5f,
+                glm::vec2(0.5, 0.5),
+                glm::vec2(0.5, 0.5) + delta_a * 0.5f,
+                glm::vec2(0.5, 0.5) + delta_b * 0.5f,
+                glm::vec2(0.5, 0.5) + delta_c * 0.5f,
+                color);
             direction += arc;
         }
     }
 }
 
-#if FEATURE_3D_RENDERING
 void ShipTemplateBasedObject::draw3DTransparent()
 {
     if (shield_count < 1)
@@ -214,21 +205,21 @@ void ShipTemplateBasedObject::draw3DTransparent()
 
     float angle = 0.0;
     float arc = 360.0f / shield_count;
+    const auto model_matrix = getModelMatrix();
     for(int n = 0; n<shield_count; n++)
     {
         if (shield_hit_effect[n] > 0)
         {
             if (shield_count > 1)
             {
-                model_info.renderShield((shield_level[n] / shield_max[n]) * shield_hit_effect[n], angle);
+                model_info.renderShield(model_matrix, (shield_level[n] / shield_max[n]) * shield_hit_effect[n], angle);
             }else{
-                model_info.renderShield((shield_level[n] / shield_max[n]) * shield_hit_effect[n]);
+                model_info.renderShield(model_matrix, (shield_level[n] / shield_max[n]) * shield_hit_effect[n]);
             }
         }
         angle += arc;
     }
 }
-#endif//FEATURE_3D_RENDERING
 
 void ShipTemplateBasedObject::update(float delta)
 {
@@ -294,7 +285,7 @@ void ShipTemplateBasedObject::takeDamage(float damage_amount, DamageInfo info)
 {
     if (shield_count > 0 && getShieldsActive())
     {
-        float angle = sf::angleDifference(getRotation(), sf::vector2ToAngle(info.location - getPosition()));
+        float angle = angleDifference(getRotation(), vec2ToAngle(info.location - getPosition()));
         if (angle < 0)
             angle += 360.0f;
         float arc = 360.0f / float(shield_count);
@@ -310,13 +301,13 @@ void ShipTemplateBasedObject::takeDamage(float damage_amount, DamageInfo info)
         } else {
             shield_hit_effect[shield_index] = 1.0;
         }
-        if (damage_amount < 0.0)
+        if (damage_amount < 0.0f)
         {
             damage_amount = 0.0;
         }
     }
 
-    if (info.type != DT_EMP && damage_amount > 0.0)
+    if (info.type != DT_EMP && damage_amount > 0.0f)
     {
         takeHullDamage(damage_amount, info);
     }
@@ -338,11 +329,11 @@ void ShipTemplateBasedObject::takeDamage(float damage_amount, DamageInfo info)
 void ShipTemplateBasedObject::takeHullDamage(float damage_amount, DamageInfo& info)
 {
     hull_strength -= damage_amount;
-    if (hull_strength <= 0.0 && !can_be_destroyed)
+    if (hull_strength <= 0.0f && !can_be_destroyed)
     {
         hull_strength = 1;
     }
-    if (hull_strength <= 0.0)
+    if (hull_strength <= 0.0f)
     {
         destroyedByDamage(info);
         if (on_destruction.isSet())
@@ -397,7 +388,7 @@ void ShipTemplateBasedObject::setTemplate(string template_name)
     applyTemplateValues();
 }
 
-void ShipTemplateBasedObject::setShields(std::vector<float> amounts)
+void ShipTemplateBasedObject::setShields(const std::vector<float>& amounts)
 {
     for(int n=0; n<std::min(int(amounts.size()), shield_count); n++)
     {
@@ -405,7 +396,7 @@ void ShipTemplateBasedObject::setShields(std::vector<float> amounts)
     }
 }
 
-void ShipTemplateBasedObject::setShieldsMax(std::vector<float> amounts)
+void ShipTemplateBasedObject::setShieldsMax(const std::vector<float>& amounts)
 {
     shield_count = std::min(max_shield_count, int(amounts.size()));
     for(int n=0; n<shield_count; n++)
@@ -419,8 +410,8 @@ ESystem ShipTemplateBasedObject::getShieldSystemForShieldIndex(int index)
 {
     if (shield_count < 2)
         return SYS_FrontShield;
-    float angle = index * 360.0 / shield_count;
-    if (std::abs(sf::angleDifference(angle, 0.0f)) < 90)
+    float angle = index * 360.0f / shield_count;
+    if (std::abs(angleDifference(angle, 0.0f)) < 90)
         return SYS_FrontShield;
     return SYS_RearShield;
 }

@@ -1,10 +1,11 @@
 #ifndef PHILIPS_HUE_DEVICE_H
 #define PHILIPS_HUE_DEVICE_H
 
-#include <SFML/System.hpp>
-#include <SFML/Network.hpp>
-#include <stdint.h>
 #include "hardware/hardwareOutputDevice.h"
+
+#include <stdint.h>
+#include <thread>
+#include <mutex>
 
 //The PhilipsHueDevice talks to a philips hue bridge.
 //Documentation of the philips hue API is at:
@@ -26,13 +27,13 @@ public:
     // Parameter: "ip": IP address of the bridge.
     // Parameter: "username": API username to use. If not set, will request a username from the bridge.
     // Parameter: "userfile": Filename to store the username API in, if not set with the user parameter and username is requested from the bridge.
-    virtual bool configure(std::unordered_map<string, string> settings);
+    virtual bool configure(std::unordered_map<string, string> settings) override;
 
     //Set a hardware channel output. Value is 0.0 to 1.0 for no to max output.
-    virtual void setChannelData(int channel, float value);
+    virtual void setChannelData(int channel, float value) override;
 
     //Return the number of output channels supported by this device.
-    virtual int getChannelCount();
+    virtual int getChannelCount() override;
 
 private:
     class LightInfo
@@ -48,8 +49,8 @@ private:
         string laststate;
     };
 
-    sf::Thread update_thread;
-    sf::Mutex mutex;
+    std::thread update_thread;
+    std::mutex mutex;
     std::vector<LightInfo> lights;
 
     bool run_thread;

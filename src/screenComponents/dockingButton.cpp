@@ -30,9 +30,34 @@ void GuiDockingButton::click()
 void GuiDockingButton::onUpdate()
 {
     setVisible(my_spaceship && my_spaceship->getCanDock());
+
+    if (my_spaceship)
+    {
+        if (keys.helms_dock_action.getDown())
+        {
+            switch(my_spaceship->docking_state)
+            {
+            case DS_NotDocking:
+                my_spaceship->commandDock(findDockingTarget());
+                break;
+            case DS_Docking:
+                my_spaceship->commandAbortDock();
+                break;
+            case DS_Docked:
+                my_spaceship->commandUndock();
+                break;
+            }
+        }
+        else if (keys.helms_dock_request.getDown())
+            my_spaceship->commandDock(findDockingTarget());
+        else if (keys.helms_dock_abort.getDown())
+            my_spaceship->commandAbortDock();
+        else if (keys.helms_undock.getDown())
+            my_spaceship->commandUndock();
+    }
 }
 
-void GuiDockingButton::onDraw(sf::RenderTarget& window)
+void GuiDockingButton::onDraw(sp::RenderTarget& renderer)
 {
     if (my_spaceship)
     {
@@ -57,45 +82,17 @@ void GuiDockingButton::onDraw(sf::RenderTarget& window)
             break;
         }
     }
-    GuiButton::onDraw(window);
-}
-
-void GuiDockingButton::onHotkey(const HotkeyResult& key)
-{
-    if (key.category == "HELMS" && my_spaceship)
-    {
-        if (key.hotkey == "DOCK_ACTION")
-        {
-            switch(my_spaceship->docking_state)
-            {
-            case DS_NotDocking:
-                my_spaceship->commandDock(findDockingTarget());
-                break;
-            case DS_Docking:
-                my_spaceship->commandAbortDock();
-                break;
-            case DS_Docked:
-                my_spaceship->commandUndock();
-                break;
-            }
-        }
-        else if (key.hotkey == "DOCK_REQUEST")
-            my_spaceship->commandDock(findDockingTarget());
-        else if (key.hotkey == "DOCK_ABORT")
-            my_spaceship->commandAbortDock();
-        else if (key.hotkey == "UNDOCK")
-            my_spaceship->commandUndock();
-    }
+    GuiButton::onDraw(renderer);
 }
 
 P<SpaceObject> GuiDockingButton::findDockingTarget()
 {
-    PVector<Collisionable> obj_list = CollisionManager::queryArea(my_spaceship->getPosition() - sf::Vector2f(1000, 1000), my_spaceship->getPosition() + sf::Vector2f(1000, 1000));
+    PVector<Collisionable> obj_list = CollisionManager::queryArea(my_spaceship->getPosition() - glm::vec2(1000, 1000), my_spaceship->getPosition() + glm::vec2(1000, 1000));
     P<SpaceObject> dock_object;
     foreach(Collisionable, obj, obj_list)
     {
         dock_object = obj;
-        if (dock_object && dock_object != my_spaceship && dock_object->canBeDockedBy(my_spaceship) && (dock_object->getPosition() - my_spaceship->getPosition()) < 1000.0f + dock_object->getRadius())
+        if (dock_object && dock_object != my_spaceship && dock_object->canBeDockedBy(my_spaceship) && glm::length(dock_object->getPosition() - my_spaceship->getPosition()) < 1000.0f + dock_object->getRadius())
             break;
         dock_object = NULL;
     }

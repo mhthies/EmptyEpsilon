@@ -19,11 +19,11 @@
 TutorialMenu::TutorialMenu()
 {
     new GuiOverlay(this, "", colorConfig.background);
-    (new GuiOverlay(this, "", sf::Color::White))->setTextureTiled("gui/BackgroundCrosses");
+    (new GuiOverlay(this, "", glm::u8vec4{255,255,255,255}))->setTextureTiled("gui/background/crosses.png");
 
     // Draw a one-column autolayout container with margins.
     container = new GuiAutoLayout(this, "TUTORIAL_CONTAINER", GuiAutoLayout::ELayoutMode::LayoutVerticalTopToBottom);
-    container->setPosition(0, 0, ATopLeft)->setSize(GuiElement::GuiSizeMax, GuiElement::GuiSizeMax)->setMargins(50);
+    container->setPosition(0, 0, sp::Alignment::TopLeft)->setSize(GuiElement::GuiSizeMax, GuiElement::GuiSizeMax)->setMargins(50);
 
     // Tutorial section.
     (new GuiLabel(container, "TUTORIAL_LABEL", tr("title", "Tutorials"), 30))->addBackground()->setSize(GuiElement::GuiSizeMax, 50);
@@ -35,7 +35,7 @@ TutorialMenu::TutorialMenu()
     tutorial_list->setSize(GuiElement::GuiSizeMax, 350);
 
     // Fetch and sort all Lua files starting with "tutorial_".
-    std::vector<string> tutorial_filenames = findResources("tutorial_*.lua");
+    std::vector<string> tutorial_filenames = findResources("tutorial/*.lua");
     std::sort(tutorial_filenames.begin(), tutorial_filenames.end());
 
     // For each scenario file, extract its name, then add it to the list.
@@ -60,7 +60,7 @@ TutorialMenu::TutorialMenu()
         destroy();
         new TutorialGame(false,selected_tutorial_filename);
     });
-    start_tutorial_button->setEnable(false)->setPosition(0, 0, ABottomRight)->setSize(300, GuiElement::GuiSizeMax);
+    start_tutorial_button->setEnable(false)->setPosition(0, 0, sp::Alignment::BottomRight)->setSize(300, GuiElement::GuiSizeMax);
 
     // Back button.
     (new GuiButton(bottom_row, "BACK", tr("button", "Back"), [this]()
@@ -68,7 +68,7 @@ TutorialMenu::TutorialMenu()
         // Close this menu, stop the music, and return to the main menu.
         destroy();
         returnToMainMenu();
-    }))->setPosition(0, 0, ABottomLeft)->setSize(300, GuiElement::GuiSizeMax);
+    }))->setPosition(0, 0, sp::Alignment::BottomLeft)->setSize(300, GuiElement::GuiSizeMax);
 
     // Select the first scenario in the list by default.
     if (!tutorial_filenames.empty()) {
@@ -85,17 +85,11 @@ void TutorialMenu::selectTutorial(string filename)
     tutorial_description->setText(info.description);
 }
 
-void TutorialMenu::onKey(sf::Event::KeyEvent key, int unicode)
+void TutorialMenu::update(float delta)
 {
-    switch(key.code)
+    if (keys.escape.getDown())
     {
-    //TODO: This is more generic code and is duplicated.
-    case sf::Keyboard::Escape:
-    case sf::Keyboard::Home:
         destroy();
         returnToMainMenu();
-        break;
-    default:
-        break;
     }
 }

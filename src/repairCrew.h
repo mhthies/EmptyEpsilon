@@ -23,8 +23,8 @@ class RepairCrew : public MultiplayerObject, public Updatable
     static constexpr float move_speed = 2.0;
     static constexpr float repair_per_second = 0.007;
 public:
-    sf::Vector2f position;
-    sf::Vector2i target_position;
+    glm::vec2 position;
+    glm::ivec2 target_position;
     ERepairCrewAction action;
     ERepairCrewDirection direction;
     float action_delay;
@@ -35,12 +35,12 @@ public:
     RepairCrew();
     virtual ~RepairCrew();
 
-    virtual void onReceiveClientCommand(int32_t client_id, sf::Packet& packet);
-    void commandSetTargetPosition(sf::Vector2i position);
+    virtual void onReceiveClientCommand(int32_t client_id, sp::io::DataBuffer& packet) override;
+    void commandSetTargetPosition(glm::ivec2 position);
 
-    virtual void update(float delta);
+    virtual void update(float delta) override;
 private:
-    bool isTargetPositionTaken(sf::Vector2i position);
+    bool isTargetPositionTaken(glm::ivec2 position);
 };
 PVector<RepairCrew> getRepairCrewFor(P<PlayerSpaceship> ship);
 

@@ -22,14 +22,14 @@ GuiShieldsEnableButton::GuiShieldsEnableButton(GuiContainer* owner, string id)
     bar->setSize(GuiElement::GuiSizeMax, GuiElement::GuiSizeMax);
     (new GuiLabel(bar, id + "_CALIBRATING_LABEL", tr("shields","Calibrating"), 30))->setSize(GuiElement::GuiSizeMax, GuiElement::GuiSizeMax);
 
-    (new GuiPowerDamageIndicator(this, id + "_PDI", SYS_FrontShield, ACenterLeft))->setSize(GuiElement::GuiSizeMax, GuiElement::GuiSizeMax);
+    (new GuiPowerDamageIndicator(this, id + "_PDI", SYS_FrontShield, sp::Alignment::CenterLeft))->setSize(GuiElement::GuiSizeMax, GuiElement::GuiSizeMax);
 }
 
-void GuiShieldsEnableButton::onDraw(sf::RenderTarget& window)
+void GuiShieldsEnableButton::onDraw(sp::RenderTarget& target)
 {
     if (my_spaceship)
     {
-        if (my_spaceship->shield_calibration_delay > 0.0)
+        if (my_spaceship->shield_calibration_delay > 0.0f)
         {
             button->hide();
             bar->show();
@@ -49,15 +49,15 @@ void GuiShieldsEnableButton::onDraw(sf::RenderTarget& window)
     }
 }
 
-void GuiShieldsEnableButton::onHotkey(const HotkeyResult& key)
+void GuiShieldsEnableButton::onUpdate()
 {
-    if (key.category == "WEAPONS" && my_spaceship)
+    if (my_spaceship)
     {
-        if (key.hotkey == "TOGGLE_SHIELDS")
+        if (keys.weapons_toggle_shields.getDown())
             my_spaceship->commandSetShields(!my_spaceship->shields_active);
-        if (key.hotkey == "ENABLE_SHIELDS")
+        if (keys.weapons_enable_shields.getDown())
             my_spaceship->commandSetShields(true);
-        if (key.hotkey == "DISABLE_SHIELDS")
+        if (keys.weapons_disable_shields.getDown())
             my_spaceship->commandSetShields(false);
     }
 }

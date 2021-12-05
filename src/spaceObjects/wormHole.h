@@ -7,7 +7,8 @@
 
 class WormHole : public SpaceObject, public Updatable
 {
-    sf::Vector2f target_position = sf::Vector2f(0.0f, 0.0f);
+private:
+    glm::vec2 target_position = glm::vec2(0.0f, 0.0f);
     float update_delta = 0.0f;
     P<PathPlannerManager>  pathPlanner;
 
@@ -20,19 +21,21 @@ class WormHole : public SpaceObject, public Updatable
 public:
     WormHole();
 
-#if FEATURE_3D_RENDERING
     virtual void draw3DTransparent() override;
-#endif//FEATURE_3D_RENDERING
-    virtual void drawOnRadar(sf::RenderTarget& window, sf::Vector2f position, float scale, float rotation, bool long_range) override;
-    virtual void drawOnGMRadar(sf::RenderTarget& window, sf::Vector2f position, float scale, float rotation, bool long_range) override;
+    virtual void drawOnRadar(sp::RenderTarget& renderer, glm::vec2 position, float scale, float rotation, bool long_range) override;
+    virtual void drawOnGMRadar(sp::RenderTarget& renderer, glm::vec2 position, float scale, float rotation, bool long_range) override;
     virtual void update(float delta) override;
     virtual void collide(Collisionable* target, float force) override;
+    virtual ERadarLayer getRadarLayer() const override { return ERadarLayer::Background; }
 
-    void setTargetPosition(sf::Vector2f v);   /* Where to jump to */
-    sf::Vector2f getTargetPosition();
+    void setTargetPosition(glm::vec2 v);   /* Where to jump to */
+    glm::vec2 getTargetPosition();
     void onTeleportation(ScriptSimpleCallback callback);
 
     virtual string getExportLine() override { return "WormHole():setPosition(" + string(getPosition().x, 0) + ", " + string(getPosition().y, 0) + "):setTargetPosition(" + string(target_position.x, 0) + ", " + string(target_position.y, 0) + ")"; }
+
+protected:
+    glm::mat4 getModelMatrix() const override;
 };
 
 #endif//WORM_HOLE_H

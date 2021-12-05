@@ -18,7 +18,7 @@ GuiViewportMainScreen::GuiViewportMainScreen(GuiContainer* owner, string id)
     first_person = PreferencesManager::get("first_person") == "1";
 }
 
-void GuiViewportMainScreen::onDraw(sf::RenderTarget& window)
+void GuiViewportMainScreen::onDraw(sp::RenderTarget& renderer)
 {
     if (my_spaceship)
     {
@@ -32,8 +32,8 @@ void GuiViewportMainScreen::onDraw(sf::RenderTarget& window)
         case MSS_Target:
             if (target_ship)
             {
-                sf::Vector2f target_camera_diff = my_spaceship->getPosition() - target_ship->getPosition();
-                target_camera_yaw = sf::vector2ToAngle(target_camera_diff) + 180;
+                auto target_camera_diff = my_spaceship->getPosition() - target_ship->getPosition();
+                target_camera_yaw = vec2ToAngle(target_camera_diff) + 180;
             }
             break;
         default: break;
@@ -48,17 +48,8 @@ void GuiViewportMainScreen::onDraw(sf::RenderTarget& window)
             camera_ship_height = my_spaceship->getRadius() / 10.f;
             camera_pitch = 0;
         }
-        sf::Vector2f cameraPosition2D = my_spaceship->getPosition() + sf::vector2FromAngle(target_camera_yaw) * -camera_ship_distance;
-        sf::Vector3f targetCameraPosition(cameraPosition2D.x, cameraPosition2D.y, camera_ship_height);
-#ifdef DEBUG
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Z))
-        {
-            targetCameraPosition.x = my_spaceship->getPosition().x;
-            targetCameraPosition.y = my_spaceship->getPosition().y;
-            targetCameraPosition.z = 3000.0;
-            camera_pitch = 90.0f;
-        }
-#endif
+        auto cameraPosition2D = my_spaceship->getPosition() + vec2FromAngle(target_camera_yaw) * -camera_ship_distance;
+        glm::vec3 targetCameraPosition(cameraPosition2D.x, cameraPosition2D.y, camera_ship_height);
         if (first_person)
         {
             camera_position = targetCameraPosition;
@@ -67,8 +58,8 @@ void GuiViewportMainScreen::onDraw(sf::RenderTarget& window)
         else
         {
             camera_position = camera_position * 0.9f + targetCameraPosition * 0.1f;
-            camera_yaw += sf::angleDifference(camera_yaw, target_camera_yaw) * 0.1f;
+            camera_yaw += angleDifference(camera_yaw, target_camera_yaw) * 0.1f;
         }
     }
-    GuiViewport3D::onDraw(window);
+    GuiViewport3D::onDraw(renderer);
 }

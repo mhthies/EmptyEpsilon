@@ -5,12 +5,12 @@ GuiPanel::GuiPanel(GuiContainer* owner, string id)
 {
 }
 
-void GuiPanel::onDraw(sf::RenderTarget& window)
+void GuiPanel::onDraw(sp::RenderTarget& renderer)
 {
-    drawStretchedHV(window, rect, 25.0f, "gui/PanelBackground");
+    renderer.drawStretchedHV(rect, 25.0f, "gui/widget/PanelBackground.png");
 }
 
-bool GuiPanel::onMouseDown(sf::Vector2f position)
+bool GuiPanel::onMouseDown(sp::io::Pointer::Button button, glm::vec2 position, sp::io::Pointer::ID id)
 {
     return true;
 }

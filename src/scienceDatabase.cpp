@@ -5,6 +5,8 @@
 
 #include "scriptInterface.h"
 
+#include <set>
+
 REGISTER_SCRIPT_CLASS(ScienceDatabase)
 {
     REGISTER_SCRIPT_CLASS_FUNCTION(ScienceDatabase, setName);
@@ -294,13 +296,13 @@ REGISTER_SCRIPT_FUNCTION(getScienceDatabases);
 static string directionLabel(float direction)
 {
     string name = "?";
-    if (std::abs(sf::angleDifference(0.0f, direction)) <= 45)
+    if (std::abs(angleDifference(0.0f, direction)) <= 45)
         name = tr("database direction", "Front");
-    if (std::abs(sf::angleDifference(90.0f, direction)) < 45)
+    if (std::abs(angleDifference(90.0f, direction)) < 45)
         name = tr("database direction", "Right");
-    if (std::abs(sf::angleDifference(-90.0f, direction)) < 45)
+    if (std::abs(angleDifference(-90.0f, direction)) < 45)
         name = tr("database direction", "Left");
-    if (std::abs(sf::angleDifference(180.0f, direction)) <= 45)
+    if (std::abs(angleDifference(180.0f, direction)) <= 45)
         name = tr("database direction", "Rear");
     return name;
 }
@@ -353,6 +355,8 @@ void fillDefaultDatabaseData()
     for(string& template_name : template_names)
     {
         P<ShipTemplate> ship_template = ShipTemplate::getTemplate(template_name);
+        if (!ship_template->visible)
+            continue;
         string class_name = ship_template->getClass();
         string subclass_name = ship_template->getSubClass();
         if (class_set.find(class_name) == class_set.end())
@@ -373,6 +377,8 @@ void fillDefaultDatabaseData()
     for(string& template_name : template_names)
     {
         P<ShipTemplate> ship_template = ShipTemplate::getTemplate(template_name);
+        if (!ship_template->visible)
+            continue;
         P<ScienceDatabase> entry = class_database_entries[ship_template->getClass()]->addEntry(ship_template->getLocaleName());
 
         entry->setModelData(ship_template->model_data);
@@ -394,15 +400,15 @@ void fillDefaultDatabaseData()
         }
         entry->addKeyValue(tr("Hull"), string(int(ship_template->hull)));
 
-        if (ship_template->impulse_speed > 0.0)
+        if (ship_template->impulse_speed > 0.0f)
         {
             entry->addKeyValue(tr("database", "Move speed"), string(ship_template->impulse_speed * 60 / 1000, 1) + " u/min");
             entry->addKeyValue(tr("database", "Reverse move speed"), string(ship_template->impulse_reverse_speed * 60 / 1000, 1) + " u/min");
         }
-        if (ship_template->turn_speed > 0.0) {
+        if (ship_template->turn_speed > 0.0f) {
             entry->addKeyValue(tr("database", "Turn speed"), string(ship_template->turn_speed, 1) + " deg/sec");
         }
-        if (ship_template->warp_speed > 0.0)
+        if (ship_template->warp_speed > 0.0f)
         {
             entry->addKeyValue(tr("database", "Warp speed"), string(ship_template->warp_speed * 60 / 1000, 1) + " u/min");
         }

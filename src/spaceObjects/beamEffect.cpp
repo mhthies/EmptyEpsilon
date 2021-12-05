@@ -1,19 +1,24 @@
-#include <GL/glew.h>
-#include <SFML/OpenGL.hpp>
+#include <graphics/opengl.h>
+#include <glm/gtc/type_ptr.hpp>
 #include "beamEffect.h"
 #include "spaceship.h"
 #include "mesh.h"
+#include "random.h"
 #include "main.h"
+#include "textureManager.h"
+#include "soundManager.h"
+#include "multiplayer_server.h"
+#include "multiplayer_client.h"
 
 #include "shaderRegistry.h"
 
-#if FEATURE_3D_RENDERING
+#include <glm/ext/matrix_transform.hpp>
+
 struct VertexAndTexCoords
 {
-    sf::Vector3f vertex;
-    sf::Vector2f texcoords;
+    glm::vec3 vertex;
+    glm::vec2 texcoords;
 };
-#endif
 
 /// BeamEffect is a beam weapon fire effect that will fade after 1 seond
 /// Example: BeamEffect():setSource(player):setTarget(enemy_ship)
@@ -38,7 +43,7 @@ BeamEffect::BeamEffect()
     lifetime = 1.0;
     sourceId = -1;
     target_id = -1;
-    beam_texture = "beam_orange.png";
+    beam_texture = "texture/beam_orange.png";
     beam_fire_sound = "sfx/laser_fire.wav";
     beam_fire_sound_power = 1;
     beam_sound_played = false;
@@ -61,19 +66,18 @@ BeamEffect::~BeamEffect()
 {
 }
 
-#if FEATURE_3D_RENDERING
 void BeamEffect::draw3DTransparent()
 {
-    glTranslatef(-getPosition().x, -getPosition().y, 0);
-    sf::Vector3f startPoint(getPosition().x, getPosition().y, sourceOffset.z);
-    sf::Vector3f endPoint(targetLocation.x, targetLocation.y, targetOffset.z);
-    sf::Vector3f eyeNormal = sf::normalize(sf::cross(camera_position - startPoint, endPoint - startPoint));
+    glm::vec3 startPoint(getPosition().x, getPosition().y, sourceOffset.z);
+    glm::vec3 endPoint(targetLocation.x, targetLocation.y, targetOffset.z);
+    glm::vec3 eyeNormal = glm::normalize(glm::cross(camera_position - startPoint, endPoint - startPoint));
 
-    glBindTexture(GL_TEXTURE_2D, textureManager.getTexture(beam_texture)->getNativeHandle());
+    textureManager.getTexture(beam_texture)->bind();
 
     ShaderRegistry::ScopedShader beamShader(ShaderRegistry::Shaders::Basic);
 
     glUniform4f(beamShader.get().uniform(ShaderRegistry::Uniforms::Color), lifetime, lifetime, lifetime, 1.f);
+    glUniformMatrix4fv(beamShader.get().uniform(ShaderRegistry::Uniforms::Model), 1, GL_FALSE, glm::value_ptr(getModelMatrix()));
     
     gl::ScopedVertexAttribArray positions(beamShader.get().attribute(ShaderRegistry::Attributes::Position));
     gl::ScopedVertexAttribArray texcoords(beamShader.get().attribute(ShaderRegistry::Attributes::Texcoords));
@@ -81,10 +85,10 @@ void BeamEffect::draw3DTransparent()
     std::array<VertexAndTexCoords, 4> quad;
     // Beam
     {
-        sf::Vector3f v0 = startPoint + eyeNormal * 4.0f;
-        sf::Vector3f v1 = endPoint + eyeNormal * 4.0f;
-        sf::Vector3f v2 = endPoint - eyeNormal * 4.0f;
-        sf::Vector3f v3 = startPoint - eyeNormal * 4.0f;
+        glm::vec3 v0 = startPoint + eyeNormal * 4.0f;
+        glm::vec3 v1 = endPoint + eyeNormal * 4.0f;
+        glm::vec3 v2 = endPoint - eyeNormal * 4.0f;
+        glm::vec3 v3 = startPoint - eyeNormal * 4.0f;
         quad[0].vertex = v0;
         quad[0].texcoords = { 0.f, 0.f };
         quad[1].vertex = v1;
@@ -95,26 +99,26 @@ void BeamEffect::draw3DTransparent()
         quad[3].texcoords = { 1.f, 0.f };
 
         glVertexAttribPointer(positions.get(), 3, GL_FLOAT, GL_FALSE, sizeof(VertexAndTexCoords), (GLvoid*)quad.data());
-        glVertexAttribPointer(texcoords.get(), 2, GL_FLOAT, GL_FALSE, sizeof(VertexAndTexCoords), (GLvoid*)((char*)quad.data() + sizeof(sf::Vector3f)));
+        glVertexAttribPointer(texcoords.get(), 2, GL_FLOAT, GL_FALSE, sizeof(VertexAndTexCoords), (GLvoid*)((char*)quad.data() + sizeof(glm::vec3)));
         // Draw the beam
-        std::initializer_list<uint8_t> indices = { 0, 1, 2, 2, 3, 0 };
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, std::begin(indices));
+        std::initializer_list<uint16_t> indices = { 0, 1, 2, 2, 3, 0 };
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, std::begin(indices));
 
     }
 
     // Fire ring
     if (fire_ring)
     {
-        sf::Vector3f side = sf::cross(hitNormal, sf::Vector3f(0, 0, 1));
-        sf::Vector3f up = sf::cross(side, hitNormal);
+        glm::vec3 side = glm::cross(hitNormal, glm::vec3(0, 0, 1));
+        glm::vec3 up = glm::cross(side, hitNormal);
 
-        sf::Vector3f v0(targetLocation.x, targetLocation.y, targetOffset.z);
+        glm::vec3 v0(targetLocation.x, targetLocation.y, targetOffset.z);
 
         float ring_size = Tween<float>::easeOutCubic(lifetime, 1.0, 0.0, 10.0f, 80.0f);
-        sf::Vector3f v1 = v0 + side * ring_size + up * ring_size;
-        sf::Vector3f v2 = v0 - side * ring_size + up * ring_size;
-        sf::Vector3f v3 = v0 - side * ring_size - up * ring_size;
-        sf::Vector3f v4 = v0 + side * ring_size - up * ring_size;
+        auto v1 = v0 + side * ring_size + up * ring_size;
+        auto v2 = v0 - side * ring_size + up * ring_size;
+        auto v3 = v0 - side * ring_size - up * ring_size;
+        auto v4 = v0 + side * ring_size - up * ring_size;
 
         quad[0].vertex = v1;
         quad[0].texcoords = { 0.f, 0.f };
@@ -125,14 +129,13 @@ void BeamEffect::draw3DTransparent()
         quad[3].vertex = v4;
         quad[3].texcoords = { 0.f, 1.f };
 
-        glBindTexture(GL_TEXTURE_2D, textureManager.getTexture("fire_ring.png")->getNativeHandle());
+        textureManager.getTexture("texture/fire_ring.png")->bind();
         glVertexAttribPointer(positions.get(), 3, GL_FLOAT, GL_FALSE, sizeof(VertexAndTexCoords), (GLvoid*)quad.data());
-        glVertexAttribPointer(texcoords.get(), 2, GL_FLOAT, GL_FALSE, sizeof(VertexAndTexCoords), (GLvoid*)((char*)quad.data() + sizeof(sf::Vector3f)));
-        std::initializer_list<uint8_t> indices = { 0, 1, 2, 2, 3, 0 };
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, std::begin(indices));
+        glVertexAttribPointer(texcoords.get(), 2, GL_FLOAT, GL_FALSE, sizeof(VertexAndTexCoords), (GLvoid*)((char*)quad.data() + sizeof(glm::vec3)));
+        std::initializer_list<uint16_t> indices = { 0, 1, 2, 2, 3, 0 };
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, std::begin(indices));
     }
 }
-#endif//FEATURE_3D_RENDERING
 
 void BeamEffect::update(float delta)
 {
@@ -146,9 +149,9 @@ void BeamEffect::update(float delta)
         target = game_client->getObjectById(target_id);
     }
     if (source)
-        setPosition(source->getPosition() + rotateVector(sf::Vector2f(sourceOffset.x, sourceOffset.y), source->getRotation()));
+        setPosition(source->getPosition() + rotateVec2(glm::vec2(sourceOffset.x, sourceOffset.y), source->getRotation()));
     if (target)
-        targetLocation = target->getPosition() + sf::Vector2f(targetOffset.x, targetOffset.y);
+        targetLocation = target->getPosition() + glm::vec2(targetOffset.x, targetOffset.y);
 
     if (source && delta > 0 && !beam_sound_played)
     {
@@ -163,27 +166,33 @@ void BeamEffect::update(float delta)
         destroy();
 }
 
-void BeamEffect::setSource(P<SpaceObject> source, sf::Vector3f offset)
+void BeamEffect::setSource(P<SpaceObject> source, glm::vec3 offset)
 {
     sourceId = source->getMultiplayerId();
     sourceOffset = offset;
     update(0);
 }
 
-void BeamEffect::setTarget(P<SpaceObject> target, sf::Vector2f hitLocation)
+void BeamEffect::setTarget(P<SpaceObject> target, glm::vec2 hitLocation)
 {
     target_id = target->getMultiplayerId();
     float r = target->getRadius();
     hitLocation -= target->getPosition();
-    targetOffset = sf::Vector3f(hitLocation.x + random(-r/2.0, r/2.0), hitLocation.y + random(-r/2.0, r/2.0), random(-r/4.0, r/4.0));
+    targetOffset = glm::vec3(hitLocation.x + random(-r/2.0f, r/2.0f), hitLocation.y + random(-r/2.0f, r/2.0f), random(-r/4.0f, r/4.0f));
 
     if (target->hasShield())
-        targetOffset = sf::normalize(targetOffset) * r;
+        targetOffset = glm::normalize(targetOffset) * r;
     else
-        targetOffset = sf::normalize(targetOffset) * random(0, r / 2.0);
+        targetOffset = glm::normalize(targetOffset) * random(0, r / 2.0f);
     update(0);
 
-    sf::Vector3f hitPos(targetLocation.x, targetLocation.y, targetOffset.z);
-    sf::Vector3f targetPos(target->getPosition().x, target->getPosition().y, 0);
-    hitNormal = sf::normalize(targetPos - hitPos);
+    glm::vec3 hitPos(targetLocation.x, targetLocation.y, targetOffset.z);
+    glm::vec3 targetPos(target->getPosition().x, target->getPosition().y, 0);
+    hitNormal = glm::normalize(targetPos - hitPos);
+}
+
+glm::mat4 BeamEffect::getModelMatrix() const
+{
+    auto position = getPosition();
+    return glm::translate(SpaceObject::getModelMatrix(), -glm::vec3(position.x, position.y, 0.f));
 }

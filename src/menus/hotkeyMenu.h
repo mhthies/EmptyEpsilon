@@ -17,13 +17,13 @@ class GuiPanel;
 class GuiScrollText;
 class GuiHotkeyBinder;
 
-class HotkeyMenu : public GuiCanvas
+class HotkeyMenu : public GuiCanvas, public Updatable
 {
 private:
     const int ROW_HEIGHT = 50;
     const int FRAME_MARGIN = 50;
     const int KEY_LABEL_WIDTH = 375;
-    const int KEY_FIELD_WIDTH = 125;
+    const int KEY_FIELD_WIDTH = 150;
     const int KEY_LABEL_MARGIN = 25;
     const int KEY_COLUMN_TOP = ROW_HEIGHT * 2;
     const int KEY_ROW_COUNT = 10;
@@ -48,15 +48,14 @@ private:
     string category = "";
     int category_index = 1;
     std::vector<string> category_list;
-    std::vector<std::pair<string, string>> hotkey_list;
+    std::vector<sp::io::Keybinding*> hotkey_list;
 
     void setCategory(int cat);
-    void saveHotkeys();
     void pageHotkeys(int direction);
 public:
     HotkeyMenu();
 
-    void onKey(sf::Event::KeyEvent key, int unicode);
+    virtual void update(float delta) override;
 };
 
 #endif //HOTKEYMENU_H

@@ -1,14 +1,14 @@
 #ifndef COMMS_SCRIPT_INTERFACE_H
 #define COMMS_SCRIPT_INTERFACE_H
 
-#include "engine.h"
+#include "scriptInterface.h"
 
 ///Forward declarations
 class ScriptObject;
 class PlayerSpaceship;
 class SpaceObject;
 
-class CommsScriptInterface : public sf::NonCopyable
+class CommsScriptInterface : sp::NonCopyable
 {
 public:
     bool openCommChannel(P<PlayerSpaceship> ship, P<SpaceObject> target);

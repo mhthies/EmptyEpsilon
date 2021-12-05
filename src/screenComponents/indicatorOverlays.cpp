@@ -3,6 +3,7 @@
 #include "playerInfo.h"
 #include "gameGlobalInfo.h"
 #include "main.h"
+#include "random.h"
 #include "preferenceManager.h"
 
 #include "gui/gui2_overlay.h"
@@ -15,23 +16,23 @@ GuiIndicatorOverlays::GuiIndicatorOverlays(GuiContainer* owner)
 {
     setSize(GuiElement::GuiSizeMax, GuiElement::GuiSizeMax);
 
-    shield_hit_overlay = new GuiOverlay(this, "SHIELD_HIT", sf::Color(64, 64, 128, 0));
-    hull_hit_overlay = new GuiOverlay(this, "HULL_HIT", sf::Color(255, 0, 0, 0));
-    shield_low_warning_overlay = new GuiOverlay(this, "SHIELD_LOW", sf::Color(255, 0, 0, 0));
-    pause_overlay = new GuiOverlay(this, "PAUSE", sf::Color(0, 0, 0, 128));
-    (new GuiPanel(pause_overlay, "PAUSE_BOX"))->setPosition(0, 0, ACenter)->setSize(500, 100);
-    (new GuiLabel(pause_overlay, "PAUSE_LABEL", tr("Game Paused"), 70))->setPosition(0, 0, ACenter)->setSize(500, 100);
+    shield_hit_overlay = new GuiOverlay(this, "SHIELD_HIT", glm::u8vec4(64, 64, 128, 0));
+    hull_hit_overlay = new GuiOverlay(this, "HULL_HIT", glm::u8vec4(255, 0, 0, 0));
+    shield_low_warning_overlay = new GuiOverlay(this, "SHIELD_LOW", glm::u8vec4(255, 0, 0, 0));
+    pause_overlay = new GuiOverlay(this, "PAUSE", glm::u8vec4(0, 0, 0, 128));
+    (new GuiPanel(pause_overlay, "PAUSE_BOX"))->setPosition(0, 0, sp::Alignment::Center)->setSize(500, 100);
+    (new GuiLabel(pause_overlay, "PAUSE_LABEL", tr("Game Paused"), 70))->setPosition(0, 0, sp::Alignment::Center)->setSize(500, 100);
     if (game_server)
     {
         (new GuiButton(pause_overlay, "PAUSE_RESUME", tr("Unpause"), []() {
             engine->setGameSpeed(1.0);
-        }))->setPosition(0, 75, ACenter)->setSize(500, 50);
+        }))->setPosition(0, 75, sp::Alignment::Center)->setSize(500, 50);
     }
 
-    victory_overlay = new GuiOverlay(this, "VICTORY", sf::Color(0, 0, 0, 128));
-    (new GuiPanel(victory_overlay, "VICTORY_BOX"))->setPosition(0, 0, ACenter)->setSize(500, 100);
+    victory_overlay = new GuiOverlay(this, "VICTORY", glm::u8vec4(0, 0, 0, 128));
+    (new GuiPanel(victory_overlay, "VICTORY_BOX"))->setPosition(0, 0, sp::Alignment::Center)->setSize(500, 100);
     victory_label = new GuiLabel(victory_overlay, "VICTORY_LABEL", "...", 70);
-    victory_label->setPosition(0, 0, ACenter)->setSize(500, 100);
+    victory_label->setPosition(0, 0, sp::Alignment::Center)->setSize(500, 100);
 }
 
 GuiIndicatorOverlays::~GuiIndicatorOverlays()
@@ -42,14 +43,14 @@ GuiIndicatorOverlays::~GuiIndicatorOverlays()
 
 static float glow(float min, float max, float time)
 {
-    return min + (max - min) * std::abs(fmodf(engine->getElapsedTime() / time, 2.0) - 1.0);
+    return min + (max - min) * std::abs(fmodf(engine->getElapsedTime() / time, 2.0f) - 1.0f);
 }
 
-void GuiIndicatorOverlays::onDraw(sf::RenderTarget& window)
+void GuiIndicatorOverlays::onDraw(sp::RenderTarget& renderer)
 {
     if (my_spaceship)
     {
-        drawAlertLevel(window);
+        drawAlertLevel(renderer);
 
         float shield_hit = 0.0;
         bool low_shields = false;
@@ -59,7 +60,7 @@ void GuiIndicatorOverlays::onDraw(sf::RenderTarget& window)
             if (my_spaceship->shield_level[n] < my_spaceship->shield_max[n] / 10.0f)
                 low_shields = true;
         }
-        shield_hit = (shield_hit - 0.5) / 0.5;
+        shield_hit = (shield_hit - 0.5f) / 0.5f;
         shield_hit_overlay->setAlpha(32 * shield_hit);
 
         if (low_shields)
@@ -69,7 +70,7 @@ void GuiIndicatorOverlays::onDraw(sf::RenderTarget& window)
             shield_low_warning_overlay->setAlpha(0);
         }
 
-        hull_hit_overlay->setAlpha(128 * (my_spaceship->hull_damage_indicator / 1.5));
+        hull_hit_overlay->setAlpha(128 * (my_spaceship->hull_damage_indicator / 1.5f));
     }else{
         shield_hit_overlay->setAlpha(0);
         shield_low_warning_overlay->setAlpha(0);
@@ -78,22 +79,22 @@ void GuiIndicatorOverlays::onDraw(sf::RenderTarget& window)
 
     if (my_spaceship)
     {
-        if (my_spaceship->jump_indicator > 0.0)
+        if (my_spaceship->jump_indicator > 0.0f)
         {
             glitchPostProcessor->enabled = true;
-            glitchPostProcessor->setUniform("magtitude", my_spaceship->jump_indicator * 10.0);
+            glitchPostProcessor->setUniform("magtitude", my_spaceship->jump_indicator * 10.0f);
             glitchPostProcessor->setUniform("delta", random(0, 360));
         }else{
             glitchPostProcessor->enabled = false;
         }
-        if (my_spaceship->current_warp > 0.0 && PreferencesManager::get("warp_post_processor_disable").toInt() != 1)
+        if (my_spaceship->current_warp > 0.0f && PreferencesManager::get("warp_post_processor_disable").toInt() != 1)
         {
             warpPostProcessor->enabled = true;
-            warpPostProcessor->setUniform("amount", my_spaceship->current_warp * 0.01);
-        }else if (my_spaceship->jump_delay > 0.0 && my_spaceship->jump_delay < 2.0 && PreferencesManager::get("warp_post_processor_disable").toInt() != 1)
+            warpPostProcessor->setUniform("amount", my_spaceship->current_warp * 0.01f);
+        }else if (my_spaceship->jump_delay > 0.0f && my_spaceship->jump_delay < 2.0f && PreferencesManager::get("warp_post_processor_disable").toInt() != 1)
         {
             warpPostProcessor->enabled = true;
-            warpPostProcessor->setUniform("amount", (2.0 - my_spaceship->jump_delay) * 0.1);
+            warpPostProcessor->setUniform("amount", (2.0f - my_spaceship->jump_delay) * 0.1f);
         }else{
             warpPostProcessor->enabled = false;
         }
@@ -102,7 +103,7 @@ void GuiIndicatorOverlays::onDraw(sf::RenderTarget& window)
         glitchPostProcessor->enabled = false;
     }
 
-    if (engine->getGameSpeed() == 0.0)
+    if (engine->getGameSpeed() == 0.0f)
     {
         warpPostProcessor->enabled = false;
         glitchPostProcessor->enabled = false;
@@ -139,32 +140,29 @@ void GuiIndicatorOverlays::onDraw(sf::RenderTarget& window)
     }
 }
 
-bool GuiIndicatorOverlays::onMouseDown(sf::Vector2f position)
+bool GuiIndicatorOverlays::onMouseDown(sp::io::Pointer::Button button, glm::vec2 position, sp::io::Pointer::ID id)
 {
     if (pause_overlay->isVisible() || victory_overlay->isVisible())
         return true;
     return false;
 }
 
-void GuiIndicatorOverlays::drawAlertLevel(sf::RenderTarget& window)
+void GuiIndicatorOverlays::drawAlertLevel(sp::RenderTarget& renderer)
 {
-    sf::Color multiply_color = sf::Color::White;
+    glm::u8vec4 multiply_color{255,255,255,255};
 
     switch(my_spaceship->alert_level)
     {
     case AL_RedAlert:
-        multiply_color = sf::Color(255, 192, 192, 255);
+        multiply_color = glm::u8vec4(255, 192, 192, 255);
         break;
     case AL_YellowAlert:
-        multiply_color = sf::Color(255, 255, 192, 255);
+        multiply_color = glm::u8vec4(255, 255, 192, 255);
         break;
     case AL_Normal:
     default:
         return;
     }
 
-    sf::RectangleShape overlay(sf::Vector2f(rect.width, rect.height));
-    overlay.setPosition(rect.left, rect.top);
-    overlay.setFillColor(multiply_color);
-    window.draw(overlay, sf::BlendMultiply);
+    renderer.drawRectColorMultiply(rect, multiply_color);
 }

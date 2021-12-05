@@ -9,11 +9,11 @@ SpectatorScreen::SpectatorScreen()
 {
     main_radar = new GuiRadarView(this, "MAIN_RADAR", 50000.0f, nullptr);
     main_radar->setStyle(GuiRadarView::Rectangular)->longRange()->gameMaster()->enableTargetProjections(nullptr)->setAutoCentering(false)->enableCallsigns();
-    main_radar->setPosition(0, 0, ATopLeft)->setSize(GuiElement::GuiSizeMax, GuiElement::GuiSizeMax);
+    main_radar->setPosition(0, 0, sp::Alignment::TopLeft)->setSize(GuiElement::GuiSizeMax, GuiElement::GuiSizeMax);
     main_radar->setCallbacks(
-        [this](sf::Vector2f position) { this->onMouseDown(position); },
-        [this](sf::Vector2f position) { this->onMouseDrag(position); },
-        [this](sf::Vector2f position) { this->onMouseUp(position); }
+        [this](sp::io::Pointer::Button button, glm::vec2 position) { this->onMouseDown(position); },
+        [this](glm::vec2 position) { this->onMouseDrag(position); },
+        [this](glm::vec2 position) { this->onMouseUp(position); }
     );
 
     new GuiIndicatorOverlays(this);
@@ -21,10 +21,10 @@ SpectatorScreen::SpectatorScreen()
 
 void SpectatorScreen::update(float delta)
 {
-    float mouse_wheel_delta = InputHandler::getMouseWheelDelta();
-    if (mouse_wheel_delta != 0.0)
+    float mouse_wheel_delta = keys.zoom_in.getValue() - keys.zoom_out.getValue();
+    if (mouse_wheel_delta != 0.0f)
     {
-        float view_distance = main_radar->getDistance() * (1.0 - (mouse_wheel_delta * 0.1f));
+        float view_distance = main_radar->getDistance() * (1.0f - (mouse_wheel_delta * 0.1f));
         if (view_distance > 100000)
             view_distance = 100000;
         if (view_distance < 5000)
@@ -35,43 +35,37 @@ void SpectatorScreen::update(float delta)
         else
             main_radar->longRange();
     }
+
+    if (keys.escape.getDown())
+    {
+        destroy();
+        returnToShipSelection();
+    }
+    if (keys.pause.getDown())
+    {
+        if (game_server)
+            engine->setGameSpeed(0.0);
+    }
+    if (keys.spectator_show_callsigns.getDown())
+    {
+        // Toggle callsigns.
+        main_radar->showCallsigns(!main_radar->getCallsigns());
+    }
 }
 
-void SpectatorScreen::onMouseDown(sf::Vector2f position)
+void SpectatorScreen::onMouseDown(glm::vec2 position)
 {
     drag_start_position = position;
     drag_previous_position = position;
 }
 
-void SpectatorScreen::onMouseDrag(sf::Vector2f position)
+void SpectatorScreen::onMouseDrag(glm::vec2 position)
 {
     main_radar->setViewPosition(main_radar->getViewPosition() - (position - drag_previous_position));
     position -= (position - drag_previous_position);
     drag_previous_position = position;
 }
 
-void SpectatorScreen::onMouseUp(sf::Vector2f position)
+void SpectatorScreen::onMouseUp(glm::vec2 position)
 {
-}
-
-void SpectatorScreen::onKey(sf::Event::KeyEvent key, int unicode)
-{
-    switch(key.code)
-    {
-    //TODO: This is more generic code and is duplicated.
-    case sf::Keyboard::Escape:
-    case sf::Keyboard::Home:
-        destroy();
-        returnToShipSelection();
-        break;
-    case sf::Keyboard::P:
-        if (game_server)
-            engine->setGameSpeed(0.0);
-        break;
-    case sf::Keyboard::C:
-        // Toggle callsigns.
-        main_radar->showCallsigns(!main_radar->getCallsigns());
-    default:
-        break;
-    }
 }

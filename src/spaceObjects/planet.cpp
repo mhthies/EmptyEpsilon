@@ -1,23 +1,23 @@
-#include <GL/glew.h>
+#include <graphics/opengl.h>
 #include "planet.h"
-#include <SFML/OpenGL.hpp>
 #include "main.h"
 #include "pathPlanner.h"
 
 #include "scriptInterface.h"
 #include "glObjects.h"
 #include "shaderRegistry.h"
+#include "textureManager.h"
+#include "multiplayer_server.h"
+#include "multiplayer_client.h"
 
 #include <glm/vec4.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#if FEATURE_3D_RENDERING
 struct VertexAndTexCoords
 {
-    sf::Vector3f vertex;
-    sf::Vector2f texcoords;
+    glm::vec3 vertex;
+    glm::vec2 texcoords;
 };
-#endif
 
 static Mesh* planet_mesh[16];
 
@@ -31,41 +31,41 @@ public:
     {
         max_iterations = iterations;
 
-        createFace(0, sf::Vector3f(0, 0, 1), sf::Vector3f(0, 1, 0), sf::Vector3f(1, 0, 0), sf::Vector2f(0, 0), sf::Vector2f(0, 0.5), sf::Vector2f(0.25, 0.5));
-        createFace(0, sf::Vector3f(0, 0, 1), sf::Vector3f(1, 0, 0), sf::Vector3f(0,-1, 0), sf::Vector2f(0.25, 0), sf::Vector2f(0.25, 0.5), sf::Vector2f(0.5, 0.5));
-        createFace(0, sf::Vector3f(0, 0, 1), sf::Vector3f(0,-1, 0), sf::Vector3f(-1, 0, 0), sf::Vector2f(0.5, 0), sf::Vector2f(0.5, 0.5), sf::Vector2f(0.75, 0.5));
-        createFace(0, sf::Vector3f(0, 0, 1), sf::Vector3f(-1, 0, 0), sf::Vector3f(0, 1, 0), sf::Vector2f(0.75, 0), sf::Vector2f(0.75, 0.5), sf::Vector2f(1.0, 0.5));
+        createFace(0, glm::vec3(0, 0, 1), glm::vec3(0, 1, 0), glm::vec3(1, 0, 0), glm::vec2(0, 0), glm::vec2(0, 0.5), glm::vec2(0.25, 0.5));
+        createFace(0, glm::vec3(0, 0, 1), glm::vec3(1, 0, 0), glm::vec3(0,-1, 0), glm::vec2(0.25, 0), glm::vec2(0.25, 0.5), glm::vec2(0.5, 0.5));
+        createFace(0, glm::vec3(0, 0, 1), glm::vec3(0,-1, 0), glm::vec3(-1, 0, 0), glm::vec2(0.5, 0), glm::vec2(0.5, 0.5), glm::vec2(0.75, 0.5));
+        createFace(0, glm::vec3(0, 0, 1), glm::vec3(-1, 0, 0), glm::vec3(0, 1, 0), glm::vec2(0.75, 0), glm::vec2(0.75, 0.5), glm::vec2(1.0, 0.5));
 
-        createFace(0, sf::Vector3f(0, 0,-1), sf::Vector3f(1, 0, 0), sf::Vector3f(0, 1, 0), sf::Vector2f(0, 1.0), sf::Vector2f(0.25, 0.5), sf::Vector2f(0.0, 0.5));
-        createFace(0, sf::Vector3f(0, 0,-1), sf::Vector3f(0,-1, 0), sf::Vector3f(1, 0, 0), sf::Vector2f(0.25, 1.0), sf::Vector2f(0.5, 0.5), sf::Vector2f(0.25, 0.5));
-        createFace(0, sf::Vector3f(0, 0,-1), sf::Vector3f(-1, 0, 0), sf::Vector3f(0,-1, 0), sf::Vector2f(0.5, 1.0), sf::Vector2f(0.75, 0.5), sf::Vector2f(0.5, 0.5));
-        createFace(0, sf::Vector3f(0, 0,-1), sf::Vector3f(0,1, 0), sf::Vector3f(-1, 0, 0), sf::Vector2f(0.75, 1.0), sf::Vector2f(1.0, 0.5), sf::Vector2f(0.75, 0.5));
+        createFace(0, glm::vec3(0, 0,-1), glm::vec3(1, 0, 0), glm::vec3(0, 1, 0), glm::vec2(0, 1.0), glm::vec2(0.25, 0.5), glm::vec2(0.0, 0.5));
+        createFace(0, glm::vec3(0, 0,-1), glm::vec3(0,-1, 0), glm::vec3(1, 0, 0), glm::vec2(0.25, 1.0), glm::vec2(0.5, 0.5), glm::vec2(0.25, 0.5));
+        createFace(0, glm::vec3(0, 0,-1), glm::vec3(-1, 0, 0), glm::vec3(0,-1, 0), glm::vec2(0.5, 1.0), glm::vec2(0.75, 0.5), glm::vec2(0.5, 0.5));
+        createFace(0, glm::vec3(0, 0,-1), glm::vec3(0,1, 0), glm::vec3(-1, 0, 0), glm::vec2(0.75, 1.0), glm::vec2(1.0, 0.5), glm::vec2(0.75, 0.5));
 
         for(unsigned int n=0; n<vertices.size(); n++)
         {
-            float u = sf::vector2ToAngle(sf::Vector2f(vertices[n].position[1], vertices[n].position[0])) / 360.0f;
+            float u = vec2ToAngle(glm::vec2(vertices[n].position[1], vertices[n].position[0])) / 360.0f;
             if (u < 0.0f)
-                u = 1.0 + u;
-            if (std::abs(u - vertices[n].uv[0]) > 0.5)
+                u = 1.0f + u;
+            if (std::abs(u - vertices[n].uv[0]) > 0.5f)
                 u += 1.0f;
             vertices[n].uv[0] = u;
-            vertices[n].uv[1] = 0.5 + sf::vector2ToAngle(sf::Vector2f(sf::length(sf::Vector2f(vertices[n].position[0], vertices[n].position[1])), vertices[n].position[2])) / 180.0f;
+            vertices[n].uv[1] = 0.5f + vec2ToAngle(glm::vec2(glm::length(glm::vec2(vertices[n].position[0], vertices[n].position[1])), vertices[n].position[2])) / 180.0f;
         }
     }
 
-    void createFace(int iteration, sf::Vector3f v0, sf::Vector3f v1, sf::Vector3f v2, sf::Vector2f uv0, sf::Vector2f uv1, sf::Vector2f uv2)
+    void createFace(int iteration, glm::vec3 v0, glm::vec3 v1, glm::vec3 v2, glm::vec2 uv0, glm::vec2 uv1, glm::vec2 uv2)
     {
         if (iteration < max_iterations)
         {
-            sf::Vector3f v01 = v0 + v1;
-            sf::Vector3f v12 = v1 + v2;
-            sf::Vector3f v02 = v0 + v2;
-            sf::Vector2f uv01 = (uv0 + uv1) / 2.0f;
-            sf::Vector2f uv12 = (uv1 + uv2) / 2.0f;
-            sf::Vector2f uv02 = (uv0 + uv2) / 2.0f;
-            v01 /= sf::length(v01);
-            v12 /= sf::length(v12);
-            v02 /= sf::length(v02);
+            glm::vec3 v01 = v0 + v1;
+            glm::vec3 v12 = v1 + v2;
+            glm::vec3 v02 = v0 + v2;
+            glm::vec2 uv01 = (uv0 + uv1) / 2.0f;
+            glm::vec2 uv12 = (uv1 + uv2) / 2.0f;
+            glm::vec2 uv02 = (uv0 + uv2) / 2.0f;
+            v01 /= glm::length(v01);
+            v12 /= glm::length(v12);
+            v02 /= glm::length(v02);
             createFace(iteration + 1, v0, v01, v02, uv0, uv01, uv02);
             createFace(iteration + 1, v01, v1, v12, uv01, uv1, uv12);
             createFace(iteration + 1, v01, v12, v02, uv01, uv12, uv02);
@@ -129,7 +129,6 @@ Planet::Planet()
     planet_texture = "";
     cloud_texture = "";
     atmosphere_texture = "";
-    atmosphere_color = sf::Color(0, 0, 0);
     atmosphere_size = 0;
     distance_from_movement_plane = 0;
     axial_rotation_time = 0.0;
@@ -139,7 +138,7 @@ Planet::Planet()
 
     collision_size = -2.0f;
 
-    setRadarSignatureInfo(0.5, 0, 0.3);
+    setRadarSignatureInfo(0.5f, 0.f, 0.3f);
 
     registerMemberReplication(&planet_size);
     registerMemberReplication(&cloud_size);
@@ -157,22 +156,20 @@ Planet::Planet()
 
 void Planet::setPlanetAtmosphereColor(float r, float g, float b)
 {
-    atmosphere_color.r = r * 255;
-    atmosphere_color.g = g * 255;
-    atmosphere_color.b = b * 255;
+    atmosphere_color = glm::vec3{ r, g, b };
 }
 
-void Planet::setPlanetAtmosphereTexture(string texture_name)
+void Planet::setPlanetAtmosphereTexture(std::string_view texture_name)
 {
     atmosphere_texture = texture_name;
 }
 
-void Planet::setPlanetSurfaceTexture(string texture_name)
+void Planet::setPlanetSurfaceTexture(std::string_view texture_name)
 {
     planet_texture = texture_name;
 }
 
-void Planet::setPlanetCloudTexture(string texture_name)
+void Planet::setPlanetCloudTexture(std::string_view texture_name)
 {
     cloud_texture = texture_name;
 }
@@ -190,8 +187,8 @@ float Planet::getCollisionSize()
 void Planet::setPlanetRadius(float size)
 {
     this->planet_size = size;
-    this->cloud_size = size * 1.05;
-    this->atmosphere_size = size * 1.2;
+    this->cloud_size = size * 1.05f;
+    this->atmosphere_size = size * 1.2f;
 }
 
 void Planet::setPlanetCloudRadius(float size)
@@ -214,7 +211,7 @@ void Planet::setOrbit(P<SpaceObject> target, float orbit_time)
     if (!target)
         return;
     this->orbit_target_id = target->getMultiplayerId();
-    this->orbit_distance = sf::length(getPosition() - target->getPosition());
+    this->orbit_distance = glm::length(getPosition() - target->getPosition());
     this->orbit_time = orbit_time;
 }
 
@@ -223,7 +220,7 @@ void Planet::update(float delta)
     if (collision_size == -2.0f)
     {
         updateCollisionSize();
-        if (collision_size > 0.0)
+        if (collision_size > 0.0f)
             PathPlannerManager::getInstance()->addAvoidObject(this, collision_size);
     }
 
@@ -236,9 +233,9 @@ void Planet::update(float delta)
             orbit_target = game_client->getObjectById(orbit_target_id);
         if (orbit_target)
         {
-            float angle = sf::vector2ToAngle(getPosition() - orbit_target->getPosition());
+            float angle = vec2ToAngle(getPosition() - orbit_target->getPosition());
             angle += delta / orbit_time * 360.0f;
-            setPosition(orbit_target->getPosition() + sf::vector2FromAngle(angle) * orbit_distance);
+            setPosition(orbit_target->getPosition() + vec2FromAngle(angle) * orbit_distance);
         }
     }
 
@@ -246,24 +243,21 @@ void Planet::update(float delta)
         setRotation(getRotation() + delta / axial_rotation_time * 360.0f);
 }
 
-#if FEATURE_3D_RENDERING
 void Planet::draw3D()
 {
-    float distance = sf::length(camera_position - sf::Vector3f(getPosition().x, getPosition().y, distance_from_movement_plane));
+    float distance = glm::length(camera_position - glm::vec3(getPosition().x, getPosition().y, distance_from_movement_plane));
 
     //view_scale ~= about the size the planet is on the screen.
     float view_scale = planet_size / distance;
     int level_of_detail = 4;
-    if (view_scale < 0.01)
+    if (view_scale < 0.01f)
         level_of_detail = 2;
-    if (view_scale < 0.1)
+    if (view_scale < 0.1f)
         level_of_detail = 3;
 
     if (planet_texture != "" && planet_size > 0)
     {
-        glTranslatef(0, 0, distance_from_movement_plane);
-        glScalef(planet_size, planet_size, planet_size);
-
+        
         if (!planet_mesh[level_of_detail])
         {
             PlanetMeshGenerator planet_mesh_generator(level_of_detail);
@@ -271,10 +265,14 @@ void Planet::draw3D()
         }
 
         ShaderRegistry::ScopedShader shader(ShaderRegistry::Shaders::Planet);
-
+        auto planet_matrix = glm::scale(getModelMatrix(), glm::vec3(planet_size));
+        glUniformMatrix4fv(shader.get().uniform(ShaderRegistry::Uniforms::Model), 1, GL_FALSE, glm::value_ptr(planet_matrix));
         glUniform4f(shader.get().uniform(ShaderRegistry::Uniforms::Color), 1.f, 1.f, 1.f, 1.f);
-        glUniform4fv(shader.get().uniform(ShaderRegistry::Uniforms::AtmosphereColor), 1, glm::value_ptr(glm::vec4(atmosphere_color.r, atmosphere_color.g, atmosphere_color.b, atmosphere_color.a) / 255.f));
-        glBindTexture(GL_TEXTURE_2D, textureManager.getTexture(planet_texture)->getNativeHandle());
+        glUniform4fv(shader.get().uniform(ShaderRegistry::Uniforms::AtmosphereColor), 1, glm::value_ptr(glm::vec4(atmosphere_color, 1.f)));
+
+        ShaderRegistry::setupLights(shader.get(), planet_matrix);
+
+        textureManager.getTexture(planet_texture)->bind();
         {
             gl::ScopedVertexAttribArray positions(shader.get().attribute(ShaderRegistry::Attributes::Position));
             gl::ScopedVertexAttribArray texcoords(shader.get().attribute(ShaderRegistry::Attributes::Texcoords));
@@ -287,23 +285,20 @@ void Planet::draw3D()
 
 void Planet::draw3DTransparent()
 {
-    float distance = sf::length(camera_position - sf::Vector3f(getPosition().x, getPosition().y, distance_from_movement_plane));
+    float distance = glm::length(camera_position - glm::vec3(getPosition().x, getPosition().y, distance_from_movement_plane));
 
     //view_scale ~= about the size the planet is on the screen.
     float view_scale = planet_size / distance;
     int level_of_detail = 4;
-    if (view_scale < 0.01)
+    if (view_scale < 0.01f)
         level_of_detail = 2;
-    if (view_scale < 0.1)
+    if (view_scale < 0.1f)
         level_of_detail = 3;
 
-    glTranslatef(0, 0, distance_from_movement_plane);
+    auto planet_matrix = getModelMatrix();
     if (cloud_texture != "" && cloud_size > 0)
     {
-        glPushMatrix();
-        glScalef(cloud_size, cloud_size, cloud_size);
-        glRotatef(engine->getElapsedTime() * 1.0f, 0, 0, 1);
-
+       
         if (!planet_mesh[level_of_detail])
         {
             PlanetMeshGenerator planet_mesh_generator(level_of_detail);
@@ -311,11 +306,16 @@ void Planet::draw3DTransparent()
         }
 
         ShaderRegistry::ScopedShader shader(ShaderRegistry::Shaders::Planet);
+        auto cloud_matrix = glm::scale(planet_matrix, glm::vec3(cloud_size));
+        cloud_matrix = glm::rotate(cloud_matrix, glm::radians(engine->getElapsedTime() * 1.0f), glm::vec3(0.f, 0.f, 1.f));
 
+        glUniformMatrix4fv(shader.get().uniform(ShaderRegistry::Uniforms::Model), 1, GL_FALSE, glm::value_ptr(cloud_matrix));
         glUniform4f(shader.get().uniform(ShaderRegistry::Uniforms::Color), 1.f, 1.f, 1.f, 1.f);
         glUniform4fv(shader.get().uniform(ShaderRegistry::Uniforms::AtmosphereColor), 1, glm::value_ptr(glm::vec4(0.f)));
 
-        glBindTexture(GL_TEXTURE_2D, textureManager.getTexture(cloud_texture)->getNativeHandle());
+        ShaderRegistry::setupLights(shader.get(), cloud_matrix);
+
+        textureManager.getTexture(cloud_texture)->bind();
         {
             gl::ScopedVertexAttribArray positions(shader.get().attribute(ShaderRegistry::Attributes::Position));
             gl::ScopedVertexAttribArray texcoords(shader.get().attribute(ShaderRegistry::Attributes::Texcoords));
@@ -323,55 +323,45 @@ void Planet::draw3DTransparent()
 
             planet_mesh[level_of_detail]->render(positions.get(), texcoords.get(), normals.get());
         }
-        glPopMatrix();
     }
     if (atmosphere_texture != "" && atmosphere_size > 0)
     {
         static std::array<VertexAndTexCoords, 4> quad{
-        sf::Vector3f(), {0.f, 1.f},
-        sf::Vector3f(), {1.f, 1.f},
-        sf::Vector3f(), {1.f, 0.f},
-        sf::Vector3f(), {0.f, 0.f}
+        glm::vec3(), {0.f, 1.f},
+        glm::vec3(), {1.f, 1.f},
+        glm::vec3(), {1.f, 0.f},
+        glm::vec3(), {0.f, 0.f}
         };
 
         ShaderRegistry::ScopedShader shader(ShaderRegistry::Shaders::Billboard);
 
-        glBindTexture(GL_TEXTURE_2D, textureManager.getTexture(atmosphere_texture)->getNativeHandle());
-        glm::vec4 color(glm::vec3(atmosphere_color.r, atmosphere_color.g, atmosphere_color.b) / 255.f, atmosphere_size * 2.0f);
+        textureManager.getTexture(atmosphere_texture)->bind();
+        glm::vec4 color(atmosphere_color, atmosphere_size * 2.0f);
         glUniform4fv(shader.get().uniform(ShaderRegistry::Uniforms::Color), 1, glm::value_ptr(color));
+        glUniformMatrix4fv(shader.get().uniform(ShaderRegistry::Uniforms::Model), 1, GL_FALSE, glm::value_ptr(planet_matrix));
+        
         gl::ScopedVertexAttribArray positions(shader.get().attribute(ShaderRegistry::Attributes::Position));
         gl::ScopedVertexAttribArray texcoords(shader.get().attribute(ShaderRegistry::Attributes::Texcoords));
         
         glVertexAttribPointer(positions.get(), 3, GL_FLOAT, GL_FALSE, sizeof(VertexAndTexCoords), (GLvoid*)quad.data());
-        glVertexAttribPointer(texcoords.get(), 2, GL_FLOAT, GL_FALSE, sizeof(VertexAndTexCoords), (GLvoid*)((char*)quad.data() + sizeof(sf::Vector3f)));
+        glVertexAttribPointer(texcoords.get(), 2, GL_FLOAT, GL_FALSE, sizeof(VertexAndTexCoords), (GLvoid*)((char*)quad.data() + sizeof(glm::vec3)));
 
-        std::initializer_list<uint8_t> indices = { 0, 2, 1, 0, 3, 2 };
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, std::begin(indices));
+        std::initializer_list<uint16_t> indices = { 0, 2, 1, 0, 3, 2 };
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, std::begin(indices));
     }
 }
-#endif
 
-void Planet::drawOnRadar(sf::RenderTarget& window, sf::Vector2f position, float scale, float rotation, bool long_range)
+void Planet::drawOnRadar(sp::RenderTarget& renderer, glm::vec2 position, float scale, float rotation, bool long_range)
 {
     if (collision_size > 0)
     {
-        sf::CircleShape radar_radius(collision_size * scale);
-        radar_radius.setOrigin(collision_size * scale, collision_size * scale);
-        radar_radius.setPosition(position);
-        radar_radius.setFillColor(sf::Color(atmosphere_color.r, atmosphere_color.g, atmosphere_color.b, 128));
-        window.draw(radar_radius);
+        renderer.fillCircle(position, collision_size * scale, glm::u8vec4(atmosphere_color * 255.f, 128));
     }
 }
 
-void Planet::drawOnGMRadar(sf::RenderTarget& window, sf::Vector2f position, float scale, float rotation, bool long_range)
+void Planet::drawOnGMRadar(sp::RenderTarget& renderer, glm::vec2 position, float scale, float rotation, bool long_range)
 {
-    sf::CircleShape radar_radius(planet_size * scale);
-    radar_radius.setOrigin(planet_size * scale, planet_size * scale);
-    radar_radius.setPosition(position);
-    radar_radius.setFillColor(sf::Color::Transparent);
-    radar_radius.setOutlineColor(sf::Color(255, 255, 255, 128));
-    radar_radius.setOutlineThickness(3);
-    window.draw(radar_radius);
+    renderer.drawCircleOutline(position, planet_size * scale, 3, glm::u8vec4(255, 255, 255, 128));
 }
 
 void Planet::collide(Collisionable* target, float collision_force)
@@ -398,19 +388,51 @@ void Planet::updateCollisionSize()
 string Planet::getExportLine()
 {
     string ret="Planet():setPosition(" + string(getPosition().x, 0) + ", " + string(getPosition().y, 0) + "):setPlanetRadius(" + string(getPlanetRadius(), 0) + ")";
-    if (atmosphere_color.r != 0 || atmosphere_color.g != 0 || atmosphere_color.b != 0)
+    
+    if (atmosphere_color != glm::vec3{})
     {
-        ret += ":setPlanetAtmosphereColor(" + string(atmosphere_color.r/255.0f) + "," + string(atmosphere_color.g/255.0f) + "," + string(atmosphere_color.b/255.0f) + ")";
+        ret += ":setPlanetAtmosphereColor(" + string(atmosphere_color.r) + "," + string(atmosphere_color.g) + "," + string(atmosphere_color.b) + ")";
     }
-    if (distance_from_movement_plane!=0)
+
+    if (distance_from_movement_plane != 0.f)
     {
         ret += ":setDistanceFromMovementPlane("  + string(distance_from_movement_plane) + ")";
     }
-    //TODO setPlanetAtmosphereTexture
-    //TODO setPlanetSurfaceTexture
-    //TODO setPlanetCloudTexture
-    //TODO setPlanetCloudRadius
-    //TODO setAxialRotationTime
-    //TODO setOrbit
+
+    if (!atmosphere_texture.empty())
+    {
+        ret += ":setPlanetAtmosphereTexture(" + atmosphere_texture + ")";
+    }
+
+    if (!planet_texture.empty())
+    {
+        ret += ":setPlanetSurfaceTexture(" + planet_texture + ")";
+    }
+
+    if (!cloud_texture.empty())
+    {
+        ret += ":setPlanetCloudTexture(" + cloud_texture + ")";
+    }
+
+    if (cloud_size > 0.f)
+    {
+        ret += ":setPlanetCloudRadius(" + string(cloud_size) + ")";
+    }
+
+    if (axial_rotation_time != 0.f)
+    {
+        ret += ":setAxialRotationTime(" + string(axial_rotation_time) + ")";
+    }
+
+    if (orbit_distance > 0.f)
+    {
+        ret += ":setOrbit(?, " + string(orbit_time) + ")";
+    }
+
     return ret;
+}
+
+glm::mat4 Planet::getModelMatrix() const
+{
+    return glm::translate(SpaceObject::getModelMatrix(), glm::vec3(0.f, 0.f, distance_from_movement_plane));
 }
