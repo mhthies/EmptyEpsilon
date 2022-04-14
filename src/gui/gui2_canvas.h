@@ -4,15 +4,17 @@
 #include "Renderable.h"
 #include "gui2_container.h"
 
+
+class GuiLayout;
 class GuiCanvas : public Renderable, public GuiContainer
 {
 private:
     GuiElement* click_element;
     GuiElement* focus_element;
-    glm::vec2 mouse_position;
+    glm::vec2 mouse_position{0,0};
     bool enable_debug_rendering;
 public:
-    GuiCanvas();
+    GuiCanvas(RenderLayer* renderLayer=nullptr);
     virtual ~GuiCanvas();
 
     virtual void render(sp::RenderTarget& window) override;
@@ -27,6 +29,9 @@ public:
     void focus(GuiElement* element);
     //Called when an element is destroyed in this tree. Recursive tests if the given element or any of it's children currently has focus, and unsets that focus.
     void unfocusElementTree(GuiElement* element);
+
+private:
+    void runUpdates(GuiContainer* parent);
 };
 
 #endif//GUI2_CANVAS_H

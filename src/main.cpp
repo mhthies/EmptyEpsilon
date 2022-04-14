@@ -1,9 +1,12 @@
 #include <memory>
 #include <set>
+#include <filesystem>
 #include <string.h>
 #include <i18n.h>
 #include <multiplayer_proxy.h>
-#ifndef _MSC_VER
+#ifdef _MSC_VER
+#include <direct.h>
+#else
 #include <unistd.h>
 #include <sys/stat.h>
 #endif
@@ -14,6 +17,7 @@
 #include "gui/mouseRenderer.h"
 #include "gui/debugRenderer.h"
 #include "gui/colorConfig.h"
+#include "gui/theme.h"
 #include "gui/hotkeyConfig.h"
 #include "gui/joystickConfig.h"
 #include "menus/mainMenus.h"
@@ -41,6 +45,10 @@
 #if WITH_DISCORD
 #include "discord.h"
 #endif
+#if STEAMSDK
+#include "steam/steam_api.h"
+#include "steamrichpresence.h"
+#endif
 
 #ifdef __APPLE__
 #include <CoreFoundation/CoreFoundation.h>
@@ -59,7 +67,8 @@ sp::Font* bold_font;
 RenderLayer* mouseLayer;
 PostProcessor* glitchPostProcessor;
 PostProcessor* warpPostProcessor;
-P<Window> main_window;
+PVector<Window> windows;
+std::vector<RenderLayer*> window_render_layers;
 
 int main(int argc, char** argv)
 {
@@ -114,13 +123,19 @@ int main(int argc, char** argv)
     Logging::setLogFile("EmptyEpsilon.log");
 #endif
     LOG(Info, "Starting...");
-#ifdef CONFIG_DIR
-    PreferencesManager::load(CONFIG_DIR "options.ini");
-#endif
+    new Engine();
+    string configuration_path = ".";
     if (getenv("HOME"))
-        PreferencesManager::load(string(getenv("HOME")) + "/.emptyepsilon/options.ini");
-    else
-        PreferencesManager::load("options.ini");
+        configuration_path = string(getenv("HOME")) + "/.emptyepsilon";
+#ifdef STEAMSDK
+    {
+        char path_buffer[1024];
+        if (SteamUser()->GetUserDataFolder(path_buffer, sizeof(path_buffer)))
+            configuration_path = path_buffer;
+    }
+#endif
+    LOG(Info, "Using ", configuration_path, " as configuration path");
+    PreferencesManager::load(configuration_path + "/options.ini");
 
     for(int n=1; n<argc; n++)
     {
@@ -129,8 +144,6 @@ int main(int argc, char** argv)
         *value++ = '\0';
         PreferencesManager::set(string(argv[n]).strip(), string(value).strip());
     }
-
-    new Engine();
 
     if (PreferencesManager::get("proxy") != "")
     {
@@ -174,6 +187,7 @@ int main(int argc, char** argv)
     {
         new DirectoryResourceProvider(string(getenv("HOME")) + "/.emptyepsilon/resources/");
         new DirectoryResourceProvider(string(getenv("HOME")) + "/.emptyepsilon/scripts/");
+        PackResourceProvider::addPackResourcesForDirectory(string(getenv("HOME")) + "/.emptyepsilon/packs/");
     }
 #ifdef RESOURCE_BASE_DIR
     new DirectoryResourceProvider(RESOURCE_BASE_DIR "resources/");
@@ -195,15 +209,26 @@ int main(int argc, char** argv)
     }
 
     colorConfig.load();
-    sp::io::Keybinding::loadKeybindings("keybindings.json");
+    sp::io::Keybinding::loadKeybindings(configuration_path + "/keybindings.json");
     keys.init();
 
     if (PreferencesManager::get("username", "") == "")
     {
+#ifdef STEAMSDK
+        PreferencesManager::set("username", SteamFriends()->GetPersonaName());
+#else
         if (getenv("USERNAME"))
             PreferencesManager::set("username", getenv("USERNAME"));
         else if (getenv("USER"))
             PreferencesManager::set("username", getenv("USER"));
+#endif
+    }
+
+    if (!GuiTheme::loadTheme("default", PreferencesManager::get("guitheme", "gui/default.theme.txt")))
+    {
+        LOG(ERROR, "Failed to load default theme, exiting.");
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", "Failed to load gui theme, resources missing?", nullptr);
+        return 1;
     }
 
     if (PreferencesManager::get("headless") == "")
@@ -219,7 +244,7 @@ int main(int argc, char** argv)
         int width = 1200;
         int height = 900;
         int fsaa = 0;
-        bool fullscreen = PreferencesManager::get("fullscreen", "1").toInt();
+        Window::Mode fullscreen = (Window::Mode)PreferencesManager::get("fullscreen", "1").toInt();
 
         if (PreferencesManager::get("fsaa").toInt() > 0)
         {
@@ -228,7 +253,29 @@ int main(int argc, char** argv)
                 fsaa = 2;
         }
 
-        main_window = new Window({width, height}, fullscreen, warpPostProcessor, fsaa);
+#ifndef ANDROID
+        if (PreferencesManager::get("touchscreen").toInt() == 0)
+        {
+            engine->registerObject("mouseRenderer", new MouseRenderer(mouseLayer));
+        }
+#endif
+
+        windows.push_back(new Window({width, height}, fullscreen, warpPostProcessor, fsaa));
+        window_render_layers.push_back(defaultRenderLayer);
+
+        if (PreferencesManager::get("multimonitor", "0").toInt() != 0)
+        {
+            while(int(windows.size()) < SDL_GetNumVideoDisplays())
+            {
+                auto wrl = new RenderLayer();
+                auto ml = new RenderLayer(wrl);
+                new MouseRenderer(ml);
+                windows.push_back(new Window({width, height}, fullscreen, ml, fsaa));
+                window_render_layers.push_back(wrl);
+                new SecondMonitorScreen(windows.size() - 1);
+            }
+        }
+
 #if defined(DEBUG)
         // Synchronous gl debug output always in debug.
         constexpr bool wants_gl_debug = true;
@@ -245,19 +292,27 @@ int main(int argc, char** argv)
                 LOG(WARNING, "GL Debug output requested but not available on this system.");
         }
 
-        if (PreferencesManager::get("instance_name") != "")
-            main_window->setTitle("EmptyEpsilon - " + PreferencesManager::get("instance_name"));
-        else
-            main_window->setTitle("EmptyEpsilon");
+        for(size_t n=0; n<windows.size(); n++)
+        {
+            P<Window> window = windows[n];
+            string postfix = "";
+            if (n > 0)
+                postfix = " - " + string(int(n));
+            if (PreferencesManager::get("instance_name") != "")
+                window->setTitle("EmptyEpsilon - " + PreferencesManager::get("instance_name") + postfix);
+            else
+                window->setTitle("EmptyEpsilon" + postfix);
+        }
 
         if (gl::isAvailable())
         {
-            ShaderRegistry::Shader::initialize();
+            if (!ShaderRegistry::Shader::initialize())
+            {
+                LOG(ERROR, "Failed to initialize shaders, exiting.");
+                SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", "Failed to initialize shaders (possible cause: cannot find shader files)", nullptr);
+                return 1;
+            }
         }
-    }
-    if (PreferencesManager::get("touchscreen").toInt() == 0)
-    {
-        engine->registerObject("mouseRenderer", new MouseRenderer());
     }
 
     new DebugRenderer();
@@ -265,11 +320,14 @@ int main(int argc, char** argv)
     soundManager->setMusicVolume(PreferencesManager::get("music_volume", "50").toFloat());
     soundManager->setMasterSoundVolume(PreferencesManager::get("sound_volume", "50").toFloat());
 
-    P<ResourceStream> main_font_stream = getResourceStream(PreferencesManager::get("font_regular", "gui/fonts/BigShouldersDisplay-SemiBold.ttf"));
-    main_font = new sp::FreetypeFont(main_font_stream);
-
-    P<ResourceStream> bold_font_stream = getResourceStream(PreferencesManager::get("font_bold", "gui/fonts/BigShouldersDisplay-ExtraBold.ttf"));
-    bold_font = new sp::FreetypeFont(bold_font_stream);
+    main_font = GuiTheme::getTheme("default")->getStyle("base")->states[0].font;
+    bold_font = GuiTheme::getTheme("default")->getStyle("bold")->states[0].font;
+    if (!main_font || !bold_font)
+    {
+        LOG(ERROR, "Missing font or bold font.");
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", "Failed to load main or bold font, resources missing?", nullptr);
+        return 1;
+    }
 
     sp::RenderTarget::setDefaultFont(main_font);
 
@@ -281,10 +339,6 @@ int main(int argc, char** argv)
         P<ScriptObject> shipTemplatesScript = new ScriptObject("shipTemplates.lua");
         if (shipTemplatesScript->getError() != "") exit(1);
         shipTemplatesScript->destroy();
-
-        P<ScriptObject> factionInfoScript = new ScriptObject("factionInfo.lua");
-        if (factionInfoScript->getError() != "") exit(1);
-        factionInfoScript->destroy();
 
         //Find out which model data isn't used by ship templates and output that to log.
         std::set<string> used_model_data;
@@ -311,13 +365,7 @@ int main(int argc, char** argv)
 
     if (PreferencesManager::get("enable_dmx","1") == "1") {
         P<HardwareController> hardware_controller = new HardwareController();
-#ifdef CONFIG_DIR
-        hardware_controller->loadConfiguration(CONFIG_DIR "hardware.ini");
-#endif
-        if (getenv("HOME"))
-            hardware_controller->loadConfiguration(string(getenv("HOME")) + "/.emptyepsilon/hardware.ini");
-        else
-            hardware_controller->loadConfiguration("hardware.ini");
+        hardware_controller->loadConfiguration(configuration_path + "/hardware.ini");
     }
 
 #ifdef WITH_MIDI
@@ -338,12 +386,15 @@ int main(int argc, char** argv)
         new DiscordRichPresence(discord_sdk);
     }
 #endif // WITH_DISCORD
+#if STEAMSDK
+    new SteamRichPresence();
+#endif //STEAMSDK
 
     if (PreferencesManager::get("server_scenario") == "")
-        returnToMainMenu();
+        returnToMainMenu(defaultRenderLayer);
     else
     {
-        new EpsilonServer();
+        new EpsilonServer(defaultServerPort);
         gameGlobalInfo->startScenario(PreferencesManager::get("server_scenario"));
         new ShipSelectionScreen();
     }
@@ -351,11 +402,10 @@ int main(int argc, char** argv)
     engine->runMainLoop();
 
     // Set FSAA and fullscreen defaults from windowManager.
-    
-    if (P<Window> window = main_window; window)
+    if (windows.size() > 0)
     {
-        PreferencesManager::set("fsaa", window->getFSAA());
-        PreferencesManager::set("fullscreen", window->isFullscreen() ? 1 : 0);
+        PreferencesManager::set("fsaa", windows[0]->getFSAA());
+        PreferencesManager::set("fullscreen", (int)windows[0]->getMode());
     }
 
     // Set the default music_, sound_, and engine_volume to the current volume.
@@ -372,34 +422,31 @@ int main(int argc, char** argv)
 
     if (PreferencesManager::get("headless") == "")
     {
-#ifndef _MSC_VER
-        // MFC TODO: Fix me -- save prefs to user prefs dir on Windows.
-        if (getenv("HOME"))
-        {
 #ifdef _WIN32
-            mkdir((string(getenv("HOME")) + "/.emptyepsilon").c_str());
+        mkdir(configuration_path.c_str());
 #else
-            mkdir((string(getenv("HOME")) + "/.emptyepsilon").c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+        mkdir(configuration_path.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 #endif
-            PreferencesManager::save(string(getenv("HOME")) + "/.emptyepsilon/options.ini");
-        }else
-#endif
-        {
-            PreferencesManager::save("options.ini");
-        }
-        sp::io::Keybinding::saveKeybindings("keybindings.json");
+        PreferencesManager::save(configuration_path + "/options.ini");
+        sp::io::Keybinding::saveKeybindings(configuration_path + "/keybindings.json");
     }
-    main_window = nullptr;
+    windows.clear();
     delete engine;
 
     return 0;
 }
 
-void returnToMainMenu()
+void returnToMainMenu(RenderLayer* render_layer)
 {
+    if (render_layer != defaultRenderLayer) // Handle secondary monitors
+    {
+        returnToShipSelection(render_layer);
+        return;
+    }
+
     if (PreferencesManager::get("headless") != "")
     {
-        new EpsilonServer();
+        new EpsilonServer(defaultServerPort);
         if (PreferencesManager::get("headless_name") != "") game_server->setServerName(PreferencesManager::get("headless_name"));
         if (PreferencesManager::get("headless_password") != "") game_server->setPassword(PreferencesManager::get("headless_password").upper());
         if (PreferencesManager::get("headless_internet") == "1") game_server->registerOnMasterServer(PreferencesManager::get("registry_registration_url", "http://daid.eu/ee/register.php"));
@@ -423,16 +470,23 @@ void returnToMainMenu()
     }
 }
 
-void returnToShipSelection()
+void returnToShipSelection(RenderLayer* render_layer)
 {
-    if (PreferencesManager::get("autoconnect").toInt())
+    if (render_layer != defaultRenderLayer)
     {
-        //If we are auto connect, return to the auto connect screen instead of the ship selection. The returnToMainMenu will handle this.
-        returnToMainMenu();
-    }
-    else
-    {
-        new ShipSelectionScreen();
+        for(size_t n=0; n<window_render_layers.size(); n++)
+            if (window_render_layers[n] == render_layer)
+                new SecondMonitorScreen(n);
+    } else {
+        if (PreferencesManager::get("autoconnect").toInt())
+        {
+            //If we are auto connect, return to the auto connect screen instead of the ship selection. The returnToMainMenu will handle this.
+            returnToMainMenu(render_layer);
+        }
+        else
+        {
+            new ShipSelectionScreen();
+        }
     }
 }
 

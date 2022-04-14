@@ -7,8 +7,8 @@
 #include "GMActions.h"
 #include "main.h"
 
-EpsilonServer::EpsilonServer()
-: GameServer("Server", VERSION_NUMBER)
+EpsilonServer::EpsilonServer(int server_port)
+: GameServer("Server", VERSION_NUMBER, server_port)
 {
     if (game_server)
     {
@@ -18,8 +18,6 @@ EpsilonServer::EpsilonServer()
         info->client_id = 0;
         my_player_info = info;
         engine->setGameSpeed(0.0);
-        for(unsigned int n=0; n<factionInfo.size(); n++)
-            factionInfo[n]->reset();
 
         for(auto proxy : PreferencesManager::get("serverproxy").split(":"))
         {

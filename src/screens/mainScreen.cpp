@@ -20,7 +20,10 @@
 #include "gui/gui2_panel.h"
 #include "gui/gui2_overlay.h"
 
-ScreenMainScreen::ScreenMainScreen()
+#include <i18n.h>
+
+ScreenMainScreen::ScreenMainScreen(RenderLayer* render_layer)
+: GuiCanvas(render_layer)
 {
     new GuiOverlay(this, "", glm::u8vec4(0,0,0,255));
 
@@ -45,12 +48,12 @@ ScreenMainScreen::ScreenMainScreen()
     new GuiJumpIndicator(this);
     new GuiSelfDestructIndicator(this);
     new GuiGlobalMessage(this);
-    new GuiIndicatorOverlays(this);
+    (new GuiIndicatorOverlays(this))->hasGlobalMessage();
 
-    keyboard_help = new GuiHelpOverlay(this, "Keyboard Shortcuts");
+    keyboard_help = new GuiHelpOverlay(this, tr("hotkey_F1", "Keyboard Shortcuts"));
 
     for (auto binding : sp::io::Keybinding::listAllByCategory(tr("hotkey_menu", "Main Screen")))
-        keyboard_general += binding->getLabel() + ":\t" + binding->getHumanReadableKeyName(0) + "\n";
+        keyboard_general += tr("hotkey_F1", "{label}:\t{button}\n").format({{"label", binding->getLabel()}, {"button", binding->getHumanReadableKeyName(0)}});
 
     keyboard_help->setText(keyboard_general);
 
@@ -84,7 +87,7 @@ void ScreenMainScreen::update(float delta)
         soundManager->stopMusic();
         impulse_sound->stop();
         destroy();
-        returnToShipSelection();
+        returnToShipSelection(getRenderLayer());
     }
     if (keys.help.getDown())
     {
@@ -103,7 +106,7 @@ void ScreenMainScreen::update(float delta)
         impulse_sound->stop();
         destroy();
         disconnectFromServer();
-        returnToMainMenu();
+        returnToMainMenu(getRenderLayer());
         return;
     }
 

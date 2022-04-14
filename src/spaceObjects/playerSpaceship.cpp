@@ -26,7 +26,7 @@ REGISTER_SCRIPT_SUBCLASS(PlayerSpaceship, SpaceShip)
     /// Takes a Boolean value.
     REGISTER_SCRIPT_CLASS_FUNCTION(PlayerSpaceship, setShieldsActive);
     /// Adds a message to the ship's log. Takes a string as the message and a
-    /// glm::u8vec4.
+    /// color.
     REGISTER_SCRIPT_CLASS_FUNCTION(PlayerSpaceship, addToShipLog);
     /// Move all players connected to this ship to the same stations on a
     /// different PlayerSpaceship. If the target isn't a PlayerSpaceship, this
@@ -571,6 +571,18 @@ void PlayerSpaceship::update(float delta)
         // Consume power based on subsystem requests and state.
         energy_level += delta * getNetSystemEnergyUsage();
 
+        // Check how much coolant we have requested in total, and if that's beyond the
+        //  amount of coolant we have, see how much we need to adjust our request.
+        float total_coolant_request = 0.0f;
+        for(int n = 0; n < SYS_COUNT; n++)
+        {
+            if (!hasSystem(ESystem(n))) continue;
+            total_coolant_request += systems[n].coolant_request;
+        }
+        float coolant_request_factor = 1.0f;
+        if (total_coolant_request > max_coolant)
+            coolant_request_factor = max_coolant / total_coolant_request;
+
         for(int n = 0; n < SYS_COUNT; n++)
         {
             if (!hasSystem(ESystem(n))) continue;
@@ -588,17 +600,18 @@ void PlayerSpaceship::update(float delta)
                     systems[n].power_level = systems[n].power_request;
             }
 
-            if (systems[n].coolant_request > systems[n].coolant_level)
+            float coolant_request = systems[n].coolant_request * coolant_request_factor;
+            if (coolant_request > systems[n].coolant_level)
             {
                 systems[n].coolant_level += delta * systems[n].coolant_rate_per_second;
-                if (systems[n].coolant_level > systems[n].coolant_request)
-                    systems[n].coolant_level = systems[n].coolant_request;
+                if (systems[n].coolant_level > coolant_request)
+                    systems[n].coolant_level = coolant_request;
             }
-            else if (systems[n].coolant_request < systems[n].coolant_level)
+            else if (coolant_request < systems[n].coolant_level)
             {
                 systems[n].coolant_level -= delta * systems[n].coolant_rate_per_second;
-                if (systems[n].coolant_level < systems[n].coolant_request)
-                    systems[n].coolant_level = systems[n].coolant_request;
+                if (systems[n].coolant_level < coolant_request)
+                    systems[n].coolant_level = coolant_request;
             }
 
             // Add heat to overpowered subsystems.
@@ -607,7 +620,7 @@ void PlayerSpaceship::update(float delta)
 
         // If reactor health is worse than -90% and overheating, it explodes,
         // destroying the ship and damaging a 0.5U radius.
-        if (systems[SYS_Reactor].health < -0.9f && systems[SYS_Reactor].heat_level == 1.0f)
+        if (can_be_destroyed && systems[SYS_Reactor].health < -0.9f && systems[SYS_Reactor].heat_level == 1.0f)
         {
             ExplosionEffect* e = new ExplosionEffect();
             e->setSize(1000.0f);
@@ -635,7 +648,7 @@ void PlayerSpaceship::update(float delta)
         {
             // If warping, consume energy at a rate of 120% the warp request.
             // If shields are up, that rate is increased by an additional 50%.
-            if (!useEnergy(getEnergyWarpPerSecond() * delta * getSystemEffectiveness(SYS_Warp) * powf(current_warp, 1.2f) * (shields_active ? 1.5f : 1.0f)))
+            if (!useEnergy(getEnergyWarpPerSecond() * delta * getSystemEffectiveness(SYS_Warp) * powf(current_warp, 1.3f) * (shields_active ? 1.7f : 1.0f)))
                 // If there's not enough energy, fall out of warp.
                 warp_request = 0;
         }
@@ -768,71 +781,11 @@ void PlayerSpaceship::takeHullDamage(float damage_amount, DamageInfo& info)
 void PlayerSpaceship::setMaxCoolant(float coolant)
 {
     max_coolant = std::max(coolant, 0.0f);
-    float total_coolant = 0;
-
-    for(int n = 0; n < SYS_COUNT; n++)
-    {
-        if (!hasSystem(ESystem(n))) continue;
-
-        total_coolant += systems[n].coolant_request;
-    }
-
-    if (total_coolant > max_coolant)
-    {
-        for(int n = 0; n < SYS_COUNT; n++)
-        {
-            if (!hasSystem(ESystem(n))) continue;
-
-            systems[n].coolant_request *= max_coolant / total_coolant;
-        }
-    } else {
-        if (total_coolant > 0)
-        {
-            for(int n = 0; n < SYS_COUNT; n++)
-            {
-                if (!hasSystem(ESystem(n))) continue;
-                systems[n].coolant_request = std::min(systems[n].coolant_request * max_coolant / total_coolant, (float) max_coolant_per_system);
-            }
-        }
-    }
 }
 
 void PlayerSpaceship::setSystemCoolantRequest(ESystem system, float request)
 {
     request = std::max(0.0f, std::min(request, std::min((float) max_coolant_per_system, max_coolant)));
-    // Set coolant levels on a system.
-    float total_coolant = 0;
-    int cnt = 0;
-    for(int n = 0; n < SYS_COUNT; n++)
-    {
-        if (!hasSystem(ESystem(n))) continue;
-        if (n == system) continue;
-
-        total_coolant += systems[n].coolant_request;
-        cnt++;
-    }
-    if (total_coolant > max_coolant - request)
-    {
-        for(int n = 0; n < SYS_COUNT; n++)
-        {
-            if (!hasSystem(ESystem(n))) continue;
-            if (n == system) continue;
-
-            systems[n].coolant_request *= (max_coolant - request) / total_coolant;
-        }
-    }else{
-        for(int n = 0; n < SYS_COUNT; n++)
-        {
-            if (!hasSystem(ESystem(n))) continue;
-            if (n == system) continue;
-
-            if (total_coolant > 0)
-                systems[n].coolant_request = std::min(systems[n].coolant_request * (max_coolant - request) / total_coolant, (float) max_coolant_per_system);
-            else
-                systems[n].coolant_request = std::min((max_coolant - request) / float(cnt), float(max_coolant_per_system));
-        }
-    }
-
     systems[system].coolant_request = request;
 }
 
@@ -1047,6 +1000,7 @@ void PlayerSpaceship::addCustomButton(ECrewPosition position, string name, strin
     csf.caption = caption;
     csf.callback = callback;
     csf.order = order.value_or(0);
+    std::sort(custom_functions.begin(), custom_functions.end());
 }
 
 void PlayerSpaceship::addCustomInfo(ECrewPosition position, string name, string caption, std::optional<int> order)
@@ -1059,6 +1013,7 @@ void PlayerSpaceship::addCustomInfo(ECrewPosition position, string name, string 
     csf.crew_position = position;
     csf.caption = caption;
     csf.order = order.value_or(0);
+    std::sort(custom_functions.begin(), custom_functions.end());
 }
 
 void PlayerSpaceship::addCustomMessage(ECrewPosition position, string name, string caption)
@@ -1070,6 +1025,7 @@ void PlayerSpaceship::addCustomMessage(ECrewPosition position, string name, stri
     csf.name = name;
     csf.crew_position = position;
     csf.caption = caption;
+    std::sort(custom_functions.begin(), custom_functions.end());
 }
 
 void PlayerSpaceship::addCustomMessageWithCallback(ECrewPosition position, string name, string caption, ScriptSimpleCallback callback)
@@ -1082,6 +1038,7 @@ void PlayerSpaceship::addCustomMessageWithCallback(ECrewPosition position, strin
     csf.crew_position = position;
     csf.caption = caption;
     csf.callback = callback;
+    std::sort(custom_functions.begin(), custom_functions.end());
 }
 
 void PlayerSpaceship::removeCustom(string name)
@@ -1664,7 +1621,7 @@ void PlayerSpaceship::onReceiveClientCommand(int32_t client_id, sp::io::DataBuff
         break;
     case CMD_HACKING_FINISHED:
         {
-            uint32_t id;
+            int32_t id;
             string target_system;
             packet >> id >> target_system;
             P<SpaceObject> obj = game_server->getObjectById(id);
@@ -1680,12 +1637,15 @@ void PlayerSpaceship::onReceiveClientCommand(int32_t client_id, sp::io::DataBuff
             {
                 if (csf.name == name)
                 {
-                    if (csf.type == CustomShipFunction::Type::Button || csf.type == CustomShipFunction::Type::Message)
+                    if (csf.type == CustomShipFunction::Type::Button)
                     {
-                        csf.callback.call<void>();
+                        auto cb = csf.callback;
+                        cb.call<void>();
                     }
-                    if (csf.type == CustomShipFunction::Type::Message)
+                    else if (csf.type == CustomShipFunction::Type::Message)
                     {
+                        auto cb = csf.callback;
+                        cb.call<void>();
                         removeCustom(name);
                     }
                     break;
@@ -2062,6 +2022,8 @@ void PlayerSpaceship::onReceiveServerCommand(sp::io::DataBuffer& packet)
 
 void PlayerSpaceship::drawOnGMRadar(sp::RenderTarget& renderer, glm::vec2 position, float scale, float rotation, bool long_range)
 {
+    if (docked_style == DockStyle::Internal) return;
+
     SpaceShip::drawOnGMRadar(renderer, position, scale, rotation, long_range);
 
     if (long_range)

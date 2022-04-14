@@ -6,31 +6,35 @@
 #include "colorConfig.h"
 #include "hotkeyConfig.h"
 #include "gui2_container.h"
+#include "gui/layout/layout.h"
 #include "main.h"
 
+
+class Layout;
 class GuiElement : public GuiContainer
 {
 private:
-    glm::vec2 position{0, 0};
-    glm::vec2 size{0, 0};
-    struct Margins {
-        float left, top, right, bottom;
-    } margins {0, 0, 0, 0};
-    sp::Alignment position_alignment;
     bool destroyed;
 protected:
     GuiContainer* owner;
-    sp::Rect rect;
     bool visible;
     bool enabled;
     bool hover;
     bool focus;
-    bool active;
     string id;
 public:
     constexpr static float GuiSizeMatchHeight = -1.0;
     constexpr static float GuiSizeMatchWidth = -1.0;
     constexpr static float GuiSizeMax = -2.0;
+
+    enum class State
+    {
+        Normal,
+        Disabled,
+        Hover,
+        Focus,
+        COUNT
+    };
 
     GuiElement(GuiContainer* owner, const string& id);
     virtual ~GuiElement();
@@ -45,6 +49,7 @@ public:
     virtual void onFocusGained() {}
     virtual void onFocusLost() {}
 
+    virtual void setAttribute(const string& key, const string& value) override;
     GuiElement* setSize(glm::vec2 size);
     GuiElement* setSize(float x, float y);
     glm::vec2 getSize() const;
@@ -61,9 +66,6 @@ public:
     GuiElement* setEnable(bool enable);
     GuiElement* enable();
     GuiElement* disable();
-    GuiElement* setActive(bool active);
-    bool isActive() const;
-    sp::Rect getRect() const { return rect; }
     bool isEnabled() const;
 
     void moveToFront();
@@ -81,10 +83,10 @@ public:
 
     friend class GuiContainer;
     friend class GuiCanvas;
-private:
-    void updateRect(sp::Rect parent_rect);
+
 protected:
     glm::u8vec4 selectColor(const ColorSet& color_set) const;
+    State getState() const;
 };
 
 #endif//GUI2_ELEMENT_H

@@ -68,8 +68,8 @@ SinglePilotScreen::SinglePilotScreen(GuiContainer* owner)
     combat_maneuver = new GuiCombatManeuver(this, "COMBAT_MANEUVER");
     combat_maneuver->setPosition(-20, -180, sp::Alignment::BottomRight)->setSize(200, 150)->setVisible(my_spaceship && my_spaceship->getCanCombatManeuver());
 
-    GuiAutoLayout* stats = new GuiAutoLayout(this, "STATS", GuiAutoLayout::LayoutVerticalTopToBottom);
-    stats->setPosition(-20, -20, sp::Alignment::BottomRight)->setSize(240, 160);
+    auto stats = new GuiElement(this, "STATS");
+    stats->setPosition(-20, -20, sp::Alignment::BottomRight)->setSize(240, 160)->setAttribute("layout", "vertical");
     energy_display = new GuiKeyValueDisplay(stats, "ENERGY_DISPLAY", 0.45, tr("Energy"), "");
     energy_display->setIcon("gui/icons/energy")->setTextSize(20)->setSize(240, 40);
     heading_display = new GuiKeyValueDisplay(stats, "HEADING_DISPLAY", 0.45, tr("Heading"), "");
@@ -91,8 +91,8 @@ SinglePilotScreen::SinglePilotScreen(GuiContainer* owner)
     radar->enableTargetProjections(tube_controls);
 
     // Engine layout in top left corner of left panel.
-    GuiAutoLayout* engine_layout = new GuiAutoLayout(this, "ENGINE_LAYOUT", GuiAutoLayout::LayoutHorizontalLeftToRight);
-    engine_layout->setPosition(20, 80, sp::Alignment::TopLeft)->setSize(GuiElement::GuiSizeMax, 250);
+    auto engine_layout = new GuiElement(this, "ENGINE_LAYOUT");
+    engine_layout->setPosition(20, 80, sp::Alignment::TopLeft)->setSize(GuiElement::GuiSizeMax, 250)->setAttribute("layout", "horizontal");
     (new GuiImpulseControls(engine_layout, "IMPULSE"))->setSize(100, GuiElement::GuiSizeMax);
     warp_controls = (new GuiWarpControls(engine_layout, "WARP"))->setSize(100, GuiElement::GuiSizeMax);
     jump_controls = (new GuiJumpControls(engine_layout, "JUMP"))->setSize(100, GuiElement::GuiSizeMax);
@@ -144,7 +144,7 @@ void SinglePilotScreen::onDraw(sp::RenderTarget& renderer)
 
 void SinglePilotScreen::onUpdate()
 {
-    if (my_spaceship)
+    if (my_spaceship && isVisible())
     {
         auto angle = (keys.helms_turn_right.getValue() - keys.helms_turn_left.getValue()) * 5.0f;
         if (angle != 0.0f)
@@ -157,6 +157,8 @@ void SinglePilotScreen::onUpdate()
             bool current_found = false;
             foreach(SpaceObject, obj, space_object_list)
             {
+                if (obj == my_spaceship)
+                    continue;
                 if (obj == targets.get())
                 {
                     current_found = true;

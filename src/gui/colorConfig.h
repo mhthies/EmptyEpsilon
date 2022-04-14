@@ -10,7 +10,6 @@ public:
     glm::u8vec4 hover;
     glm::u8vec4 focus;
     glm::u8vec4 disabled;
-    glm::u8vec4 active;
 };
 class WidgetColorSet
 {
@@ -31,13 +30,6 @@ public:
     glm::u8vec4 log_receive_enemy;
     glm::u8vec4 log_receive_neutral;
 
-    WidgetColorSet button;
-    WidgetColorSet button_red;
-    WidgetColorSet button_green;
-    WidgetColorSet button_blue;
-    WidgetColorSet label;
-    WidgetColorSet text_entry;
-    WidgetColorSet slider;
     WidgetColorSet textbox;
 
     glm::u8vec4 overlay_damaged;

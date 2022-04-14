@@ -12,11 +12,9 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 "X-Generator: Poedit 2.4.3\n"
 "X-Poedit-SourceCharset: UTF-8\n"
-
 # Scenario name
 msgid "Training: Cruiser"
 msgstr "Entrainement : Croiseur"
-
 # Scenario description
 msgid ""
 "Basic Training Cource\n"
@@ -48,10 +46,13 @@ msgstr ""
 "\n"
 "Cet entrainement est parfaitement adapté aux joueurs inexpérimentés.\n"
 "\n"
-"Titre original : Training: Cruiser\n"
-"Auteur : Piglit"
-
-#: scripts/scenario_20_training1.lua:78
+"- Titre original : Training: Cruiser\n"
+"- Auteur : Piglit\n"
+"https://discord.gg/GjqM9Y9yBe\n"
+"- Traduction FR : Muerte\n"
+"https://discord.gg/2NPKyMnGwp"
+#: scripts/scenario_20_training1.lua:79
+msgctxt "goal-incCall"
 msgid ""
 "This is Commander Saberhagen.\n"
 "\n"
@@ -77,20 +78,17 @@ msgstr ""
 "\n"
 "Voici votre chance de battre des adversaires impuissants.\n"
 "Briefing terminé."
-
-#: scripts/scenario_20_training1.lua:96
-msgctxt "bonusTarget"
+#: scripts/scenario_20_training1.lua:97
+msgctxt "msgMainscreen-bonusTarget"
 msgid "escaped."
 msgstr "échappé."
-
-#: scripts/scenario_20_training1.lua:98
-msgctxt "bonusTarget"
+#: scripts/scenario_20_training1.lua:99
+msgctxt "msgMainscreen-bonusTarget"
 msgid "destroyed."
 msgstr "détruit."
-
-#: scripts/scenario_20_training1.lua:100
+#: scripts/scenario_20_training1.lua:101
 #, lua-format
-msgctxt "globalMsg"
+msgctxt "msgMainscreen"
 msgid ""
 "Mission Complete.\n"
 "Your Time: %d\n"

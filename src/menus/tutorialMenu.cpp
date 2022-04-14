@@ -6,7 +6,6 @@
 #include "tutorialGame.h"
 #include "scenarioInfo.h"
 #include "gui/gui2_overlay.h"
-#include "gui/gui2_autolayout.h"
 #include "gui/gui2_button.h"
 #include "gui/gui2_selector.h"
 #include "gui/gui2_label.h"
@@ -22,8 +21,8 @@ TutorialMenu::TutorialMenu()
     (new GuiOverlay(this, "", glm::u8vec4{255,255,255,255}))->setTextureTiled("gui/background/crosses.png");
 
     // Draw a one-column autolayout container with margins.
-    container = new GuiAutoLayout(this, "TUTORIAL_CONTAINER", GuiAutoLayout::ELayoutMode::LayoutVerticalTopToBottom);
-    container->setPosition(0, 0, sp::Alignment::TopLeft)->setSize(GuiElement::GuiSizeMax, GuiElement::GuiSizeMax)->setMargins(50);
+    container = new GuiElement(this, "TUTORIAL_CONTAINER");
+    container->setPosition(0, 0, sp::Alignment::TopLeft)->setSize(GuiElement::GuiSizeMax, GuiElement::GuiSizeMax)->setMargins(50)->setAttribute("layout", "vertical");
 
     // Tutorial section.
     (new GuiLabel(container, "TUTORIAL_LABEL", tr("title", "Tutorials"), 30))->addBackground()->setSize(GuiElement::GuiSizeMax, 50);
@@ -67,7 +66,7 @@ TutorialMenu::TutorialMenu()
     {
         // Close this menu, stop the music, and return to the main menu.
         destroy();
-        returnToMainMenu();
+        returnToMainMenu(getRenderLayer());
     }))->setPosition(0, 0, sp::Alignment::BottomLeft)->setSize(300, GuiElement::GuiSizeMax);
 
     // Select the first scenario in the list by default.
@@ -90,6 +89,6 @@ void TutorialMenu::update(float delta)
     if (keys.escape.getDown())
     {
         destroy();
-        returnToMainMenu();
+        returnToMainMenu(getRenderLayer());
     }
 }

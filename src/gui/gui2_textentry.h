@@ -4,6 +4,8 @@
 #include "gui2_element.h"
 #include "timer.h"
 
+
+class GuiThemeStyle;
 class GuiTextEntry : public GuiElement
 {
 public:
@@ -17,14 +19,19 @@ protected:
     float text_size;
     bool multiline = false;
     bool readonly = false;
+    const GuiThemeStyle* front_style;
+    const GuiThemeStyle* back_style;
     func_t func;
     func_t enter_func;
 
     const float blink_rate = 0.530f;
     sp::SystemTimer blink_timer;
     bool typing_indicator{false};
+
+    glm::vec2 render_offset{0, 0};
 public:
     GuiTextEntry(GuiContainer* owner, string id, string text);
+    virtual ~GuiTextEntry();
 
     virtual void onDraw(sp::RenderTarget& window) override;
     virtual bool onMouseDown(sp::io::Pointer::Button button, glm::vec2 position, sp::io::Pointer::ID id) override;

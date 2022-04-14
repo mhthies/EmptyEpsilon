@@ -19,6 +19,13 @@ enum EDamageType
     DT_EMP
 };
 
+enum class DockStyle
+{
+    None,
+    External,
+    Internal,
+};
+
 class DamageInfo
 {
 public:
@@ -83,7 +90,8 @@ enum EScannedState
 */
 enum class ERadarLayer
 {
-    Background,
+    BackgroundZone,
+    BackgroundObjects,
     Default
 };
 
@@ -192,7 +200,7 @@ public:
 
     virtual void setCallSign(string new_callsign) { callsign = new_callsign; }
     virtual string getCallSign() { return callsign; }
-    virtual bool canBeDockedBy(P<SpaceObject> obj) { return false; }
+    virtual DockStyle canBeDockedBy(P<SpaceObject> obj) { return DockStyle::None; }
     virtual bool canRestockMissiles() { return false; }
     virtual bool hasShield() { return false; }
     virtual bool canHideInNebula() { return true; }
@@ -224,8 +232,8 @@ public:
     bool isEnemy(P<SpaceObject> obj);
     bool isFriendly(P<SpaceObject> obj);
     void setFaction(string faction_name) { this->faction_id = FactionInfo::findFactionId(faction_name); }
-    string getFaction() { return factionInfo[this->faction_id]->getName(); }
-    string getLocaleFaction() { return factionInfo[this->faction_id]->getLocaleName(); }
+    string getFaction() { if (factionInfo[faction_id]) return factionInfo[this->faction_id]->getName(); return ""; }
+    string getLocaleFaction() { if (factionInfo[faction_id]) return factionInfo[this->faction_id]->getLocaleName(); return ""; }
     void setFactionId(unsigned int faction_id) { this->faction_id = faction_id; }
     unsigned int getFactionId() { return faction_id; }
     void setReputationPoints(float amount);
@@ -233,13 +241,14 @@ public:
     bool takeReputationPoints(float amount);
     void removeReputationPoints(float amount);
     void addReputationPoints(float amount);
-    void setCommsScript(string script_name) { this->comms_script_name = script_name; this->comms_script_callback.clear(); }
+    void setCommsScript(string script_name);
     void setCommsFunction(ScriptSimpleCallback callback) { this->comms_script_name = ""; this->comms_script_callback = callback; }
     bool areEnemiesInRange(float range);
     PVector<SpaceObject> getObjectsInRange(float range);
     string getSectorName();
     bool openCommsTo(P<PlayerSpaceship> target);
     bool sendCommsMessage(P<PlayerSpaceship> target, string message);
+    bool sendCommsMessageNoLog(P<PlayerSpaceship> target, string message);
 
     ScriptSimpleCallback on_destroyed;
 

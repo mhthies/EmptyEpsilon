@@ -87,7 +87,7 @@ public:
     constexpr static float warp_charge_time = 4.0f;
     constexpr static float warp_decharge_time = 2.0f;
     constexpr static float jump_drive_charge_time = 90.0f;   /*<Total charge time for the jump drive after a max range jump */
-    constexpr static float jump_drive_energy_per_km_charge = 4.0f;
+    constexpr static float jump_drive_energy_per_km_charge = 2.0f;
     constexpr static float jump_drive_heat_per_jump = 0.35f;
     constexpr static float heat_per_combat_maneuver_boost = 0.2f;
     constexpr static float heat_per_combat_maneuver_strafe = 0.2f;
@@ -208,12 +208,14 @@ public:
     int32_t target_id;
 
     EDockingState docking_state;
+    DockStyle docked_style = DockStyle::None;
     P<SpaceObject> docking_target; //Server only
     glm::vec2 docking_offset{0, 0}; //Server only
 
     SpaceShip(string multiplayerClassName, float multiplayer_significant_range=-1);
     virtual ~SpaceShip();
 
+    virtual void draw3D() override;
     virtual void draw3DTransparent() override;
     /*!
      * Get this ship's radar signature dynamically modified by the state of its
@@ -270,7 +272,7 @@ public:
      * Check if object can dock with this ship.
      * \param object Object that wants to dock.
      */
-    virtual bool canBeDockedBy(P<SpaceObject> obj) override;
+    virtual DockStyle canBeDockedBy(P<SpaceObject> obj) override;
 
     virtual void collide(Collisionable* other, float force) override;
 
@@ -443,7 +445,7 @@ public:
     float getBeamWeaponEnergyPerFire(int index) { if (index < 0 || index >= max_beam_weapons) return 0.0; return beam_weapons[index].getEnergyPerFire(); }
     float getBeamWeaponHeatPerFire(int index) { if (index < 0 || index >= max_beam_weapons) return 0.0; return beam_weapons[index].getHeatPerFire(); }
 
-    int getShieldsFrequency(void){ return shield_frequency; }
+    int getShieldsFrequency(){ return shield_frequency; }
     void setShieldsFrequency(int freq) { if ((freq > SpaceShip::max_frequency) || (freq < 0)) return; shield_frequency = freq;}
 
     int getBeamFrequency(){ return beam_frequency; }
@@ -516,6 +518,7 @@ REGISTER_MULTIPLAYER_ENUM(EWeaponTubeState);
 REGISTER_MULTIPLAYER_ENUM(EMainScreenSetting);
 REGISTER_MULTIPLAYER_ENUM(EMainScreenOverlay);
 REGISTER_MULTIPLAYER_ENUM(EDockingState);
+REGISTER_MULTIPLAYER_ENUM(DockStyle);
 REGISTER_MULTIPLAYER_ENUM(EScannedState);
 
 string frequencyToString(int frequency);

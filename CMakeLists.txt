@@ -273,7 +273,6 @@ set(SOURCES
     src/gui/gui2_textentry.cpp
     src/gui/gui2_label.cpp
     src/gui/gui2_image.cpp
-    src/gui/gui2_autolayout.cpp
     src/gui/gui2_arrowbutton.cpp
     src/gui/gui2_entrylist.cpp
     src/gui/gui2_progressbar.cpp
@@ -290,6 +289,10 @@ set(SOURCES
     src/gui/gui2_container.cpp
     src/gui/gui2_panel.cpp
     src/gui/gui2_overlay.cpp
+    src/gui/theme.cpp
+    src/gui/layout/layout.cpp
+    src/gui/layout/horizontal.cpp
+    src/gui/layout/vertical.cpp
     src/spaceObjects/missiles/missileWeapon.cpp
     src/spaceObjects/missiles/EMPMissile.cpp
     src/spaceObjects/missiles/homingMissile.cpp
@@ -339,7 +342,6 @@ set(SOURCES
     src/ai/missileVolleyAI.h
     src/beamTemplate.h
     src/commsScriptInterface.h
-    src/discord.h
     src/epsilonServer.h
     src/factionInfo.h
     src/featureDefs.h
@@ -354,7 +356,6 @@ set(SOURCES
     src/gui/gui2_advancedscrolltext.h
     src/gui/gui2_arrowbutton.h
     src/gui/gui2_arrow.h
-    src/gui/gui2_autolayout.h
     src/gui/gui2_button.h
     src/gui/gui2_canvas.h
     src/gui/gui2_container.h
@@ -376,6 +377,10 @@ set(SOURCES
     src/gui/gui2_slider.h
     src/gui/gui2_textentry.h
     src/gui/gui2_togglebutton.h
+    src/gui/theme.h
+    src/gui/layout/layout.h
+    src/gui/layout/horizontal.h
+    src/gui/layout/vertical.h
     src/gui/hotkeyBinder.h
     src/gui/hotkeyConfig.h
     src/gui/joystickConfig.h
@@ -523,7 +528,10 @@ set(SOURCES
 )
 
 if (WITH_DISCORD)
-  list(APPEND SOURCES src/discord.cpp)
+  list(APPEND SOURCES src/discord.cpp src/discord.h)
+endif()
+if (STEAMSDK)
+  list(APPEND SOURCES src/steamrichpresence.cpp src/steamrichpresence.h)
 endif()
 
 if (WITH_MIDI)
@@ -547,9 +555,7 @@ endif()
 target_compile_definitions(${PROJECT_NAME}
     PUBLIC
         # Set RESOURCE_BASE_DIR on Unix so the built binary is able to find resources
-        $<$<BOOL:${UNIX}>:RESOURCE_BASE_DIR="${CMAKE_INSTALL_FULL_DATADIR}/emptyepsilon/">
-        $<$<BOOL:${CONFIG_DIR}>:CONFIG_DIR="${CONFIG_DIR}">
-        $<$<NOT:$<BOOL:${CONFIG_DIR}>>:CONFIG_DIR="${CMAKE_INSTALL_FULL_DATADIR}/emptyepsilon/">
+        $<$<AND:$<BOOL:${UNIX}>,$<NOT:$<BOOL:${STEAMSDK}>>>:RESOURCE_BASE_DIR="${CMAKE_INSTALL_FULL_DATADIR}/emptyepsilon/">
 )
 
 target_include_directories(${PROJECT_NAME}
@@ -586,8 +592,7 @@ include(InstallRequiredSystemLibraries)
 
 
 set(EE_RESOURCES resources scripts packs)
-if(WIN32)
-    
+if(WIN32 OR STEAMSDK)
     install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION .)
     install(DIRECTORY ${EE_RESOURCES} DESTINATION .)
 
@@ -629,7 +634,7 @@ if(PYTHONINTERP_FOUND)
     add_custom_target(script_reference ALL DEPENDS "${SCRIPT_REFERENCE_HTML}")
   
   # Matches install logic above.
-  if(WIN32)
+  if(WIN32 OR STEAMSDK)
     install(FILES "${SCRIPT_REFERENCE_HTML}" DESTINATION . OPTIONAL)
   elseif(APPLE)
     install(FILES "${SCRIPT_REFERENCE_HTML}" DESTINATION "$<TARGET_BUNDLE_CONTENT_DIR:${PROJECT_NAME}>/Resources" OPTIONAL)
@@ -641,8 +646,7 @@ endif()
 
 add_custom_target(update_locale
     COMMAND xgettext --keyword=tr:1c,2 --keyword=tr:1 --keyword=trMark:1c,2 --keyword=trMark:1 --omit-header -d resources/locale/main.en ${SOURCES}
-    COMMAND xgettext --keyword=_:1c,2 --keyword=_:1 --omit-header -j -d resources/locale/main.en scripts/shiptemplates/*.lua scripts/comms_ship.lua scripts/comms_station.lua scripts/comms_supply_drop.lua scripts/factionInfo.lua scripts/science_db.lua
-    COMMAND xgettext --keyword=_:1c,2 --keyword=_:1 --omit-header -d resources/locale/tutorial.en scripts/tutorial/*.lua scripts/tutorialUtils.lua
+    COMMAND python3 update_locale.py
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 
 if(APPLE)
@@ -676,7 +680,7 @@ set(CPACK_WIX_PROPERTY_ARPURLUPDATEINFO "https://daid.github.io/EmptyEpsilon/#ta
 set(CPACK_WIX_PRODUCT_ICON "${CMAKE_CURRENT_SOURCE_DIR}/logo.ico")
 
 if(NOT DEFINED CPACK_GENERATOR)
-  if(WIN32)
+  if(WIN32 OR STEAMSDK)
     set(CPACK_GENERATOR "ZIP")
   elseif(UNIX)
     set(CPACK_GENERATOR "DEB")
@@ -707,7 +711,7 @@ endif()
 
 set(sp_runtime_root "/")
 
-if ("WIX" IN_LIST CPACK_GENERATOR)    
+if ("WIX" IN_LIST CPACK_GENERATOR)
     if (EmptyEpsilon_VERSION_MAJOR GREATER 100)
 	    # WIX does not like major version number > 256.
 	    # So if we're above 100, assume it's a year-like format and strip out century/millenium.
@@ -746,7 +750,7 @@ set(CPACK_INSTALL_CMAKE_PROJECTS
 
 include(CPack)
 
-if(UNIX AND NOT APPLE)
+if(UNIX AND NOT APPLE AND NOT STEAMSDK)
   install(FILES EmptyEpsilon.desktop DESTINATION "share/applications")
-  install(FILES logo.png DESTINATION "share/icons" RENAME "EmptyEpsilon.png")
+  install(FILES logo.png DESTINATION "share/icons/hicolor/1024x1024/apps" RENAME "EmptyEpsilon.png")
 endif()

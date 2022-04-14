@@ -148,10 +148,7 @@ void HardwareController::handleConfig(string section, std::unordered_map<string,
                 for(std::pair<string, string> item : settings)
                 {
                     std::vector<string> values = item.second.split(",");
-                    if (values.size() > idx)
-                        per_channel_settings[item.first] = values[idx].strip();
-                    else
-                        per_channel_settings[item.first] = values[values.size() - 1].strip();
+                    per_channel_settings[item.first] = values[idx % values.size()].strip();
                 }
                 createNewHardwareMappingState(channel_numbers[idx], per_channel_settings);
             }
@@ -169,10 +166,7 @@ void HardwareController::handleConfig(string section, std::unordered_map<string,
                 for(std::pair<string, string> item : settings)
                 {
                     std::vector<string> values = item.second.split(",");
-                    if (values.size() > idx)
-                        per_channel_settings[item.first] = values[idx];
-                    else
-                        per_channel_settings[item.first] = values[values.size() - 1];
+                    per_channel_settings[item.first] = values[idx % values.size()];
                 }
                 createNewHardwareMappingEvent(channel_numbers[idx], per_channel_settings);
             }
@@ -388,6 +382,8 @@ bool HardwareController::getVariableValue(string variable_name, float& value)
     SHIP_VARIABLE("Alert", ship->getAlertLevel() != AL_Normal ? 1.0f : 0.0f);
     SHIP_VARIABLE("YellowAlert", ship->getAlertLevel() == AL_YellowAlert ? 1.0f : 0.0f);
     SHIP_VARIABLE("RedAlert", ship->getAlertLevel() == AL_RedAlert ? 1.0f : 0.0f);
+    SHIP_VARIABLE("SelfDestruct", ship->activate_self_destruct ? 1.0f : 0.0f);
+    SHIP_VARIABLE("SelfDestructCountdown", ship->self_destruct_countdown / 10.0f);
     for(int n=0; n<max_weapon_tubes; n++)
     {
         SHIP_VARIABLE("TubeLoaded" + string(n), ship->weapon_tube[n].isLoaded() ? 1.0f : 0.0f);

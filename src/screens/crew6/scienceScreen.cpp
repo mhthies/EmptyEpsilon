@@ -16,7 +16,6 @@
 #include "screenComponents/alertOverlay.h"
 #include "screenComponents/customShipFunctions.h"
 
-#include "gui/gui2_autolayout.h"
 #include "gui/gui2_keyvaluedisplay.h"
 #include "gui/gui2_togglebutton.h"
 #include "gui/gui2_selector.h"
@@ -83,8 +82,8 @@ ScienceScreen::ScienceScreen(GuiContainer* owner, ECrewPosition crew_position)
     sidebar_selector->setPosition(-20, 120, sp::Alignment::TopRight)->setSize(250, 50);
 
     // Target scan data sidebar.
-    info_sidebar = new GuiAutoLayout(radar_view, "SIDEBAR", GuiAutoLayout::LayoutVerticalTopToBottom);
-    info_sidebar->setPosition(-20, 170, sp::Alignment::TopRight)->setSize(250, GuiElement::GuiSizeMax);
+    info_sidebar = new GuiElement(radar_view, "SIDEBAR");
+    info_sidebar->setPosition(-20, 170, sp::Alignment::TopRight)->setSize(250, GuiElement::GuiSizeMax)->setAttribute("layout", "vertical");
 
     custom_function_sidebar = new GuiCustomShipFunctions(radar_view, crew_position, "");
     custom_function_sidebar->setPosition(-20, 170, sp::Alignment::TopRight)->setSize(250, GuiElement::GuiSizeMax)->hide();
@@ -134,14 +133,14 @@ ScienceScreen::ScienceScreen(GuiContainer* owner, ECrewPosition crew_position)
     // If the server uses frequencies, add the Tactical sidebar page.
     if (gameGlobalInfo->use_beam_shield_frequencies)
     {
-        sidebar_pager->addEntry("Tactical", "Tactical");
+        sidebar_pager->addEntry(tr("scienceTab", "Tactical"), "Tactical");
     }
 
     // Add sidebar page for systems.
-    sidebar_pager->addEntry("Systems", "Systems");
+    sidebar_pager->addEntry(tr("scienceTab", "Systems"), "Systems");
 
     // Add sidebar page for a description.
-    sidebar_pager->addEntry("Description", "Description");
+    sidebar_pager->addEntry(tr("scienceTab", "Description"), "Description");
 
     // Default the pager to the first item.
     sidebar_pager->setSelectionIndex(0);
@@ -226,7 +225,7 @@ void ScienceScreen::onDraw(sp::RenderTarget& renderer)
     GuiOverlay::onDraw(renderer);
     P<ScanProbe> probe;
 
-    if (!my_spaceship)
+    if (!my_spaceship || !isVisible())
         return;
 
     float view_distance = science_radar->getDistance();

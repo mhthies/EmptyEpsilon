@@ -247,6 +247,7 @@ static int queryScienceDatabaseById(lua_State* L)
     return convert<P<ScienceDatabase> >::returnType(L, entry);
 }
 
+/// P<ScienceDatabase> queryScienceDatabaseById(int id)
 /// Return a ScienceDatabase entry by its unique multiplayer_id.
 /// Returns nil if no entry is found.
 /// Example: local mine_db = queryScienceDatabaseById(4);
@@ -271,6 +272,7 @@ static int queryScienceDatabase(lua_State* L)
     return convert<P<ScienceDatabase> >::returnType(L, entry);
 }
 
+/// P<ScienceDatabase> queryScienceDatabase(std::vector<string> path)
 /// finds a ScienceDatabase entry by its case-insensitive name. You have to give the full path to the entry by using multiple arguments.
 /// Returns nil if no entry is found.
 /// e.g. local mine_db = queryScienceDatabase("Natural", "Mine")
@@ -290,6 +292,7 @@ static int getScienceDatabases(lua_State* L)
     return convert<PVector<ScienceDatabase>>::returnType(L, entries);;
 }
 
+/// PVector<ScienceDatabase> getScienceDatabases()
 /// get all ScienceDatabases that do not have a parent. Use getEntries() or getEntryByName() to navigate.
 REGISTER_SCRIPT_FUNCTION(getScienceDatabases);
 
@@ -327,13 +330,17 @@ void fillDefaultDatabaseData()
     factionDatabase->setName(tr("database", "Factions"));
     for(unsigned int n=0; n<factionInfo.size(); n++)
     {
+        if (!factionInfo[n])
+            continue;
         P<ScienceDatabase> entry = factionDatabase->addEntry(factionInfo[n]->getLocaleName());
         for(unsigned int m=0; m<factionInfo.size(); m++)
         {
             if (n == m) continue;
+            if (!factionInfo[m])
+                continue;
 
             string stance = tr("stance", "Neutral");
-            switch(factionInfo[n]->states[m])
+            switch(FactionInfo::getState(n, m))
             {
                 case FVF_Neutral: stance = tr("stance", "Neutral"); break;
                 case FVF_Enemy: stance = tr("stance", "Enemy"); break;

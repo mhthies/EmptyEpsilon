@@ -149,14 +149,14 @@ MainMenu::MainMenu()
 
 #ifdef DEBUG
     (new GuiButton(this, "", "TO DA GM!", [this]() {
-        new EpsilonServer();
+        new EpsilonServer(defaultServerPort);
         if (game_server)
         {
             gameGlobalInfo->startScenario("scenario_10_empty.lua");
 
             my_player_info->commandSetShipId(-1);
             destroy();
-            new GameMasterScreen();
+            new GameMasterScreen(nullptr);
         }
     }))->setPosition({370, -150}, sp::Alignment::BottomLeft)->setSize(300, 50);
 

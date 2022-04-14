@@ -62,8 +62,8 @@ TacticalScreen::TacticalScreen(GuiContainer* owner)
     );
     radar->setAutoRotating(PreferencesManager::get("tactical_radar_lock","0")=="1");
 
-    GuiAutoLayout* stats = new GuiAutoLayout(this, "STATS", GuiAutoLayout::LayoutVerticalTopToBottom);
-    stats->setPosition(20, 100, sp::Alignment::TopLeft)->setSize(240, 160);
+    auto stats = new GuiElement(this, "STATS");
+    stats->setPosition(20, 100, sp::Alignment::TopLeft)->setSize(240, 160)->setAttribute("layout", "vertical");
 
     // Ship statistics in the top left corner.
     energy_display = new GuiKeyValueDisplay(stats, "ENERGY_DISPLAY", 0.45, tr("Energy"), "");
@@ -101,8 +101,8 @@ TacticalScreen::TacticalScreen(GuiContainer* owner)
 
     // Combat maneuver and propulsion controls in the bottom right corner.
     (new GuiCombatManeuver(this, "COMBAT_MANEUVER"))->setPosition(-20, -390, sp::Alignment::BottomRight)->setSize(200, 150);
-    GuiAutoLayout* engine_layout = new GuiAutoLayout(this, "ENGINE_LAYOUT", GuiAutoLayout::LayoutHorizontalRightToLeft);
-    engine_layout->setPosition(-20, -80, sp::Alignment::BottomRight)->setSize(GuiElement::GuiSizeMax, 300);
+    GuiElement* engine_layout = new GuiElement(this, "ENGINE_LAYOUT");
+    engine_layout->setPosition(-20, -80, sp::Alignment::BottomRight)->setSize(GuiElement::GuiSizeMax, 300)->setAttribute("layout", "horizontalright");
     (new GuiImpulseControls(engine_layout, "IMPULSE"))->setSize(100, GuiElement::GuiSizeMax);
     warp_controls = (new GuiWarpControls(engine_layout, "WARP"))->setSize(100, GuiElement::GuiSizeMax);
     jump_controls = (new GuiJumpControls(engine_layout, "JUMP"))->setSize(100, GuiElement::GuiSizeMax);
@@ -143,7 +143,7 @@ void TacticalScreen::onDraw(sp::RenderTarget& renderer)
 
 void TacticalScreen::onUpdate()
 {
-    if (my_spaceship)
+    if (my_spaceship && isVisible())
     {
         auto angle = (keys.helms_turn_right.getValue() - keys.helms_turn_left.getValue()) * 5.0f;
         if (angle != 0.0f)
@@ -156,6 +156,8 @@ void TacticalScreen::onUpdate()
             bool current_found = false;
             foreach(SpaceObject, obj, space_object_list)
             {
+                if (obj == my_spaceship)
+                    continue;
                 if (obj == targets.get())
                 {
                     current_found = true;

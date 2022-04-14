@@ -8,7 +8,6 @@
 #include "screenComponents/customShipFunctions.h"
 
 #include "gui/gui2_keyvaluedisplay.h"
-#include "gui/gui2_autolayout.h"
 #include "gui/gui2_togglebutton.h"
 #include "gui/gui2_slider.h"
 #include "gui/gui2_progressbar.h"
@@ -28,8 +27,8 @@ EngineeringScreen::EngineeringScreen(GuiContainer* owner, ECrewPosition crew_pos
     (new AlertLevelOverlay(this));
 
 
-    GuiAutoLayout* stats = new GuiAutoLayout(this, "ENGINEER_STATS", GuiAutoLayout::LayoutVerticalTopToBottom);
-    stats->setPosition(20, 100, sp::Alignment::TopLeft)->setSize(240, 200);
+    auto stats = new GuiElement(this, "ENGINEER_STATS");
+    stats->setPosition(20, 100, sp::Alignment::TopLeft)->setSize(240, 200)->setAttribute("layout", "vertical");
 
     energy_display = new GuiKeyValueDisplay(stats, "ENERGY_DISPLAY", 0.45, tr("Energy"), "");
     energy_display->setIcon("gui/icons/energy")->setTextSize(20)->setSize(240, 40);
@@ -47,67 +46,84 @@ EngineeringScreen::EngineeringScreen(GuiContainer* owner, ECrewPosition crew_pos
 
     GuiElement* system_config_container = new GuiElement(this, "");
     system_config_container->setPosition(0, -20, sp::Alignment::BottomCenter)->setSize(750 + 300, GuiElement::GuiSizeMax);
-    GuiAutoLayout* system_row_layouts = new GuiAutoLayout(system_config_container, "SYSTEM_ROWS", GuiAutoLayout::LayoutVerticalBottomToTop);
-    system_row_layouts->setPosition(0, 0, sp::Alignment::BottomLeft);
+    GuiElement* system_row_layouts = new GuiElement(system_config_container, "SYSTEM_ROWS");
+    system_row_layouts->setPosition(0, 0, sp::Alignment::BottomLeft)->setAttribute("layout", "verticalbottom");
     system_row_layouts->setSize(GuiElement::GuiSizeMax, GuiElement::GuiSizeMax);
+    float column_width = gameGlobalInfo->use_system_damage ? 100 : 150;
     for(int n=0; n<SYS_COUNT; n++)
     {
         string id = "SYSTEM_ROW_" + getSystemName(ESystem(n));
         SystemRow info;
-        info.layout = new GuiAutoLayout(system_row_layouts, id, GuiAutoLayout::LayoutHorizontalLeftToRight);
-        info.layout->setSize(GuiElement::GuiSizeMax, 50);
+        info.row = new GuiElement(system_row_layouts, id);
+        info.row->setAttribute("layout", "horizontal");
+        info.row->setSize(GuiElement::GuiSizeMax, 50);
 
-        info.button = new GuiToggleButton(info.layout, id + "_SELECT", getLocaleSystemName(ESystem(n)), [this, n](bool value){
+        info.button = new GuiToggleButton(info.row, id + "_SELECT", getLocaleSystemName(ESystem(n)), [this, n](bool value){
             selectSystem(ESystem(n));
         });
         info.button->setSize(300, GuiElement::GuiSizeMax);
-        info.damage_bar = new GuiProgressbar(info.layout, id + "_DAMAGE", 0.0f, 1.0f, 0.0f);
+        info.damage_bar = new GuiProgressbar(info.row, id + "_DAMAGE", 0.0f, 1.0f, 0.0f);
         info.damage_bar->setSize(150, GuiElement::GuiSizeMax);
         info.damage_icon = new GuiImage(info.damage_bar, "", "gui/icons/system_health");
         info.damage_icon->setColor(colorConfig.overlay_damaged)->setPosition(0, 0, sp::Alignment::CenterRight)->setSize(GuiElement::GuiSizeMatchHeight, GuiElement::GuiSizeMax);
         info.damage_label = new GuiLabel(info.damage_bar, id + "_DAMAGE_LABEL", "...", 20);
         info.damage_label->setSize(GuiElement::GuiSizeMax, GuiElement::GuiSizeMax);
-        info.heat_bar = new GuiProgressbar(info.layout, id + "_HEAT", 0.0f, 1.0f, 0.0f);
-        info.heat_bar->setSize(100, GuiElement::GuiSizeMax);
+        info.heat_bar = new GuiProgressbar(info.row, id + "_HEAT", 0.0f, 1.0f, 0.0f);
+        info.heat_bar->setSize(column_width, GuiElement::GuiSizeMax);
         info.heat_arrow = new GuiArrow(info.heat_bar, id + "_HEAT_ARROW", 0);
         info.heat_arrow->setSize(GuiElement::GuiSizeMax, GuiElement::GuiSizeMax);
         info.heat_icon = new GuiImage(info.heat_bar, "", "gui/icons/status_overheat");
         info.heat_icon->setColor(colorConfig.overlay_overheating)->setPosition(0, 0, sp::Alignment::Center)->setSize(GuiElement::GuiSizeMatchHeight, GuiElement::GuiSizeMax);
-        info.power_bar = new GuiProgressSlider(info.layout, id + "_POWER", 0.0f, 3.0f, 0.0f, [this,n](float value){
+        info.power_bar = new GuiProgressSlider(info.row, id + "_POWER", 0.0f, 3.0f, 0.0f, [this,n](float value){
             if (my_spaceship)
                 my_spaceship->commandSetSystemPowerRequest(ESystem(n), value);
         });
-        info.power_bar->setColor(glm::u8vec4(192, 192, 32, 128))->setSize(100, GuiElement::GuiSizeMax);
-        info.coolant_bar = new GuiProgressSlider(info.layout, id + "_COOLANT", 0.0f, 10.0f, 0.0f, [this,n](float value){
+        info.power_bar->setColor(glm::u8vec4(192, 192, 32, 128))->setSize(column_width, GuiElement::GuiSizeMax);
+        info.coolant_bar = new GuiProgressSlider(info.row, id + "_COOLANT", 0.0f, 10.0f, 0.0f, [this,n](float value){
             if (my_spaceship)
                 my_spaceship->commandSetSystemCoolantRequest(ESystem(n), value);
         });
-        info.coolant_bar->setColor(glm::u8vec4(32, 128, 128, 128))->setSize(100, GuiElement::GuiSizeMax);
-        if (!gameGlobalInfo->use_system_damage){
+        info.coolant_bar->setColor(glm::u8vec4(32, 128, 128, 128))->setSize(column_width, GuiElement::GuiSizeMax);
+        if (!gameGlobalInfo->use_system_damage)
             info.damage_bar->hide();
-            info.health_max_bar->hide();
-            info.heat_bar->setSize(150, GuiElement::GuiSizeMax);
-            info.power_bar->setSize(150, GuiElement::GuiSizeMax);
-            info.coolant_bar->setSize(150, GuiElement::GuiSizeMax);
-        }
+        info.coolant_max_indicator = new GuiImage(info.coolant_bar, "", "gui/widget/SliderTick.png");
+        info.coolant_max_indicator->setSize(40, 40);
+        info.coolant_max_indicator->setAngle(90);
+        info.coolant_max_indicator->setColor({255,255,255,0});
 
-        info.layout->moveToBack();
+        info.row->moveToBack();
         system_rows.push_back(info);
     }
 
-    GuiAutoLayout* icon_layout = new GuiAutoLayout(system_row_layouts, "", GuiAutoLayout::LayoutHorizontalLeftToRight);
-    icon_layout->setSize(GuiElement::GuiSizeMax, 48);
+    GuiElement* icon_layout = new GuiElement(system_row_layouts, "");
+    icon_layout->setSize(GuiElement::GuiSizeMax, 48)->setAttribute("layout", "horizontal");
     (new GuiElement(icon_layout, "FILLER"))->setSize(300, GuiElement::GuiSizeMax);
-    if (gameGlobalInfo->use_system_damage){
+    if (gameGlobalInfo->use_system_damage)
         (new GuiImage(icon_layout, "SYSTEM_HEALTH_ICON", "gui/icons/system_health"))->setSize(150, GuiElement::GuiSizeMax);
-        (new GuiImage(icon_layout, "HEAT_ICON", "gui/icons/status_overheat"))->setSize(100, GuiElement::GuiSizeMax);
-        (new GuiImage(icon_layout, "POWER_ICON", "gui/icons/energy"))->setSize(100, GuiElement::GuiSizeMax);
-        (new GuiImage(icon_layout, "COOLANT_ICON", "gui/icons/coolant"))->setSize(100, GuiElement::GuiSizeMax);
-    } else {
-        (new GuiImage(icon_layout, "HEAT_ICON", "gui/icons/status_overheat"))->setSize(150, GuiElement::GuiSizeMax);
-        (new GuiImage(icon_layout, "POWER_ICON", "gui/icons/energy"))->setSize(150, GuiElement::GuiSizeMax);
-        (new GuiImage(icon_layout, "COOLANT_ICON", "gui/icons/coolant"))->setSize(150, GuiElement::GuiSizeMax);
-    }
+    (new GuiImage(icon_layout, "HEAT_ICON", "gui/icons/status_overheat"))->setSize(column_width, GuiElement::GuiSizeMax);
+    (new GuiImage(icon_layout, "POWER_ICON", "gui/icons/energy"))->setSize(column_width, GuiElement::GuiSizeMax);
+    coolant_remaining_bar = new GuiProgressSlider(icon_layout, "", 0, 10.0, 10.0, [](float requested_unused_coolant)
+    {
+        float total_requested = 0.0f;
+        float new_max_total = my_spaceship->max_coolant - requested_unused_coolant;
+        for(int n=0; n<SYS_COUNT; n++)
+            total_requested += my_spaceship->systems[n].coolant_request;
+        if (new_max_total < total_requested) { // Drain systems
+            for(int n=0; n<SYS_COUNT; n++)
+                my_spaceship->commandSetSystemCoolantRequest((ESystem)n, my_spaceship->systems[n].coolant_request * new_max_total / total_requested);
+        } else { // Put coolant into systems
+            int system_count = 0;
+            for(int n=0; n<SYS_COUNT; n++)
+                if (my_spaceship->hasSystem((ESystem)n))
+                    system_count += 1;
+            float add = (new_max_total - total_requested) / float(system_count);
+            for(int n=0; n<SYS_COUNT; n++)
+                if (my_spaceship->hasSystem((ESystem)n))
+                    my_spaceship->commandSetSystemCoolantRequest((ESystem)n, std::min(my_spaceship->systems[n].coolant_request + add, 10.0f));
+        }
+    });
+    coolant_remaining_bar->setColor(glm::u8vec4(32, 128, 128, 128))->setDrawBackground(false)->setSize(column_width, GuiElement::GuiSizeMax);
+    (new GuiImage(coolant_remaining_bar, "COOLANT_ICON", "gui/icons/coolant"))->setSize(GuiElement::GuiSizeMax, GuiElement::GuiSizeMax);
 
     system_rows[SYS_Reactor].button->setIcon("gui/icons/system_reactor");
     system_rows[SYS_BeamWeapons].button->setIcon("gui/icons/system_beam");
@@ -119,14 +135,14 @@ EngineeringScreen::EngineeringScreen(GuiContainer* owner, ECrewPosition crew_pos
     system_rows[SYS_FrontShield].button->setIcon("gui/icons/shields-fore");
     system_rows[SYS_RearShield].button->setIcon("gui/icons/shields-aft");
 
-    system_effects_container = new GuiAutoLayout(system_config_container, "", GuiAutoLayout::LayoutVerticalBottomToTop);
-    system_effects_container->setPosition(0, -400, sp::Alignment::BottomRight)->setSize(270, 400);
+    system_effects_container = new GuiElement(system_config_container, "");
+    system_effects_container->setPosition(0, -400, sp::Alignment::BottomRight)->setSize(270, 400)->setAttribute("layout", "verticalbottom");
     GuiPanel* box = new GuiPanel(system_config_container, "POWER_COOLANT_BOX");
     box->setPosition(0, 0, sp::Alignment::BottomRight)->setSize(270, 400);
     power_label = new GuiLabel(box, "POWER_LABEL", tr("slider", "Power"), 30);
-    power_label->setVertical()->setAlignment(sp::Alignment::CenterLeft)->setPosition(20, 20, sp::Alignment::TopLeft)->setSize(30, 360);
+    power_label->setVertical()->setAlignment(sp::Alignment::Center)->setPosition(20, 20, sp::Alignment::TopLeft)->setSize(30, 360);
     coolant_label = new GuiLabel(box, "COOLANT_LABEL", tr("slider", "Coolant"), 30);
-    coolant_label->setVertical()->setAlignment(sp::Alignment::CenterLeft)->setPosition(110, 20, sp::Alignment::TopLeft)->setSize(30, 360);
+    coolant_label->setVertical()->setAlignment(sp::Alignment::Center)->setPosition(110, 20, sp::Alignment::TopLeft)->setSize(30, 360);
 
     power_slider = new GuiSlider(box, "POWER_SLIDER", 3.0, 0.0, 1.0, [this](float value) {
         if (my_spaceship && selected_system != SYS_None)
@@ -202,26 +218,28 @@ void EngineeringScreen::onDraw(sp::RenderTarget& renderer)
         }
         coolant_display->setValue(toNearbyIntString(my_spaceship->max_coolant * 10) + "%");
 
+        float total_coolant_used = 0.0f;
         for(int n=0; n<SYS_COUNT; n++)
         {
             SystemRow info = system_rows[n];
-            info.layout->setVisible(my_spaceship->hasSystem(ESystem(n)));
+            auto& system = my_spaceship->systems[n];
+            info.row->setVisible(my_spaceship->hasSystem(ESystem(n)));
 
-            float health = my_spaceship->systems[n].health;
+            float health = system.health;
             if (health < 0.0f)
                 info.damage_bar->setValue(-health)->setColor(glm::u8vec4(128, 32, 32, 192));
             else
                 info.damage_bar->setValue(health)->setColor(glm::u8vec4(64, 128 * health, 64 * health, 192));
             info.damage_label->setText(toNearbyIntString(health * 100) + "%");
-            float health_max = my_spaceship->systems[n].health_max;
+            float health_max = system.health_max;
             if (health_max < 1.0f)
                 info.damage_icon->show();
             else
                 info.damage_icon->hide();
 
-            float heat = my_spaceship->systems[n].heat_level;
+            float heat = system.heat_level;
             info.heat_bar->setValue(heat)->setColor(glm::u8vec4(128, 32 + 96 * (1.0f - heat), 32, 192));
-            float heating_diff = my_spaceship->systems[n].getHeatingDelta();
+            float heating_diff = system.getHeatingDelta();
             if (heating_diff > 0)
                 info.heat_arrow->setAngle(90);
             else
@@ -233,9 +251,19 @@ void EngineeringScreen::onDraw(sp::RenderTarget& renderer)
             else
                 info.heat_icon->hide();
 
-            info.power_bar->setValue(my_spaceship->systems[n].power_level);
-            info.coolant_bar->setValue(my_spaceship->systems[n].coolant_level);
+            info.power_bar->setValue(system.power_level);
+            info.coolant_bar->setValue(system.coolant_level);
+            if (system.coolant_request > 0.0f) {
+                float f = system.coolant_request / 10.f;
+                info.coolant_max_indicator->setPosition(-20 + info.coolant_bar->getSize().x * f, 5);
+                info.coolant_max_indicator->setColor({255,255,255,255});
+            } else {
+                info.coolant_max_indicator->setColor({255,255,255,0});
+            }
+            total_coolant_used += system.coolant_level;
         }
+        coolant_remaining_bar->setRange(0, my_spaceship->max_coolant);
+        coolant_remaining_bar->setValue(my_spaceship->max_coolant - total_coolant_used);
 
         if (selected_system != SYS_None)
         {
@@ -331,7 +359,7 @@ void EngineeringScreen::onDraw(sp::RenderTarget& renderer)
 
 void EngineeringScreen::onUpdate()
 {
-    if (my_spaceship)
+    if (my_spaceship && isVisible())
     {
         if (keys.engineering_select_reactor.getDown()) selectSystem(SYS_Reactor);
         if (keys.engineering_select_beam_weapons.getDown()) selectSystem(SYS_BeamWeapons);

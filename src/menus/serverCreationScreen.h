@@ -5,7 +5,6 @@
 #include "Updatable.h"
 
 class GuiScrollText;
-class GuiAutoLayout;
 class GuiSelector;
 class GuiTextEntry;
 class GuiListbox;
@@ -23,6 +22,7 @@ private:
     GuiTextEntry* server_password;
     GuiTextEntry* gm_password;
     GuiSelector* server_visibility;
+    GuiTextEntry* server_port;
 };
 
 class ServerSetupMasterServerRegistrationScreen : public GuiCanvas, Updatable
@@ -43,6 +43,7 @@ public:
     ServerScenarioSelectionScreen();
 
 private:
+    void loadScenarioList(const string& category);
     GuiListbox* category_list;
     GuiListbox* scenario_list;
     GuiScrollText* description_text;

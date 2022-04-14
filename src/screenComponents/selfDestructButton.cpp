@@ -14,7 +14,7 @@ GuiSelfDestructButton::GuiSelfDestructButton(GuiContainer* owner, string id)
         confirm_button->show();
         cancel_button->show();
     });
-    activate_button->setColors(colorConfig.button_red)->setIcon("gui/icons/self-destruct")->setSize(GuiElement::GuiSizeMax, 50);
+    activate_button->setStyle("button.selfdestruct")->setIcon("gui/icons/self-destruct")->setSize(GuiElement::GuiSizeMax, 50);
 
     confirm_button = new GuiButton(this, id + "_CONFIRM", tr("selfdestruct", "Confirm!"), [this](){
         confirm_button->hide();
@@ -36,7 +36,7 @@ void GuiSelfDestructButton::onUpdate()
 {
     activate_button->setVisible(my_spaceship && my_spaceship->getCanSelfDestruct());
 
-    if (my_spaceship)
+    if (my_spaceship && isVisible())
     {
         if (keys.engineering_self_destruct_start.getDown() && activate_button->isVisible())
         {

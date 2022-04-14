@@ -50,7 +50,7 @@ ServerBrowserMenu::ServerBrowserMenu(SearchSource source, std::optional<GameClie
 
     (new GuiButton(this, "BACK", tr("button", "Back"), [this]() {
         destroy();
-        returnToMainMenu();
+        returnToMainMenu(getRenderLayer());
     }))->setPosition(50, -50, sp::Alignment::BottomLeft)->setSize(300, 50);
 
     if (last_attempt)
@@ -69,16 +69,14 @@ ServerBrowserMenu::ServerBrowserMenu(SearchSource source, std::optional<GameClie
     lan_internet_selector->setOptions({tr("LAN"), tr("Internet")})->setSelectionIndex(source == Local ? 0 : 1)->setPosition(0, -50, sp::Alignment::BottomCenter)->setSize(300, 50);
 
     connect_button = new GuiButton(this, "CONNECT", tr("screenLan", "Connect"), [this]() {
-        new JoinServerScreen(lan_internet_selector->getSelectionIndex() == 0 ? Local : Internet, sp::io::network::Address(manual_ip->getText()));
-        destroy();
+        connect(manual_ip->getText());
     });
     connect_button->setPosition(-50, -50, sp::Alignment::BottomRight)->setSize(300, 50);
 
     manual_ip = new GuiTextEntry(this, "IP", "");
     manual_ip->setPosition(-50, -120, sp::Alignment::BottomRight)->setSize(300, 50);
     manual_ip->enterCallback([this](string text) {
-        new JoinServerScreen(lan_internet_selector->getSelectionIndex() == 0 ? Local : Internet, sp::io::network::Address(text.strip()));
-        destroy();
+        connect(text);
     });
     server_list = new GuiListbox(this, "SERVERS", [this](int index, string value) {
         manual_ip->setText(value);
@@ -108,4 +106,26 @@ ServerBrowserMenu::ServerBrowserMenu(SearchSource source, std::optional<GameClie
 ServerBrowserMenu::~ServerBrowserMenu()
 {
     scanner->destroy();
+}
+
+void ServerBrowserMenu::connect(string host)
+{
+    host = host.strip();
+    uint64_t port = defaultServerPort;
+    if (host.find(":") != -1)
+    {
+        port = host.substr(host.find(":") + 1).toInt64();
+        host = host.substr(0, host.find(":"));
+    }
+#ifdef STEAMSDK
+    if (host.lower() == "steam")
+    {
+        new JoinServerScreen(lan_internet_selector->getSelectionIndex() == 0 ? Local : Internet, port);
+    } else {
+#endif
+        new JoinServerScreen(lan_internet_selector->getSelectionIndex() == 0 ? Local : Internet, sp::io::network::Address(host), port);
+#ifdef STEAMSDK
+    }
+#endif
+    destroy();
 }

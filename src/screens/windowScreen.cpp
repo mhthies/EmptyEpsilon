@@ -9,8 +9,8 @@
 #include "screenComponents/indicatorOverlays.h"
 #include "screenComponents/shipDestroyedPopup.h"
 
-WindowScreen::WindowScreen(float angle, uint8_t flags)
-: angle(angle)
+WindowScreen::WindowScreen(RenderLayer* render_layer, float angle, uint8_t flags)
+: GuiCanvas(render_layer), angle(angle)
 {
     viewport = new GuiViewport3D(this, "VIEWPORT");
     if (flags & flag_callsigns)
@@ -33,7 +33,7 @@ void WindowScreen::update(float delta)
     if (keys.escape.getDown())
     {
         destroy();
-        returnToShipSelection();
+        returnToShipSelection(getRenderLayer());
     }
     if (keys.pause.getDown())
     {
@@ -45,7 +45,7 @@ void WindowScreen::update(float delta)
     {
         destroy();
         disconnectFromServer();
-        returnToMainMenu();
+        returnToMainMenu(getRenderLayer());
         return;
     }
 

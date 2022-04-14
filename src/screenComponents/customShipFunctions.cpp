@@ -5,11 +5,12 @@
 #include "gui/gui2_label.h"
 
 GuiCustomShipFunctions::GuiCustomShipFunctions(GuiContainer* owner, ECrewPosition position, string id)
-: GuiAutoLayout(owner, id, GuiAutoLayout::LayoutVerticalTopToBottom), position(position)
+: GuiElement(owner, id), position(position)
 {
+    setAttribute("layout", "vertical");
 }
 
-void GuiCustomShipFunctions::onDraw(sp::RenderTarget& target)
+void GuiCustomShipFunctions::onUpdate()
 {
     if (!my_spaceship)
         return;
@@ -69,7 +70,6 @@ void GuiCustomShipFunctions::createEntries()
             e.element->destroy();
     }
     entries.clear();
-    std::sort(my_spaceship->custom_functions.begin(), my_spaceship->custom_functions.end());
     for(PlayerSpaceship::CustomShipFunction& csf : my_spaceship->custom_functions)
     {
         entries.emplace_back();

@@ -9,17 +9,18 @@
 #include "gui/gui2_togglebutton.h"
 
 GuiMissileTubeControls::GuiMissileTubeControls(GuiContainer* owner, string id)
-: GuiAutoLayout(owner, id, LayoutVerticalBottomToTop), load_type(MW_None), manual_aim(false), missile_target_angle(0)
+: GuiElement(owner, id), load_type(MW_None), manual_aim(false), missile_target_angle(0)
 {
     setSize(GuiElement::GuiSizeMax, GuiElement::GuiSizeMax);
+    setAttribute("layout", "verticalbottom");
 
     rows.resize(max_weapon_tubes);
 
     for (int n = max_weapon_tubes - 1; n >= 0; n--)
     {
         TubeRow row;
-        row.layout = new GuiAutoLayout(this, id + "_ROW_" + string(n), LayoutHorizontalLeftToRight);
-        row.layout->setSize(GuiElement::GuiSizeMax, 50);
+        row.layout = new GuiElement(this, id + "_ROW_" + string(n));
+        row.layout->setSize(GuiElement::GuiSizeMax, 50)->setAttribute("layout", "horizontal");
         row.load_button = new GuiButton(row.layout, id + "_" + string(n) + "_LOAD_BUTTON", "Load", [this, n]() {
             if (!my_spaceship)
                 return;
@@ -64,8 +65,8 @@ GuiMissileTubeControls::GuiMissileTubeControls(GuiContainer* owner, string id)
 
     for (int n = MW_Count-1; n >= 0; n--)
     {
-        load_type_rows[n].layout = new GuiAutoLayout(this, id + "_ROW_" + string(n), LayoutHorizontalLeftToRight);
-        load_type_rows[n].layout->setSize(GuiElement::GuiSizeMax, 40);
+        load_type_rows[n].layout = new GuiElement(this, id + "_ROW_" + string(n));
+        load_type_rows[n].layout->setSize(GuiElement::GuiSizeMax, 40)->setAttribute("layout", "horizontal");
 
         load_type_rows[n].button = new GuiToggleButton(load_type_rows[n].layout, id + "_MW_" + string(n), getLocaleMissileWeaponName(EMissileWeapons(n)), [this, n](bool value) {
             if (value)
@@ -84,9 +85,9 @@ GuiMissileTubeControls::GuiMissileTubeControls(GuiContainer* owner, string id)
     load_type_rows[MW_HVLI].button->setIcon("gui/icons/weapon-hvli.png");
 }
 
-void GuiMissileTubeControls::onDraw(sp::RenderTarget& renderer)
+void GuiMissileTubeControls::onUpdate()
 {
-    if (!my_spaceship)
+    if (!my_spaceship || !isVisible())
         return;
     for (int n = 0; n < MW_Count; n++)
     {
@@ -151,41 +152,33 @@ void GuiMissileTubeControls::onDraw(sp::RenderTarget& renderer)
     for(int n=my_spaceship->weapon_tube_count; n<max_weapon_tubes; n++)
         rows[n].layout->hide();
 
-    GuiAutoLayout::onDraw(renderer);
-}
+    if (keys.weapons_select_homing.getDown())
+        selectMissileWeapon(MW_Homing);
+    if (keys.weapons_select_nuke.getDown())
+        selectMissileWeapon(MW_Nuke);
+    if (keys.weapons_select_mine.getDown())
+        selectMissileWeapon(MW_Mine);
+    if (keys.weapons_select_emp.getDown())
+        selectMissileWeapon(MW_EMP);
+    if (keys.weapons_select_hvli.getDown())
+        selectMissileWeapon(MW_HVLI);
 
-void GuiMissileTubeControls::onUpdate()
-{
-    if (my_spaceship)
+    for(int n=0; n<my_spaceship->weapon_tube_count; n++)
     {
-        if (keys.weapons_select_homing.getDown())
-            selectMissileWeapon(MW_Homing);
-        if (keys.weapons_select_nuke.getDown())
-            selectMissileWeapon(MW_Nuke);
-        if (keys.weapons_select_mine.getDown())
-            selectMissileWeapon(MW_Mine);
-        if (keys.weapons_select_emp.getDown())
-            selectMissileWeapon(MW_EMP);
-        if (keys.weapons_select_hvli.getDown())
-            selectMissileWeapon(MW_HVLI);
-
-        for(int n=0; n<my_spaceship->weapon_tube_count; n++)
+        if (keys.weapons_load_tube[n].getDown())
+            my_spaceship->commandLoadTube(n, load_type);
+        if (keys.weapons_unload_tube[n].getDown())
+            my_spaceship->commandUnloadTube(n);
+        if (keys.weapons_fire_tube[n].getDown())
         {
-            if (keys.weapons_load_tube[n].getDown())
-                my_spaceship->commandLoadTube(n, load_type);
-            if (keys.weapons_unload_tube[n].getDown())
-                my_spaceship->commandUnloadTube(n);
-            if (keys.weapons_fire_tube[n].getDown())
+            float target_angle = missile_target_angle;
+            if (!manual_aim)
             {
-                float target_angle = missile_target_angle;
-                if (!manual_aim)
-                {
-                    target_angle = my_spaceship->weapon_tube[n].calculateFiringSolution(my_spaceship->getTarget());
-                    if (target_angle == std::numeric_limits<float>::infinity())
-                        target_angle = my_spaceship->getRotation() + my_spaceship->weapon_tube[n].getDirection();
-                }
-                my_spaceship->commandFireTube(n, target_angle);
+                target_angle = my_spaceship->weapon_tube[n].calculateFiringSolution(my_spaceship->getTarget());
+                if (target_angle == std::numeric_limits<float>::infinity())
+                    target_angle = my_spaceship->getRotation() + my_spaceship->weapon_tube[n].getDirection();
             }
+            my_spaceship->commandFireTube(n, target_angle);
         }
     }
 }

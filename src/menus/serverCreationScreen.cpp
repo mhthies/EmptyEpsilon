@@ -6,7 +6,6 @@
 #include "epsilonServer.h"
 #include "gui/scriptError.h"
 #include "gui/gui2_overlay.h"
-#include "gui/gui2_autolayout.h"
 #include "gui/gui2_label.h"
 #include "gui/gui2_togglebutton.h"
 #include "gui/gui2_selector.h"
@@ -24,45 +23,51 @@ ServerSetupScreen::ServerSetupScreen()
     (new GuiOverlay(this, "", glm::u8vec4{255,255,255,255}))->setTextureTiled("gui/background/crosses.png");
 
     // Create main layout
-    GuiElement* main_panel = new GuiAutoLayout(this, "", GuiAutoLayout::LayoutVerticalTopToBottom);
-    main_panel->setPosition(0, 20, sp::Alignment::TopCenter)->setSize(750, GuiElement::GuiSizeMax);
+    GuiElement* main_panel = new GuiElement(this, "");
+    main_panel->setPosition(0, 20, sp::Alignment::TopCenter)->setSize(750, GuiElement::GuiSizeMax)->setAttribute("layout", "vertical");
 
     // Left column contents.
     // General section.
     (new GuiLabel(main_panel, "GENERAL_LABEL", tr("Server configuration"), 30))->addBackground()->setSize(GuiElement::GuiSizeMax, 50);
 
     // Server name row.
-    GuiElement* row = new GuiAutoLayout(main_panel, "", GuiAutoLayout::LayoutHorizontalLeftToRight);
-    row->setSize(GuiElement::GuiSizeMax, 50);
+    GuiElement* row = new GuiElement(main_panel, "");
+    row->setSize(GuiElement::GuiSizeMax, 50)->setAttribute("layout", "horizontal");
     (new GuiLabel(row, "NAME_LABEL", tr("Server name: "), 30))->setAlignment(sp::Alignment::CenterRight)->setSize(250, GuiElement::GuiSizeMax);
     server_name = new GuiTextEntry(row, "SERVER_NAME", "server");
     server_name->setSize(GuiElement::GuiSizeMax, GuiElement::GuiSizeMax);
 
     // Server password row.
-    row = new GuiAutoLayout(main_panel, "", GuiAutoLayout::LayoutHorizontalLeftToRight);
-    row->setSize(GuiElement::GuiSizeMax, 50);
+    row = new GuiElement(main_panel, "");
+    row->setSize(GuiElement::GuiSizeMax, 50)->setAttribute("layout", "horizontal");
     (new GuiLabel(row, "PASSWORD_LABEL", tr("Server password: "), 30))->setAlignment(sp::Alignment::CenterRight)->setSize(250, GuiElement::GuiSizeMax);
     server_password = new GuiTextEntry(row, "SERVER_PASSWORD", "");
     server_password->setSize(GuiElement::GuiSizeMax, GuiElement::GuiSizeMax);
 
     // GM control code row.
-    row = new GuiAutoLayout(main_panel, "", GuiAutoLayout::LayoutHorizontalLeftToRight);
-    row->setSize(GuiElement::GuiSizeMax, 50);
+    row = new GuiElement(main_panel, "");
+    row->setSize(GuiElement::GuiSizeMax, 50)->setAttribute("layout", "horizontal");
     (new GuiLabel(row, "GM_CONTROL_CODE_LABEL", tr("GM control code: "), 30))->setAlignment(sp::Alignment::CenterRight)->setSize(250, GuiElement::GuiSizeMax);
     gm_password = new GuiTextEntry(row, "GM_CONTROL_CODE", "");
     gm_password->setSize(GuiElement::GuiSizeMax, GuiElement::GuiSizeMax);
 
     // LAN/Internet row.
-    row = new GuiAutoLayout(main_panel, "", GuiAutoLayout::LayoutHorizontalLeftToRight);
-    row->setSize(GuiElement::GuiSizeMax, 50);
-    (new GuiLabel(row, "LAN_INTERNET_LABEL", tr("Server visibility: "), 30))->setAlignment(sp::Alignment::CenterRight)->setSize(250, GuiElement::GuiSizeMax);
+    row = new GuiElement(main_panel, "");
+    row->setSize(GuiElement::GuiSizeMax, 50)->setAttribute("layout", "horizontal");
+    (new GuiLabel(row, "LAN_INTERNET_LABEL", tr("List on master server: "), 30))->setAlignment(sp::Alignment::CenterRight)->setSize(250, GuiElement::GuiSizeMax);
     server_visibility = new GuiSelector(row, "LAN_INTERNET_SELECT", [](int index, string value) { });
-    server_visibility->setOptions({tr("LAN only"), tr("Internet")})->setSelectionIndex(0)->setSize(GuiElement::GuiSizeMax, GuiElement::GuiSizeMax);
+    server_visibility->setOptions({tr("No"), tr("Yes")})->setSelectionIndex(0)->setSize(GuiElement::GuiSizeMax, GuiElement::GuiSizeMax);
+
+    row = new GuiElement(main_panel, "");
+    row->setSize(GuiElement::GuiSizeMax, 50)->setAttribute("layout", "horizontal");
+    (new GuiLabel(row, "SERVER_PORT", tr("Server port: "), 30))->setAlignment(sp::Alignment::CenterRight)->setSize(250, GuiElement::GuiSizeMax);
+    server_port = new GuiTextEntry(row, "SERVER_PORT", string(defaultServerPort));
+    server_port->setSize(GuiElement::GuiSizeMax, GuiElement::GuiSizeMax);
 
     (new GuiLabel(main_panel, "GENERAL_LABEL", tr("Server info"), 30))->addBackground()->setSize(GuiElement::GuiSizeMax, 50);
     // Server IP row.
-    row = new GuiAutoLayout(main_panel, "", GuiAutoLayout::LayoutHorizontalLeftToRight);
-    row->setSize(GuiElement::GuiSizeMax, 350);
+    row = new GuiElement(main_panel, "");
+    row->setSize(GuiElement::GuiSizeMax, 350)->setAttribute("layout", "horizontal");
     (new GuiLabel(row, "IP_LABEL", tr("Server IP: "), 30))->setAlignment(sp::Alignment::TopRight)->setSize(250, GuiElement::GuiSizeMax);
     auto ips = new GuiListbox(row, "IP", [](int index, string value){});
     ips->setSize(GuiElement::GuiSizeMax, GuiElement::GuiSizeMax);
@@ -77,12 +82,15 @@ ServerSetupScreen::ServerSetupScreen()
     // Close server button.
     (new GuiButton(this, "CLOSE_SERVER", tr("Close"), [this]() {
         destroy();
-        returnToMainMenu();
+        returnToMainMenu(getRenderLayer());
     }))->setPosition(-250, -50, sp::Alignment::BottomCenter)->setSize(300, 50);
 
     // Start server button.
     (new GuiButton(this, "START_SERVER", tr("Start server"), [this]() {
-        new EpsilonServer();
+        int port = server_port->getText().toInt();
+        if (port < 1)
+            port = defaultServerPort;
+        new EpsilonServer(port);
         game_server->setServerName(server_name->getText());
         game_server->setPassword(server_password->getText().upper());
         gameGlobalInfo->gm_control_code = gm_password->getText().upper();
@@ -153,24 +161,19 @@ ServerScenarioSelectionScreen::ServerScenarioSelectionScreen()
     new GuiOverlay(this, "", colorConfig.background);
     (new GuiOverlay(this, "", glm::u8vec4{255,255,255,255}))->setTextureTiled("gui/background/crosses.png");
 
-    GuiElement* container = new GuiAutoLayout(this, "", GuiAutoLayout::ELayoutMode::LayoutVerticalColumns);
-    container->setSize(GuiElement::GuiSizeMax, GuiElement::GuiSizeMax);
+    GuiElement* container = new GuiElement(this, "");
+    container->setSize(GuiElement::GuiSizeMax, GuiElement::GuiSizeMax)->setAttribute("layout", "horizontal");
 
-    GuiElement* left = new GuiAutoLayout(new GuiElement(container, ""), "", GuiAutoLayout::LayoutVerticalTopToBottom);
-    left->setPosition(0, 20, sp::Alignment::TopCenter)->setSize(400, GuiElement::GuiSizeMax);
-    GuiElement* middle = new GuiAutoLayout(new GuiElement(container, ""), "", GuiAutoLayout::LayoutVerticalTopToBottom);
-    middle->setPosition(0, 20, sp::Alignment::TopCenter)->setSize(400, GuiElement::GuiSizeMax);
-    GuiElement* right = new GuiAutoLayout(new GuiElement(container, ""), "", GuiAutoLayout::LayoutVerticalTopToBottom);
-    right->setPosition(0, 20, sp::Alignment::TopCenter)->setSize(400, GuiElement::GuiSizeMax);
+    GuiElement* left = new GuiElement((new GuiElement(container, ""))->setSize(GuiElement::GuiSizeMax, GuiElement::GuiSizeMax), "");
+    left->setPosition(0, 20, sp::Alignment::TopCenter)->setSize(400, GuiElement::GuiSizeMax)->setAttribute("layout", "vertical");
+    GuiElement* middle = new GuiElement((new GuiElement(container, ""))->setSize(GuiElement::GuiSizeMax, GuiElement::GuiSizeMax), "");
+    middle->setPosition(0, 20, sp::Alignment::TopCenter)->setSize(400, GuiElement::GuiSizeMax)->setAttribute("layout", "vertical");
+    GuiElement* right = new GuiElement((new GuiElement(container, ""))->setSize(GuiElement::GuiSizeMax, GuiElement::GuiSizeMax), "");
+    right->setPosition(0, 20, sp::Alignment::TopCenter)->setSize(400, GuiElement::GuiSizeMax)->setAttribute("layout", "vertical");
 
     (new GuiLabel(left, "GENERAL_LABEL", tr("Category"), 30))->addBackground()->setSize(GuiElement::GuiSizeMax, 50);
     category_list = new GuiListbox(left, "SCENARIO_CATEGORY", [this](int index, string value) {
-        scenario_list->setSelectionIndex(-1);
-        scenario_list->setOptions({});
-        for(const auto& info : ScenarioInfo::getScenarios(value))
-            scenario_list->addEntry(info.name, info.filename);
-        start_button->disable();
-        description_text->setText("Select a scenario...");
+        loadScenarioList(value);
     });
     category_list->setSize(GuiElement::GuiSizeMax, 700);
 
@@ -183,7 +186,7 @@ ServerScenarioSelectionScreen::ServerScenarioSelectionScreen()
     });
     scenario_list->setSize(GuiElement::GuiSizeMax, 700);
     (new GuiLabel(right, "GENERAL_LABEL", tr("Description"), 30))->addBackground()->setSize(GuiElement::GuiSizeMax, 50);
-    description_text = new GuiScrollText(right, "SCENARIO_DESCRIPTION", "Select a scenario...");
+    description_text = new GuiScrollText(right, "SCENARIO_DESCRIPTION", tr("Select a scenario..."));
     description_text->setSize(GuiElement::GuiSizeMax, 700);
 
     for(const auto& category : ScenarioInfo::getCategories())
@@ -207,11 +210,12 @@ ServerScenarioSelectionScreen::ServerScenarioSelectionScreen()
         if (info.settings.empty())
         {
             // Start the selected scenario.
+            gameGlobalInfo->scenario = info.name;
             gameGlobalInfo->startScenario(filename);
 
             // Destroy this screen and move on to ship selection.
             destroy();
-            returnToShipSelection();
+            returnToShipSelection(getRenderLayer());
             new ScriptErrorRenderer();
         }
         else
@@ -222,8 +226,42 @@ ServerScenarioSelectionScreen::ServerScenarioSelectionScreen()
     });
     start_button->setPosition(250, -50, sp::Alignment::BottomCenter)->setSize(300, 50)->disable();
 
+    // Select the previously selected scenario.
+    for(const auto& info : ScenarioInfo::getScenarios()) {
+        if (info.name == gameGlobalInfo->scenario) {
+            for(int n=0; n<category_list->entryCount(); n++) {
+                if (info.hasCategory(category_list->getEntryValue(n))) {
+                    category_list->setSelectionIndex(n);
+                    category_list->scrollTo(n);
+                    loadScenarioList(category_list->getEntryValue(n));
+                    break;
+                }
+            }
+            for(int n=0; n<scenario_list->entryCount(); n++) {
+                if (info.filename == scenario_list->getEntryValue(n))
+                {
+                    scenario_list->setSelectionIndex(n);
+                    scenario_list->scrollTo(n);
+                    description_text->setText(info.description);
+                    start_button->enable();
+                    break;
+                }
+            }
+        }
+    }
+
     gameGlobalInfo->reset();
     gameGlobalInfo->scenario_settings.clear();
+}
+
+void ServerScenarioSelectionScreen::loadScenarioList(const string& category)
+{
+    scenario_list->setSelectionIndex(-1);
+    scenario_list->setOptions({});
+    for(const auto& info : ScenarioInfo::getScenarios(category))
+        scenario_list->addEntry(info.name, info.filename);
+    start_button->disable();
+    description_text->setText(tr("Select a scenario..."));
 }
 
 ServerScenarioOptionsScreen::ServerScenarioOptionsScreen(string filename)
@@ -233,20 +271,20 @@ ServerScenarioOptionsScreen::ServerScenarioOptionsScreen(string filename)
     new GuiOverlay(this, "", colorConfig.background);
     (new GuiOverlay(this, "", glm::u8vec4{255,255,255,255}))->setTextureTiled("gui/background/crosses.png");
 
-    GuiElement* column_container = new GuiAutoLayout(this, "", GuiAutoLayout::ELayoutMode::LayoutVerticalColumns);
-    column_container->setSize(GuiElement::GuiSizeMax, GuiElement::GuiSizeMax);
+    GuiElement* column_container = new GuiElement(this, "");
+    column_container->setSize(GuiElement::GuiSizeMax, GuiElement::GuiSizeMax)->setAttribute("layout", "horizontal");
 
-    GuiAutoLayout* container = nullptr;
+    GuiElement* container = nullptr;
     int count = 0;
     for(auto& setting : info.settings)
     {
         if (!container || count == 2)
         {
-            container = new GuiAutoLayout(new GuiElement(column_container, ""), "", GuiAutoLayout::LayoutVerticalTopToBottom);
-            container->setPosition(0, 20, sp::Alignment::TopCenter)->setSize(350, GuiElement::GuiSizeMax);
+            container = new GuiElement((new GuiElement(column_container, ""))->setSize(GuiElement::GuiSizeMax, GuiElement::GuiSizeMax), "");
+            container->setPosition(0, 20, sp::Alignment::TopCenter)->setSize(350, GuiElement::GuiSizeMax)->setAttribute("layout", "vertical");
             count = 0;
         }
-        (new GuiLabel(container, "", setting.key, 30))->addBackground()->setSize(GuiElement::GuiSizeMax, 50);
+        (new GuiLabel(container, "", setting.key_localized, 30))->addBackground()->setSize(GuiElement::GuiSizeMax, 50);
         auto selector = new GuiSelector(container, "", [this, info, setting](int index, string value) {
             gameGlobalInfo->scenario_settings[setting.key] = value;
             for(auto& option : setting.options)
@@ -279,13 +317,14 @@ ServerScenarioOptionsScreen::ServerScenarioOptionsScreen(string filename)
     }))->setPosition(-250, -50, sp::Alignment::BottomCenter)->setSize(300, 50);
 
     // Start server button.
-    start_button = new GuiButton(this, "START_SCENARIO", tr("Start scenario"), [this, filename]() {
+    start_button = new GuiButton(this, "START_SCENARIO", tr("Start scenario"), [this, info, filename]() {
         // Start the selected scenario.
+        gameGlobalInfo->scenario = info.name;
         gameGlobalInfo->startScenario(filename);
 
         // Destroy this screen and move on to ship selection.
         destroy();
-        returnToShipSelection();
+        returnToShipSelection(getRenderLayer());
         new ScriptErrorRenderer();
     });
     start_button->setPosition(250, -50, sp::Alignment::BottomCenter)->setSize(300, 50);

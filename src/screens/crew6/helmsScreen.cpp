@@ -16,7 +16,6 @@
 #include "gui/gui2_label.h"
 #include "gui/gui2_togglebutton.h"
 #include "gui/gui2_keyvaluedisplay.h"
-#include "gui/gui2_autolayout.h"
 #include "gui/gui2_image.h"
 
 HelmsScreen::HelmsScreen(GuiContainer* owner)
@@ -40,20 +39,22 @@ HelmsScreen::HelmsScreen(GuiContainer* owner)
     radar->setRangeIndicatorStepSize(1000.0)->shortRange()->enableGhostDots()->enableWaypoints()->enableCallsigns()->enableHeadingIndicators()->setStyle(GuiRadarView::Circular);
     radar->enableMissileTubeIndicators();
     radar->setCallbacks(
-        [this](sp::io::Pointer::Button button, glm::vec2 position) {
+        [radar, this](sp::io::Pointer::Button button, glm::vec2 position) {
             if (my_spaceship)
             {
+                auto r = radar->getRect();
                 float angle = vec2ToAngle(position - my_spaceship->getPosition());
-                auto draw_position = rect.center() + position / my_spaceship->getShortRangeRadarRange() * std::min(rect.size.x, rect.size.y) * 0.5f;
+                auto draw_position = rect.center() + (position - my_spaceship->getPosition()) / my_spaceship->getShortRangeRadarRange() * std::min(r.size.x, r.size.y) * 0.5f;
                 heading_hint->setText(string(fmodf(angle + 90.f + 360.f, 360.f), 1))->setPosition(draw_position - rect.position - glm::vec2(0, 50))->show();
                 my_spaceship->commandTargetRotation(angle);
             }
         },
-        [this](glm::vec2 position) {
+        [radar, this](glm::vec2 position) {
             if (my_spaceship)
             {
+                auto r = radar->getRect();
                 float angle = vec2ToAngle(position - my_spaceship->getPosition());
-                auto draw_position = rect.center() + position / my_spaceship->getShortRangeRadarRange() * std::min(rect.size.x, rect.size.y) * 0.5f;
+                auto draw_position = rect.center() + (position - my_spaceship->getPosition()) / my_spaceship->getShortRangeRadarRange() * std::min(r.size.x, r.size.y) * 0.5f;
                 heading_hint->setText(string(fmodf(angle + 90.f + 360.f, 360.f), 1))->setPosition(draw_position - rect.position - glm::vec2(0, 50))->show();
                 my_spaceship->commandTargetRotation(angle);
             }
@@ -76,8 +77,8 @@ HelmsScreen::HelmsScreen(GuiContainer* owner)
     velocity_display = new GuiKeyValueDisplay(this, "VELOCITY_DISPLAY", 0.45, tr("Speed"), "");
     velocity_display->setIcon("gui/icons/speed")->setTextSize(20)->setPosition(20, 180, sp::Alignment::TopLeft)->setSize(240, 40);
 
-    GuiAutoLayout* engine_layout = new GuiAutoLayout(this, "ENGINE_LAYOUT", GuiAutoLayout::LayoutHorizontalLeftToRight);
-    engine_layout->setPosition(20, -100, sp::Alignment::BottomLeft)->setSize(GuiElement::GuiSizeMax, 300);
+    GuiElement* engine_layout = new GuiElement(this, "ENGINE_LAYOUT");
+    engine_layout->setPosition(20, -100, sp::Alignment::BottomLeft)->setSize(GuiElement::GuiSizeMax, 300)->setAttribute("layout", "horizontal");
     (new GuiImpulseControls(engine_layout, "IMPULSE"))->setSize(100, GuiElement::GuiSizeMax);
     warp_controls = (new GuiWarpControls(engine_layout, "WARP"))->setSize(100, GuiElement::GuiSizeMax);
     jump_controls = (new GuiJumpControls(engine_layout, "JUMP"))->setSize(100, GuiElement::GuiSizeMax);
@@ -105,7 +106,7 @@ void HelmsScreen::onDraw(sp::RenderTarget& renderer)
 
 void HelmsScreen::onUpdate()
 {
-    if (my_spaceship)
+    if (my_spaceship && isVisible())
     {
         auto angle = (keys.helms_turn_right.getValue() - keys.helms_turn_left.getValue()) * 5.0f;
         if (angle != 0.0f)

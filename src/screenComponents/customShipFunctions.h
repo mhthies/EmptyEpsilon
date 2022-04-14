@@ -2,14 +2,14 @@
 #define CUSTOM_SHIP_FUNCTIONS_H
 
 #include "playerInfo.h"
-#include "gui/gui2_autolayout.h"
+#include "gui/gui2_element.h"
 
-class GuiCustomShipFunctions : public GuiAutoLayout
+class GuiCustomShipFunctions : public GuiElement
 {
 public:
     GuiCustomShipFunctions(GuiContainer* owner, ECrewPosition position, string id);
 
-    virtual void onDraw(sp::RenderTarget& target) override;
+    virtual void onUpdate() override;
 
     bool hasEntries();
 private:

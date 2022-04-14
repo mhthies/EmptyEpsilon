@@ -15,10 +15,11 @@ extern sp::Font* bold_font;
 extern RenderLayer* mouseLayer;
 extern PostProcessor* glitchPostProcessor;
 extern PostProcessor* warpPostProcessor;
-extern P<Window> main_window;
+extern PVector<Window> windows;
+extern std::vector<RenderLayer*> window_render_layers;
 
-void returnToMainMenu();
-void returnToShipSelection();
+void returnToMainMenu(RenderLayer*);
+void returnToShipSelection(RenderLayer*);
 void returnToOptionMenu();
 
 #endif//MAIN_H

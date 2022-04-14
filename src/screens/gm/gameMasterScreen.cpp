@@ -16,14 +16,13 @@
 
 #include "gui/gui2_togglebutton.h"
 #include "gui/gui2_selector.h"
-#include "gui/gui2_autolayout.h"
 #include "gui/gui2_listbox.h"
 #include "gui/gui2_label.h"
 #include "gui/gui2_keyvaluedisplay.h"
 #include "gui/gui2_textentry.h"
 
-GameMasterScreen::GameMasterScreen()
-: click_and_drag_state(CD_None)
+GameMasterScreen::GameMasterScreen(RenderLayer* render_layer)
+: GuiCanvas(render_layer), click_and_drag_state(CD_None)
 {
     main_radar = new GuiRadarView(this, "MAIN_RADAR", 50000.0f, &targets);
     main_radar->setStyle(GuiRadarView::Rectangular)->longRange()->gameMaster()->enableTargetProjections(nullptr)->setAutoCentering(false);
@@ -34,6 +33,8 @@ GameMasterScreen::GameMasterScreen()
         [this](glm::vec2 position) { this->onMouseUp(position); }
     );
     box_selection_overlay = new GuiOverlay(main_radar, "BOX_SELECTION", glm::u8vec4(255, 255, 255, 32));
+    box_selection_overlay->layout.fill_height = false;
+    box_selection_overlay->layout.fill_width = false;
     box_selection_overlay->hide();
 
     pause_button = new GuiToggleButton(this, "PAUSE_BUTTON", tr("button", "Pause"), [](bool value) {
@@ -56,7 +57,8 @@ GameMasterScreen::GameMasterScreen()
         }
     });
     for(P<FactionInfo> info : factionInfo)
-        faction_selector->addEntry(info->getLocaleName(), info->getName());
+        if (info)
+            faction_selector->addEntry(info->getLocaleName(), info->getName());
     faction_selector->setPosition(20, 70, sp::Alignment::TopLeft)->setSize(250, 50);
 
     global_message_button = new GuiButton(this, "GLOBAL_MESSAGE_BUTTON", tr("button", "Global message"), [this]() {
@@ -139,8 +141,8 @@ GameMasterScreen::GameMasterScreen()
     });
     player_comms_hail->setPosition(20, -170, sp::Alignment::BottomLeft)->setSize(250, 50)->hide();
 
-    info_layout = new GuiAutoLayout(this, "INFO_LAYOUT", GuiAutoLayout::LayoutVerticalTopToBottom);
-    info_layout->setPosition(-20, 20, sp::Alignment::TopRight)->setSize(300, GuiElement::GuiSizeMax);
+    info_layout = new GuiElement(this, "INFO_LAYOUT");
+    info_layout->setPosition(-20, 20, sp::Alignment::TopRight)->setSize(300, GuiElement::GuiSizeMax)->setAttribute("layout", "vertical");
 
     info_clock = new GuiKeyValueDisplay(info_layout, "INFO_CLOCK", 0.5, tr("Clock"), "");
     info_clock->setSize(GuiElement::GuiSizeMax, 30);
@@ -153,7 +155,8 @@ GameMasterScreen::GameMasterScreen()
         {
             if (n == index)
             {
-                callback.callback.call<void>();
+                auto cb = callback.callback;
+                cb.call<void>();
                 return;
             }
             n++;
@@ -161,8 +164,8 @@ GameMasterScreen::GameMasterScreen()
     });
     gm_script_options->setPosition(20, 130, sp::Alignment::TopLeft)->setSize(250, 500);
 
-    order_layout = new GuiAutoLayout(this, "ORDER_LAYOUT", GuiAutoLayout::LayoutVerticalBottomToTop);
-    order_layout->setPosition(-20, -90, sp::Alignment::BottomRight)->setSize(300, GuiElement::GuiSizeMax);
+    order_layout = new GuiElement(this, "ORDER_LAYOUT");
+    order_layout->setPosition(-20, -90, sp::Alignment::BottomRight)->setSize(300, GuiElement::GuiSizeMax)->setAttribute("layout", "verticalbottom");
 
     (new GuiButton(order_layout, "ORDER_DEFEND_LOCATION", tr("Defend location"), [this]() {
         for(P<SpaceObject> obj : targets.getTargets())
@@ -265,12 +268,17 @@ void GameMasterScreen::update(float delta)
     if (keys.escape.getDown())
     {
         destroy();
-        returnToShipSelection();
+        returnToShipSelection(getRenderLayer());
     }
     if (keys.pause.getDown())
     {
         if (game_server)
             engine->setGameSpeed(0.0);
+    }
+    if (engine->getGameSpeed() == 0.0f) {
+        pause_button->setValue(true);
+    } else {
+        pause_button->setValue(false);
     }
 
     bool has_object = false;
@@ -453,9 +461,15 @@ void GameMasterScreen::onMouseDrag(glm::vec2 position)
         }
         break;
     case CD_BoxSelect:
-        box_selection_overlay->show();
-        box_selection_overlay->setPosition(main_radar->worldToScreen(drag_start_position), sp::Alignment::TopLeft);
-        box_selection_overlay->setSize(main_radar->worldToScreen(position) - main_radar->worldToScreen(drag_start_position));
+        {
+            auto p0 = main_radar->worldToScreen(drag_start_position);
+            auto p1 = main_radar->worldToScreen(position);
+            if (p0.x > p1.x) std::swap(p0.x, p1.x);
+            if (p0.y > p1.y) std::swap(p0.y, p1.y);
+            box_selection_overlay->show();
+            box_selection_overlay->setPosition(p0, sp::Alignment::TopLeft);
+            box_selection_overlay->setSize(p1 - p0);
+        }
         break;
     default:
         break;
@@ -510,7 +524,7 @@ void GameMasterScreen::onMouseUp(glm::vec2 position)
                         {
                             cpu_ship->orderAttack(target);
                         }else{
-                            if (!shift_down && target->canBeDockedBy(cpu_ship))
+                            if (!shift_down && target->canBeDockedBy(cpu_ship) != DockStyle::None)
                                 cpu_ship->orderDock(target);
                             else
                                 cpu_ship->orderDefendTarget(target);

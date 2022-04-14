@@ -8,14 +8,13 @@
 #include "gui/gui2_keyvaluedisplay.h"
 #include "gui/gui2_selector.h"
 #include "gui/gui2_progressbar.h"
-#include "gui/gui2_autolayout.h"
 
 GuiShieldFrequencySelect::GuiShieldFrequencySelect(GuiContainer* owner, string id)
 : GuiElement(owner, id)
 {
     (new GuiShieldsEnableButton(this, "SHIELDS_ENABLE"))->setPosition(0, 0, sp::Alignment::TopLeft)->setSize(GuiElement::GuiSizeMax, 50);
-    GuiElement* calibration_row = new GuiAutoLayout(this, "", GuiAutoLayout::LayoutHorizontalRightToLeft);
-    calibration_row->setPosition(0, 50, sp::Alignment::TopLeft)->setSize(GuiElement::GuiSizeMax, 50);
+    GuiElement* calibration_row = new GuiElement(this, "");
+    calibration_row->setPosition(0, 50, sp::Alignment::TopLeft)->setSize(GuiElement::GuiSizeMax, 50)->setAttribute("layout", "horizontalright");
 
     new_frequency = new GuiSelector(calibration_row, "", nullptr);
     new_frequency->setSize(120, 50);
@@ -45,7 +44,7 @@ void GuiShieldFrequencySelect::onDraw(sp::RenderTarget& renderer)
 
 void GuiShieldFrequencySelect::onUpdate()
 {
-    if (my_spaceship)
+    if (my_spaceship && isVisible())
     {
         if (keys.weapons_shield_calibration_increase.getDown())
         {

@@ -74,8 +74,8 @@ WeaponsScreen::WeaponsScreen(GuiContainer* owner)
         }
     }
 
-    GuiAutoLayout* stats = new GuiAutoLayout(this, "WEAPONS_STATS", GuiAutoLayout::LayoutVerticalTopToBottom);
-    stats->setPosition(20, 100, sp::Alignment::TopLeft)->setSize(240, 120);
+    auto stats = new GuiElement(this, "WEAPONS_STATS");
+    stats->setPosition(20, 100, sp::Alignment::TopLeft)->setSize(240, 120)->setAttribute("layout", "vertical");
 
     energy_display = new GuiKeyValueDisplay(stats, "ENERGY_DISPLAY", 0.45, tr("Energy"), "");
     energy_display->setIcon("gui/icons/energy")->setTextSize(20)->setSize(240, 40);
@@ -123,13 +123,15 @@ void WeaponsScreen::onDraw(sp::RenderTarget& renderer)
 
 void WeaponsScreen::onUpdate()
 {
-    if (my_spaceship)
+    if (my_spaceship && isVisible())
     {
         if (keys.weapons_enemy_next_target.getDown())
         {
             bool current_found = false;
             foreach(SpaceObject, obj, space_object_list)
             {
+                if (obj == my_spaceship)
+                    continue;
                 if (obj == targets.get())
                 {
                     current_found = true;

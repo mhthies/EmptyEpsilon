@@ -1,10 +1,13 @@
 #include "gui2_canvas.h"
 #include "gui2_element.h"
+#include "theme.h"
 
-GuiCanvas::GuiCanvas()
-: click_element(nullptr), focus_element(nullptr)
+
+GuiCanvas::GuiCanvas(RenderLayer* renderLayer)
+: Renderable(renderLayer), click_element(nullptr), focus_element(nullptr)
 {
     enable_debug_rendering = false;
+    theme = GuiTheme::getTheme("default");
 }
 
 //due to a suspected compiler bug this deconstructor needs to be explicitly defined
@@ -17,6 +20,8 @@ void GuiCanvas::render(sp::RenderTarget& renderer)
     auto window_size = renderer.getVirtualSize();
     sp::Rect window_rect(0, 0, window_size.x, window_size.y);
 
+    runUpdates(this);
+    updateLayout(window_rect);
     drawElements(mouse_position, window_rect, renderer);
 
     if (enable_debug_rendering)
@@ -97,6 +102,34 @@ void GuiCanvas::unfocusElementTree(GuiElement* element)
         focus_element = nullptr;
     if (click_element == element)
         click_element = nullptr;
-    for(GuiElement* child : element->elements)
+    for(GuiElement* child : element->children)
         unfocusElementTree(child);
+}
+
+void GuiCanvas::runUpdates(GuiContainer* parent)
+{
+    for(auto it = parent->children.begin(); it != parent->children.end(); )
+    {
+        GuiElement* element = *it;
+        if (element->destroyed)
+        {
+            //Find the owning cancas, as we need to remove ourselves if we are the focus or click element.
+            unfocusElementTree(element);
+
+            //Delete it from our list.
+            it = parent->children.erase(it);
+
+            // Free up the memory used by the element.
+            element->owner = nullptr;
+            delete element;
+        }else{
+            element->hover = element->rect.contains(mouse_position);
+
+            element->onUpdate();
+            if (element->isVisible())
+                runUpdates(element);
+
+            it++;
+        }
+    }
 }

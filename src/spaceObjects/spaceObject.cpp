@@ -1,6 +1,7 @@
 #include "spaceObject.h"
 #include "factionInfo.h"
 #include "gameGlobalInfo.h"
+#include "preferenceManager.h"
 
 #include <glm/ext/matrix_transform.hpp>
 
@@ -121,16 +122,25 @@ REGISTER_SCRIPT_CLASS_NO_CREATE(SpaceObject)
     /// Hails a PlayerSpaceship from this object. The players' comms station is
     /// notified and can accept or deny the hail. If the hail is answered, the
     /// specified message is displayed to the player.
-    /// WARNING/TOFIX: If the PlayerSpaceship refuses the hail, the script
-    /// DOES NOT receive any feedback.
+    /// Returns true when the hail is accepted.
+    /// Returns false when the target player cannot be hailed right now, for
+    /// example because it's already communicating with something else.
+    /// A message will be logged in the comms log about this.
+    /// Requires a target option and message. The message can be an empty
+    /// string.
+    /// Example: obj:sendCommsMessage(player, "Prepare to die")
+    REGISTER_SCRIPT_CLASS_FUNCTION(SpaceObject, sendCommsMessage);
+    /// Hails a PlayerSpaceship from this object. The players' comms station is
+    /// notified and can accept or deny the hail. If the hail is answered, the
+    /// specified message is displayed to the player.
     /// Returns true when the hail is accepted.
     /// Returns false when the target player cannot be hailed right now, for
     /// example because it's already communicating with something else.
     /// Requires a target option and message. The message can be an empty
     /// string.
-    /// Example: obj:sendCommsMessage(player, "Prepare to die")
-    REGISTER_SCRIPT_CLASS_FUNCTION(SpaceObject, sendCommsMessage);
-    /// As sendCommsMessage, but sends an empty string as the message.
+    /// Example: obj:sendCommsMessageNoLog(player, "Prepare to die")
+    REGISTER_SCRIPT_CLASS_FUNCTION(SpaceObject, sendCommsMessageNoLog);
+    /// As sendCommsMessage, but sends an empty string as the message. This will call the object's comms function.
     /// Example: obj:openCommsTo(player)
     REGISTER_SCRIPT_CLASS_FUNCTION(SpaceObject, openCommsTo);
     /// Gets this object's callsign.
@@ -457,7 +467,7 @@ bool SpaceObject::isEnemy(P<SpaceObject> obj)
 {
     if (obj)
     {
-        return factionInfo[faction_id]->states[obj->faction_id] == FVF_Enemy;
+        return FactionInfo::getState(faction_id, obj->faction_id) == FVF_Enemy;
     } else {
         return false;
     }
@@ -467,7 +477,7 @@ bool SpaceObject::isFriendly(P<SpaceObject> obj)
 {
     if (obj)
     {
-        return factionInfo[faction_id]->states[obj->faction_id] == FVF_Friendly;
+        return FactionInfo::getState(faction_id, obj->faction_id) == FVF_Friendly;
     } else {
         return false;
     }
@@ -561,6 +571,14 @@ void SpaceObject::addReputationPoints(float amount)
         gameGlobalInfo->reputation_points[faction_id] = 0.0f;
 }
 
+void SpaceObject::setCommsScript(string script_name)
+{
+    this->comms_script_name = script_name;
+    if (script_name != "")
+        i18n::load("locale/" + script_name.replace(".lua", "." + PreferencesManager::get("language", "en") + ".po"));
+    this->comms_script_callback.clear();
+}
+
 string SpaceObject::getSectorName()
 {
     return ::getSectorName(getPosition());
@@ -582,6 +600,14 @@ bool SpaceObject::sendCommsMessage(P<PlayerSpaceship> target, string message)
         target->addToShipLogBy(message, this);
     }
     return result;
+}
+
+bool SpaceObject::sendCommsMessageNoLog(P<PlayerSpaceship> target, string message)
+{
+    if (!target)
+        return false;
+
+    return target->hailByObject(this, message);
 }
 
 glm::mat4 SpaceObject::getModelMatrix() const

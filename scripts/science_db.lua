@@ -41,7 +41,7 @@ Some captains oppose the use of nuclear weapons because their large explosions c
 
 item = weapons:addEntry(_('Mine'))
 item:addKeyValue(_('Drop distance'), '1u')
-item:addKeyValue(_('Trigger distance'), '0.8u')
+item:addKeyValue(_('Trigger distance'), '0.6u')
 item:addKeyValue(_('Blast radius'), '1u')
 item:addKeyValue(_('Damage at center'), '160')
 item:addKeyValue(_('Damage at edge'), '30')
@@ -58,7 +58,7 @@ item:setLongDescription(_([[The electromagnetic pulse missile (EMP) reproduces t
 
 item = weapons:addEntry(_('HVLI'))
 item:addKeyValue(_('Range'), '5.4u')
-item:addKeyValue(_('Damage'), '6 each, 30 total')
+item:addKeyValue(_('Damage'), '10 each, 50 total')
 item:addKeyValue(_('Burst'), '5')
 item:setLongDescription(_([[A high-velocity lead impactor (HVLI) fires a simple slug of lead at a high velocity. This weapon is usually found in simpler ships since it does not require guidance computers. This also means its projectiles fly in a straight line from its tube and can't pursue a target.
 

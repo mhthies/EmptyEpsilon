@@ -19,7 +19,10 @@
 #include "gui/gui2_scrolltext.h"
 #include "gui/joystickConfig.h"
 
-CrewStationScreen::CrewStationScreen(bool with_main_screen)
+#include <i18n.h>
+
+CrewStationScreen::CrewStationScreen(RenderLayer* render_layer, bool with_main_screen)
+: GuiCanvas(render_layer)
 {
     if (with_main_screen)
     {
@@ -48,7 +51,7 @@ CrewStationScreen::CrewStationScreen(bool with_main_screen)
 
     message_text = new GuiScrollText(message_frame, "", "");
     message_text->setTextSize(20)->setPosition(20, 20, sp::Alignment::TopLeft)->setSize(900 - 40, 200 - 40);
-    message_close_button = new GuiButton(message_frame, "", "Close", [this]() {
+    message_close_button = new GuiButton(message_frame, "", tr("button", "Close"), [this]() {
         if (my_spaceship)
         {
             for(PlayerSpaceship::CustomShipFunction& csf : my_spaceship->custom_functions)
@@ -63,10 +66,10 @@ CrewStationScreen::CrewStationScreen(bool with_main_screen)
     });
     message_close_button->setTextSize(30)->setPosition(-20, -20, sp::Alignment::BottomRight)->setSize(300, 30);
 
-    keyboard_help = new GuiHelpOverlay(main_panel, "Keyboard Shortcuts");
+    keyboard_help = new GuiHelpOverlay(main_panel, tr("hotkey_F1", "Keyboard Shortcuts"));
 
     for (auto binding : sp::io::Keybinding::listAllByCategory("General"))
-        keyboard_general += binding->getLabel() + ":\t" + binding->getHumanReadableKeyName(0) + "\n";
+        keyboard_general += tr("hotkey_F1", "{label}:\t{button}\n").format({{"label", binding->getLabel()}, {"button", binding->getHumanReadableKeyName(0)}});
 
 #ifndef __ANDROID__
     if (PreferencesManager::get("music_enabled") == "1")
@@ -161,7 +164,7 @@ void CrewStationScreen::update(float delta)
         soundManager->stopMusic();
         impulse_sound->stop();
         disconnectFromServer();
-        returnToMainMenu();
+        returnToMainMenu(getRenderLayer());
         return;
     }
 
@@ -170,7 +173,7 @@ void CrewStationScreen::update(float delta)
         destroy();
         soundManager->stopMusic();
         impulse_sound->stop();
-        returnToShipSelection();
+        returnToShipSelection(getRenderLayer());
     }
     if (keys.help.getDown())
     {
@@ -186,7 +189,7 @@ void CrewStationScreen::update(float delta)
     if (viewport)
     {
         // Responsively show/hide the 3D viewport.
-        if (viewport->getRect().size.x < viewport->getRect().size.y / 3.0f)
+        if (getRect().size.x < 1250)
         {
             viewport->hide();
             main_panel->setSize(GuiElement::GuiSizeMax, GuiElement::GuiSizeMax);
@@ -347,9 +350,11 @@ void CrewStationScreen::tileViewport()
     if (current_position == singlePilot)
     {
         main_panel->setSize(1000, GuiElement::GuiSizeMax);
+        main_panel->layout.fill_width = false;
         viewport->setPosition(1000, 0, sp::Alignment::TopLeft);
     } else {
         main_panel->setSize(1200, GuiElement::GuiSizeMax);
+        main_panel->layout.fill_width = false;
         viewport->setPosition(1200, 0, sp::Alignment::TopLeft);
     }
 }
