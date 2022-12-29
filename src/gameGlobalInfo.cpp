@@ -177,6 +177,7 @@ void GameGlobalInfo::reset()
     allow_new_player_ships = true;
     global_message = "";
     global_message_timeout = 0.0f;
+    banner_string = "";
 
     //Pause the game
     engine->setGameSpeed(0.0);
@@ -227,6 +228,16 @@ void GameGlobalInfo::destroy()
 {
     reset();
     MultiplayerObject::destroy();
+}
+
+string GameGlobalInfo::getMissionTime() {
+    unsigned int seconds = gameGlobalInfo->elapsed_time;
+    unsigned int minutes = (seconds / 60) % 60;
+    unsigned int hours = (seconds / 60 / 60) % 24;
+    seconds = seconds % 60;
+    char buf[9];
+    std::snprintf(buf, 9, "%02d:%02d:%02d", hours, minutes, seconds);
+    return string(buf);
 }
 
 string getSectorName(glm::vec2 position)
