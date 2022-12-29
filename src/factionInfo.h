@@ -1,10 +1,15 @@
 #ifndef FACTION_INFO_H
 #define FACTION_INFO_H
 
-#include "engine.h"
+#include "P.h"
+#include "stringImproved.h"
+#include "multiplayer.h"
+#include <glm/gtc/type_precision.hpp>
+#include <array>
+
 
 class FactionInfo;
-extern PVector<FactionInfo> factionInfo;
+extern std::array<P<FactionInfo>, 32> factionInfo;
 
 enum EFactionVsFactionState
 {
@@ -13,16 +18,13 @@ enum EFactionVsFactionState
     FVF_Enemy
 };
 
-class FactionInfo : public PObject
+class FactionInfo : public MultiplayerObject, public Updatable
 {
-private:
 public:
     FactionInfo();
+    virtual ~FactionInfo();
 
-    sf::Color gm_color;
-
-    std::vector<EFactionVsFactionState> states;
-
+    virtual void update(float delta) override;
     /*!
      * \brief Set name of faction.
      * \param Name Name of the faction
@@ -48,7 +50,8 @@ public:
      * \param g Green component.
      * \param b Blue component.
      */
-    void setGMColor(int r, int g, int b) { gm_color = sf::Color(r, g, b); }
+    void setGMColor(int r, int g, int b) { gm_color = glm::u8vec4(r, g, b, 255); }
+    glm::u8vec4 getGMColor() { return gm_color; }
     /*!
      * \brief Set description of faction.
      * \param description
@@ -64,17 +67,21 @@ public:
      * \param faction info object.
      */
     void setFriendly(P<FactionInfo> other);
-    /*!
-     * \brief Reset the data.
-     * \todo Implement this.
-     */
-    void reset();
 
+    EFactionVsFactionState getState(P<FactionInfo> other);
+
+    static EFactionVsFactionState getState(uint8_t idx0, uint8_t idx1);
     static unsigned int findFactionId(string name);
+
+    static void reset(); //Destroy all FactionInfo objects
 protected:
+    uint8_t index;
+    glm::u8vec4 gm_color;
     string name;
     string locale_name;
     string description;
+    uint32_t enemy_mask;
+    uint32_t friend_mask;
 };
 
 #endif//FACTION_INFO_H

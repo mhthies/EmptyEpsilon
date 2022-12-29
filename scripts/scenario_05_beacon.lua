@@ -1,9 +1,9 @@
 -- Name: Beacon of Light series
 -- Description: The Beacon of Light scenario, built from the series at EmptyEpsilon.org.
 ---
---- Near the far outpost of Orion-5, Kraylor attacks are increasing. A diplomat went missing, and your first mission is to recover him.
+--- Near the far outpost of Orion-5, Exuari attacks are increasing. A diplomat went missing, and your first mission is to recover him.
 ---
---- This scenario is limited to one player ship: the Atlantis Epsilon.
+--- This scenario is limited to one player ship: the Atlantis Epsilon. Estimated duration: 1 hour
 -- Type: Mission
 
 --- Scenario
@@ -66,7 +66,7 @@ function init()
     -- Start off the mission by sending a transmission to the player
     research_station:sendCommsMessage(
         player,
-        _([[Epsilon, please come in.
+        _("goal-incCall", [[Epsilon, please come in.
 
 We lost contact with one of our transports, callsign RT-4, transporting the diplomat named J.J. Johnson. They were heading from our research station to Orion-5.
 
@@ -87,24 +87,24 @@ function missionRT4UnderAttack(delta)
     if not transport_RT4:isValid() then
         -- RT-4 destroyed, send a transmission to the player, create a supply drop to indicate an escape pod.
         mission_state = missionRT4EscapeDropped
-        transport_RT4_drop = SupplyDrop():setFaction("Human Navy"):setPosition(3750, 31250)
+        transport_RT4_drop = SupplyDrop():setFaction("Human Navy"):setPosition(3750, 31250):setDescriptions(_("scienceDescription-lifepod", "Life Pod"),_("scienceDescription-lifepod", "J. J. Johnson in Life Pod")):setScanningParameters(1,1)
         transport_RT4_drop_time = 0.0
         research_station:sendCommsMessage(
             player,
-            _([[RT-4 has been destroyed, but not before it launched an escape pod.
+            _("incCall", [[RT-4 has been destroyed, but not before it launched an escape pod.
 
-Life signs are detected in the pod. Please retrieve the pod to see if J.J. Johnson survived. His death would be a great blow to the region's peace negotiations.]]) .. _([[And destroy those Exuari scum while you are at it!]])
+Life signs are detected in the pod. Please retrieve the pod to see if J.J. Johnson survived. His death would be a great blow to the region's peace negotiations.]]) .. _("incCall", [[And destroy those Exuari scum while you are at it!]])
         )
     end
     if not exuari_RT4_guard1:isValid() and not exuari_RT4_guard2:isValid() then
         -- Not sure how you did it, but you managed to destroy the two Exauri ships before they destroyed RT-4...
         transport_RT4:destroy()
         mission_state = missionRT4EscapeDropped
-        transport_RT4_drop = SupplyDrop():setFaction("Human Navy"):setPosition(3750, 31250)
+        transport_RT4_drop = SupplyDrop():setFaction("Human Navy"):setPosition(3750, 31250):setDescriptions(_("scienceDescription-lifepod", "Life Pod"),_("scienceDescription-lifepod", "J. J. Johnson in Life Pod")):setScanningParameters(1,1)
         transport_RT4_drop_time = 0.0
         research_station:sendCommsMessage(
             player,
-            _([[RT-4 has been destroyed, but not before it launched an escape pod.
+            _("incCall", [[RT-4 has been destroyed, but not before it launched an escape pod.
 
 Life signs are detected in the pod. Please retrieve the pod to see if J.J. Johnson survived. His death would be a great blow to the region's peace negotiations.]])
         )
@@ -120,7 +120,7 @@ function missionRT4EscapeDropped(delta)
             mission_state = missionRT4Died
             research_station:sendCommsMessage(
                 player,
-                _([[J.J. Johnson seems to have suffocated. This is a great loss for our cause of peace.
+                _("incCall", [[J.J. Johnson seems to have suffocated. This is a great loss for our cause of peace.
 
 Please deliver his body back to Research-1. We will arrange for you to take over his mission.]])
             )
@@ -130,7 +130,7 @@ Please deliver his body back to Research-1. We will arrange for you to take over
             mission_state = missionRT4PickedUp
             research_station:sendCommsMessage(
                 player,
-                _([[Just received message that Sir Johnson is safely aboard your ship! Great job!
+                _("incCall", [[Just received message that Sir Johnson is safely aboard your ship! Great job!
 
 Please deliver the diplomat to Orion-5 in sector G3. Do this by docking with the station.]])
             )
@@ -143,9 +143,9 @@ function missionRT4PickedUp(delta)
         if jjj_alive then
             main_station:sendCommsMessage(
                 player,
-                _([[J.J. Johnson thanks you for rescuing him and tells you about his mission.
+                _("incCall", [[J.J. Johnson thanks you for rescuing him and tells you about his mission.
 
-]]) .. _([[He just returned from a mission from the Refugee-X station, a neutral station in the area known to house anyone regardless of their history.
+]]) .. _("incCall", [[He just returned from a mission from the Refugee-X station, a neutral station in the area known to house anyone regardless of their history.
 
 Refugee-X has recently been attacked by Exuari ships, and some criminals living there have offered to give themselves up in exchange for better protection of the station.
 
@@ -156,9 +156,9 @@ To ensure Refugee-X is aware of your peaceful intentions, we have stripped you o
         else
             main_station:sendCommsMessage(
                 player,
-                _([[J.J. Johnson's message toward Orion-5 is clear:
+                _("incCall", [[J.J. Johnson's message toward Orion-5 is clear:
 
-]]) .. _([[He just returned from a mission from the Refugee-X station, a neutral station in the area known to house anyone regardless of their history.
+]]) .. _("incCall", [[He just returned from a mission from the Refugee-X station, a neutral station in the area known to house anyone regardless of their history.
 
 Refugee-X has recently been attacked by Exuari ships, and some criminals living there have offered to give themselves up in exchange for better protection of the station.
 
@@ -182,7 +182,7 @@ function missionRT4Died(delta)
         -- Docked and delivered the diplomat's body.
         research_station:sendCommsMessage(
             player,
-            _([[J.J. Johnson transmitted his mission details to Orion-5 before he passed away. Head to Orion-5 for details.]])
+            _("incCall", [[J.J. Johnson transmitted his mission details to Orion-5 before he passed away. Head to Orion-5 for details.]])
         )
         mission_state = missionRT4PickedUp
     end
@@ -192,7 +192,7 @@ function missionRetrieveCriminals(delta)
     if player:isDocked(neutral_station) then
         neutral_station:sendCommsMessage(
             player,
-            _([[Two tough-looking criminals board your ship. They are already cuffed and do not look too happy about the situation.
+            _("incCall", [[Two tough-looking criminals board your ship. They are already cuffed and do not look too happy about the situation.
 
 One of them is a human pirate, who is blind in one eye and has clearly seen his fair share of battles. The other is Exuari who hisses what you presume is a curse in their native language.
 
@@ -207,7 +207,7 @@ function missionWaitForAmbush(delta)
     if distance(player, main_station) < 50000 then
         -- We can jump to the Orion-5 station in 1 jump. So ambush the player!
         x, y = player:getPosition()
-        WarpJammer():setFaction("Exuari"):setPosition(x - 2008, y + 2711)
+        WarpJammer():setFaction("Exuari"):setPosition(x - 2008, y + 2711):setDescriptions(_("scienceDescription-artifact", "High powered field generator"),_("scienceDescription-artifact", "Warp/Jump Jammer. Radius visible if jammer visible")):setScanningParameters(1,1)
         ambush_main = CpuShip():setFaction("Exuari"):setTemplate("Starhammer II"):setScanned(true):setPosition(x - 1667, y + 2611):setRotation(-80):orderAttack(player)
         ambush_side1 = CpuShip():setFaction("Exuari"):setTemplate("Nirvana R5"):setScanned(true):setPosition(x - 736, y + 2875):setRotation(-80):orderAttack(player)
         ambush_side2 = CpuShip():setFaction("Exuari"):setTemplate("Nirvana R5"):setScanned(true):setPosition(x - 2542, y + 2208):setRotation(-80):orderAttack(player)
@@ -215,7 +215,7 @@ function missionWaitForAmbush(delta)
 
         ambush_main:sendCommsMessage(
             player,
-            _([[Sllaaami graa kully fartsy!
+            _("incCall", [[Sllaaami graa kully fartsy!
 
 Your translator has difficulty translating the message, but it seems to come down to the fact that they want you dead and that your death will bring them great fun.]])
         )
@@ -236,11 +236,11 @@ function missionAmbushed(delta)
         end
 
         if not ambush_main:isValid() and not ambush_side1:isValid() and not ambush_side2:isValid() then
-            message = _([[Good job dealing with those Exuari scum. The criminals are safely in our custody, and we'll send a protection detail to Refugee-X.
+            message = _("incCall", [[Good job dealing with those Exuari scum. The criminals are safely in our custody, and we'll send a protection detail to Refugee-X.
 
 We extracted some vital info from the Exuari. In the next transport convoy toward Research-1, an Exuari death squad is hiding in one of the ships. The transport detail is heading in from sector D7. Seek them out and scan the ships to find the Exuari transport.]])
             if refilled then
-                message = message .. _([[We have refitted your nukes and EMPs.]]) .. _([[Awesome job taking out the Exuari without those.]])
+                message = message .. _("incCall", [[We have refitted your nukes and EMPs.]]) .. _("incCall", [[Awesome job taking out the Exuari without those.]])
                 refilled = false
             end
 
@@ -267,7 +267,7 @@ We extracted some vital info from the Exuari. In the next transport convoy towar
         if refilled then
             main_station:sendCommsMessage(
                 player,
-                _([[We have refitted your nukes and EMPs.]]) .. _([[Now to get those Exuari!]])
+                _("incCall", [[We have refitted your nukes and EMPs.]]) .. _("incCall", [[Now to get those Exuari!]])
             )
         end
     end
@@ -277,7 +277,7 @@ function missionGotoTransport(delta)
     if distance(player, transport_target) < 30000 then
         main_station:sendCommsMessage(
             player,
-            _([[Scan the transports to identify the Exuari one. When you have identified it, do NOT destroy it.
+            _("incCall", [[Scan the transports to identify the Exuari one. When you have identified it, do NOT destroy it.
 
 Target its impulse engines with your beam weapons to halt its progress.]])
         )
@@ -296,13 +296,13 @@ function missionIdentifyTransport(delta)
         -- TODO: What to do now?
         main_station:sendCommsMessage(
             player,
-            _([[What the hell? I told you NOT to destroy the transport.]])
+            _("incCall", [[What the hell? I told you NOT to destroy the transport.]])
         )
         victory("Exuari")
     elseif transport_target:isFriendOrFoeIdentifiedBy(player) then
         main_station:sendCommsMessage(
             player,
-            _([[Transport identified. Take out their impulse engines so we can capture it.]])
+            _("incCall", [[Transport identified. Take out their impulse engines so we can capture it.]])
         )
         mission_state = missionStopTransport
     end
@@ -313,13 +313,13 @@ function missionStopTransport(delta)
         -- TODO: What to do now?
         main_station:sendCommsMessage(
             player,
-            _([[What the hell? I told you NOT to destroy the transport.]])
+            _("incCall", [[What the hell? I told you NOT to destroy the transport.]])
         )
         victory("Exuari")
     elseif transport_target:getSystemHealth("impulse") <= 0.0 then
         main_station:sendCommsMessage(
             player,
-            _([[The transport is disabled. We're dispatching a recovery team and need you to defend the transport from the Exuari, who will likely destroy it rather then let it fall into our hands.]])
+            _("incCall", [[The transport is disabled. We're dispatching a recovery team and need you to defend the transport from the Exuari, who will likely destroy it rather then let it fall into our hands.]])
         )
         transport_target:setFaction("Independent"):orderIdle():setCallSign(transport_target:getCallSign() .. "-CAP")
         transport_target:setImpulseMaxSpeed(70):setJumpDrive(true)
@@ -337,7 +337,7 @@ function missionTransportWaitForRecovery(delta)
     if not transport_target:isValid() then
         main_station:sendCommsMessage(
             player,
-            _([[What the hell? I told you NOT to destroy the transport.]])
+            _("incCall", [[What the hell? I told you NOT to destroy the transport.]])
         )
         victory("Exuari")
     -- TODO: What to do now?
@@ -348,12 +348,18 @@ function missionTransportWaitForRecovery(delta)
     if mission_timer < 0 then
         mission_timer = random(90, 120)
 
-        local x, y = transport_target:getPosition()
-        local distance = random(8000, 12000)
-        local r = random(0, 360)
-        x = x + math.cos(r / 180 * math.pi) * distance
-        y = y + math.sin(r / 180 * math.pi) * distance
-        CpuShip():setTemplate("MT52 Hornet"):setFaction("Exuari"):setPosition(x, y):orderAttack(player)
+        if wait_enemy_count == nil then
+        	wait_enemy_count = 1
+        end
+        for i=1,wait_enemy_count do
+			local x, y = transport_target:getPosition()
+			local distance = random(8000, 12000)
+			local r = random(0, 360)
+			x = x + math.cos(r / 180 * math.pi) * distance
+			y = y + math.sin(r / 180 * math.pi) * distance
+			CpuShip():setTemplate("MT52 Hornet"):setFaction("Exuari"):setPosition(x, y):orderAttack(player)
+		end
+		wait_enemy_count = wait_enemy_count + 1
     end
 
     if distance(transport_recovery_team, transport_target) < 1000 then
@@ -362,7 +368,7 @@ function missionTransportWaitForRecovery(delta)
 
         transport_recovery_team:sendCommsMessage(
             player,
-            _([[Transport recovery team coming in:
+            _("incCall", [[Transport recovery team coming in:
 
 "We succesfully captured the Exuari transport. Taking it back to Orion-5. Please head to Orion-5 for debriefing."]])
         )
@@ -374,7 +380,7 @@ function missionTransportDone(delta)
     if player:isDocked(main_station) then
         main_station:sendCommsMessage(
             player,
-            _([[Thanks to the captured Exuari death squad, we now know the location of the Exuari base in the area.
+            _("incCall", [[Thanks to the captured Exuari death squad, we now know the location of the Exuari base in the area.
 
 Lead the assault on the Exuari base in sector E2. Expect heavy resistance.]])
         )

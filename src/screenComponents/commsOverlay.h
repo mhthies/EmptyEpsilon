@@ -40,7 +40,7 @@ private:
 public:
     GuiCommsOverlay(GuiContainer* owner);
 
-    virtual void onDraw(sf::RenderTarget& window);
+    virtual void onUpdate() override;
     void clearElements();
 };
 

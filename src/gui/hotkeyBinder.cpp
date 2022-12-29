@@ -1,46 +1,37 @@
 #include "engine.h"
 #include "hotkeyConfig.h"
 #include "hotkeyBinder.h"
+#include "theme.h"
 
-GuiHotkeyBinder::GuiHotkeyBinder(GuiContainer* owner, string id, string text)
-: GuiTextEntry(owner, id, text), has_focus(false)
+
+GuiHotkeyBinder::GuiHotkeyBinder(GuiContainer* owner, string id, sp::io::Keybinding* key)
+: GuiElement(owner, id), has_focus(false), key(key)
 {
+    front_style = theme->getStyle("textentry.front");
+    back_style = theme->getStyle("textentry.back");
 }
 
-void GuiHotkeyBinder::onFocusGained()
+bool GuiHotkeyBinder::onMouseDown(sp::io::Pointer::Button button, glm::vec2 position, sp::io::Pointer::ID id)
 {
-    sf::Keyboard::setVirtualKeyboardVisible(true);
-    has_focus = true;
+    if (button != sp::io::Pointer::Button::Middle)
+        key->clearKeys();
+    if (button != sp::io::Pointer::Button::Right)
+        key->startUserRebind(sp::io::Keybinding::Type::Keyboard | sp::io::Keybinding::Type::Joystick | sp::io::Keybinding::Type::Controller | sp::io::Keybinding::Type::Virtual);
+    return true;
 }
 
-void GuiHotkeyBinder::onFocusLost()
+void GuiHotkeyBinder::onDraw(sp::RenderTarget& renderer)
 {
-    sf::Keyboard::setVirtualKeyboardVisible(false);
-    has_focus = false;
-}
+    focus = key->isUserRebinding();
+    const auto& back = back_style->get(getState());
+    const auto& front = front_style->get(getState());
 
-bool GuiHotkeyBinder::onKey(sf::Event::KeyEvent key, int unicode)
-{
-    // If the field has focus and any known key is pressed ...
-    if (has_focus && key.code != sf::Keyboard::Unknown)
-    {
-        // Don't bind hardcoded "back" keys.
-        if (key.code == sf::Keyboard::Escape
-            || key.code == sf::Keyboard::Home
-            || key.code == sf::Keyboard::F1)
-        {
-            text = "";
-            return true;
-        }
+    renderer.drawStretched(rect, back.texture, back.color);
 
-        // Get the key's string name and display it.
-        string key_name = HotkeyConfig::get().getStringForKey(key.code);
-
-        if (key_name.length() > 0) {
-            text = key_name;
-            return true;
-        }
-    }
-
-    return false;
+    string text = key->getHumanReadableKeyName(0);
+    for(int n=1; key->getKeyType(n) != sp::io::Keybinding::Type::None; n++)
+        text += "," + key->getHumanReadableKeyName(n);
+    if (key->isUserRebinding())
+        text = "[Press new key]";
+    renderer.drawText(sp::Rect(rect.position.x + 16, rect.position.y, rect.size.x, rect.size.y), text, sp::Alignment::CenterLeft, front.size, front.font, front.color);
 }

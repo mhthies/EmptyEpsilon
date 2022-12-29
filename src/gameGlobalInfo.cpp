@@ -2,6 +2,11 @@
 #include "gameGlobalInfo.h"
 #include "preferenceManager.h"
 #include "scienceDatabase.h"
+#include "multiplayer_client.h"
+#include "soundManager.h"
+#include "random.h"
+#include "config.h"
+#include <SDL_assert.h>
 
 P<GameGlobalInfo> gameGlobalInfo;
 
@@ -9,7 +14,7 @@ REGISTER_MULTIPLAYER_CLASS(GameGlobalInfo, "GameGlobalInfo")
 GameGlobalInfo::GameGlobalInfo()
 : MultiplayerObject("GameGlobalInfo")
 {
-    assert(!gameGlobalInfo);
+    SDL_assert(!gameGlobalInfo);
 
     callsign_counter = 0;
     victory_faction = -1;
@@ -22,7 +27,6 @@ GameGlobalInfo::GameGlobalInfo()
     }
 
     global_message_timeout = 0.0;
-    player_warp_jump_drive_setting = PWJ_ShipDefault;
     scanning_complexity = SC_Normal;
     hacking_difficulty = 2;
     hacking_games = HG_All;
@@ -61,7 +65,7 @@ GameGlobalInfo::~GameGlobalInfo()
 
 P<PlayerSpaceship> GameGlobalInfo::getPlayerShip(int index)
 {
-    assert(index >= 0 && index < max_player_ships);
+    SDL_assert(index >= 0 && index < max_player_ships);
     if (game_server)
         return game_server->getObjectById(playerShipId[index]);
     return game_client->getObjectById(playerShipId[index]);
@@ -69,8 +73,8 @@ P<PlayerSpaceship> GameGlobalInfo::getPlayerShip(int index)
 
 void GameGlobalInfo::setPlayerShip(int index, P<PlayerSpaceship> ship)
 {
-    assert(index >= 0 && index < max_player_ships);
-    assert(game_server);
+    SDL_assert(index >= 0 && index < max_player_ships);
+    SDL_assert(game_server);
 
     if (ship)
         playerShipId[index] = ship->getMultiplayerId();
@@ -101,7 +105,7 @@ int GameGlobalInfo::insertPlayerShip(P<PlayerSpaceship> ship)
 
 void GameGlobalInfo::update(float delta)
 {
-    if (global_message_timeout > 0.0)
+    if (global_message_timeout > 0.0f)
     {
         global_message_timeout -= delta;
     }
@@ -154,9 +158,8 @@ void GameGlobalInfo::reset()
     on_gm_click = nullptr;
 
     flushDatabaseData();
+    FactionInfo::reset();
 
-    foreach(GameEntity, e, entityList)
-        e->destroy();
     foreach(SpaceObject, o, space_object_list)
         o->destroy();
     if (engine->getObject("scenario"))
@@ -172,6 +175,16 @@ void GameGlobalInfo::reset()
     callsign_counter = 0;
     victory_faction = -1;
     allow_new_player_ships = true;
+    global_message = "";
+    global_message_timeout = 0.0f;
+
+    //Pause the game
+    engine->setGameSpeed(0.0);
+
+    foreach(PlayerInfo, p, player_info_list)
+    {
+        p->reset();
+    }
 }
 
 void GameGlobalInfo::startScenario(string filename)
@@ -180,7 +193,15 @@ void GameGlobalInfo::startScenario(string filename)
 
     i18n::reset();
     i18n::load("locale/main." + PreferencesManager::get("language", "en") + ".po");
+    i18n::load("locale/comms_ship." + PreferencesManager::get("language", "en") + ".po");
+    i18n::load("locale/comms_station." + PreferencesManager::get("language", "en") + ".po");
+    i18n::load("locale/factionInfo." + PreferencesManager::get("language", "en") + ".po");
+    i18n::load("locale/science_db." + PreferencesManager::get("language", "en") + ".po");
     i18n::load("locale/" + filename.replace(".lua", "." + PreferencesManager::get("language", "en") + ".po"));
+
+    P<ScriptObject> factionInfoScript = new ScriptObject("factionInfo.lua");
+    if (factionInfoScript->getError() != "") exit(1);
+    factionInfoScript->destroy();
 
     fillDefaultDatabaseData();
 
@@ -189,6 +210,9 @@ void GameGlobalInfo::startScenario(string filename)
     scienceInfoScript->destroy();
 
     P<ScriptObject> script = new ScriptObject();
+    int max_cycles = PreferencesManager::get("script_cycle_limit", "0").toInt();
+    if (max_cycles > 0)
+        script->setMaxRunCycles(max_cycles);
     script->run(filename);
     engine->registerObject("scenario", script);
 
@@ -205,24 +229,7 @@ void GameGlobalInfo::destroy()
     MultiplayerObject::destroy();
 }
 
-string playerWarpJumpDriveToString(EPlayerWarpJumpDrive player_warp_jump_drive)
-{
-    switch(player_warp_jump_drive)
-    {
-    case PWJ_ShipDefault:
-        return "Ship default";
-    case PWJ_WarpDrive:
-        return "Warp-drive";
-    case PWJ_JumpDrive:
-        return "Jump-drive";
-    case PWJ_WarpAndJumpDrive:
-        return "Both";
-    default:
-        return "?";
-    }
-}
-
-string getSectorName(sf::Vector2f position)
+string getSectorName(glm::vec2 position)
 {
     constexpr float sector_size = 20000;
     int sector_x = floorf(position.x / sector_size) + 5;
@@ -230,13 +237,13 @@ string getSectorName(sf::Vector2f position)
     string y;
     string x;
     if (sector_y >= 0)
-        y = string(char('A' + (sector_y)));
+        if (sector_y < 26)
+            y = string(char('A' + (sector_y)));
+        else
+            y = string(char('A' - 1 + (sector_y / 26))) + string(char('A' + (sector_y % 26)));
     else
-        y = string(char('z' + sector_y / 26)) + string(char('z' + 1 + (sector_y % 26)));
-    if (sector_x >= 0)
-        x = string(sector_x);
-    else
-        x = string(100 + sector_x);
+        y = string(char('z' + ((sector_y + 1) / 26))) + ((sector_y  % 26) == 0 ? "a" : string(char('z' + 1 + (sector_y  % 26))));
+    x = string(sector_x);
     return y + x;
 }
 
@@ -244,12 +251,66 @@ int getSectorName(lua_State* L)
 {
     float x = luaL_checknumber(L, 1);
     float y = luaL_checknumber(L, 2);
-    lua_pushstring(L, getSectorName(sf::Vector2f(x, y)).c_str());
+    lua_pushstring(L, getSectorName(glm::vec2(x, y)).c_str());
     return 1;
 }
-/// getSectorName(x, y)
+/// string getSectorName(float x, float y)
 /// Return the sector name for the point with coordinates (x, y). Compare SpaceObject:getSectorName().
 REGISTER_SCRIPT_FUNCTION(getSectorName);
+
+glm::vec2 sectorToXY(string sector)
+{
+    constexpr float sector_size = 20000;
+    int x, y, intpart;
+
+    if(sector.length() < 2){
+        return glm::vec2(0,0);
+    }
+
+    // Y axis is complicated
+    if(sector[0] >= char('A') && sector[1] >= char('A')){
+        // Case with two letters
+        char a1 = sector[0];
+        char a2 = sector[1];
+        try{
+            intpart = stoi(sector.substr(2));
+        }
+        catch(const std::exception& e){
+            return glm::vec2(0,0);
+        }
+        if(a1 > char('a')){
+            // Case with two lowercase letters (zz10) counting down towards the North
+            y = (((char('z') - a1) * 26) + (char('z') - a2 + 6)) * -sector_size; // 6 is the offset from F5 to zz5
+        }else{
+            // Case with two uppercase letters (AB20) counting up towards the South
+            y = (((a1 - char('A')) * 26) + (a2 - char('A') + 21)) * sector_size; // 21 is the offset from F5 to AA5
+        }
+    }else{
+        //Case with just one letter (A9/a9 - these are the same sector, as case only matters in the two-letter sectors)
+        char alphaPart = toupper(sector[0]);
+        try{
+            intpart = stoi(sector.substr(1));
+        }catch(const std::exception& e){
+            return glm::vec2(0,0);
+        }
+        y = (alphaPart - char('F')) * sector_size;
+    }
+    // X axis is simple
+    x = (intpart - 5) * sector_size; // 5 is the numeric component of the F5 origin
+    return glm::vec2(x, y);
+}
+
+int sectorToXY(lua_State* L)
+{
+    glm::vec2 v = sectorToXY(luaL_checklstring(L, 1, NULL));
+    lua_pushinteger(L, v.x);
+    lua_pushinteger(L, v.y);
+    return 2;
+}
+/// glm::vec2 sectorToXY(string sector_name)
+/// Convert a sector name to x,y coordinates for the top-left of the sector
+/// sectorToXY("A0") sectorToXY("zz-23") sectorToXY("BA12")
+REGISTER_SCRIPT_FUNCTION(sectorToXY);
 
 static int victory(lua_State* L)
 {
@@ -259,7 +320,7 @@ static int victory(lua_State* L)
     engine->setGameSpeed(0.0);
     return 0;
 }
-/// victory(string)
+/// void victory(string faction_name)
 /// Called with a faction name as parameter, sets a certain faction as victor and ends the game.
 /// (The GM can unpause the game, but the scenario with its update function is destroyed.)
 REGISTER_SCRIPT_FUNCTION(victory);
@@ -267,10 +328,10 @@ REGISTER_SCRIPT_FUNCTION(victory);
 static int globalMessage(lua_State* L)
 {
     gameGlobalInfo->global_message = luaL_checkstring(L, 1);
-    gameGlobalInfo->global_message_timeout = 5.0;
+    gameGlobalInfo->global_message_timeout = luaL_optnumber(L, 2, 5.0);
     return 0;
 }
-/// globalMessage(string)
+/// void globalMessage(string message, std::optional<float> timeout)
 /// Show a global message on the main screens of all active player ships.
 /// The message is shown for 5 sec; new messages replace the old immediately.
 REGISTER_SCRIPT_FUNCTION(globalMessage);
@@ -280,7 +341,7 @@ static int setBanner(lua_State* L)
     gameGlobalInfo->banner_string = luaL_checkstring(L, 1);
     return 0;
 }
-/// setBanner(string)
+/// void setBanner(string banner)
 /// Show a scrolling banner containing this text on the cinematic and top down views.
 REGISTER_SCRIPT_FUNCTION(setBanner);
 
@@ -289,7 +350,7 @@ static int getScenarioTime(lua_State* L)
     lua_pushnumber(L, gameGlobalInfo->elapsed_time);
     return 1;
 }
-/// getScenarioTime()
+/// float getScenarioTime()
 /// Return the elapsed time of the scenario.
 REGISTER_SCRIPT_FUNCTION(getScenarioTime);
 
@@ -313,7 +374,7 @@ static int getPlayerShip(lua_State* L)
         return 0;
     return convert<P<PlayerSpaceship> >::returnType(L, ship);
 }
-/// getPlayerShip(index)
+/// P<PlayerSpaceship> getPlayerShip(int index)
 /// Return the player's ship, use -1 to get the first active player ship.
 REGISTER_SCRIPT_FUNCTION(getPlayerShip);
 
@@ -333,7 +394,7 @@ static int getActivePlayerShips(lua_State* L)
 
     return convert<PVector<PlayerSpaceship>>::returnType(L, ships);
 }
-/// getActivePlayerShips()
+/// PVector<PlayerSpaceship> getActivePlayerShips()
 /// Return a list of active player ships.
 REGISTER_SCRIPT_FUNCTION(getActivePlayerShips);
 
@@ -343,20 +404,20 @@ static int getObjectsInRadius(lua_State* L)
     float y = luaL_checknumber(L, 2);
     float r = luaL_checknumber(L, 3);
 
-    sf::Vector2f position(x, y);
+    glm::vec2 position(x, y);
 
     PVector<SpaceObject> objects;
-    PVector<Collisionable> objectList = CollisionManager::queryArea(position - sf::Vector2f(r, r), position + sf::Vector2f(r, r));
+    PVector<Collisionable> objectList = CollisionManager::queryArea(position - glm::vec2(r, r), position + glm::vec2(r, r));
     foreach(Collisionable, obj, objectList)
     {
         P<SpaceObject> sobj = obj;
-        if (sobj && (sobj->getPosition() - position) < r)
+        if (sobj && glm::length2(sobj->getPosition() - position) < r*r)
             objects.push_back(sobj);
     }
 
     return convert<PVector<SpaceObject> >::returnType(L, objects);
 }
-/// getObjectsInRadius(x, y, radius)
+/// PVector<SpaceObject> getObjectsInRadius(float x, float y, float radius)
 /// Return a list of all space objects at the x,y location within a certain radius.
 REGISTER_SCRIPT_FUNCTION(getObjectsInRadius);
 
@@ -364,25 +425,44 @@ static int getAllObjects(lua_State* L)
 {
     return convert<PVector<SpaceObject> >::returnType(L, space_object_list);
 }
-/// getAllObjects()
+/// PVector<SpaceObject> getAllObjects()
 /// Return a list of all space objects. (Use with care, this could return a very long list which could slow down the game when called every update)
 REGISTER_SCRIPT_FUNCTION(getAllObjects);
 
 static int getScenarioVariation(lua_State* L)
 {
-    lua_pushstring(L, gameGlobalInfo->variation.c_str());
+    if (gameGlobalInfo->scenario_settings.find("variation") != gameGlobalInfo->scenario_settings.end())
+        lua_pushstring(L, gameGlobalInfo->scenario_settings["variation"].c_str());
+    else
+        lua_pushstring(L, "None");
     return 1;
 }
-/// getScenarioVariation()
+
+// this returns the "variation" scenario setting for backwards compatibility
+/// string getScenarioVariation()
 /// Returns the currently used scenario variation.
+/// Deprecated: Scenario settings are the replacement
 REGISTER_SCRIPT_FUNCTION(getScenarioVariation);
+
+static int getScenarioSetting(lua_State* L)
+{
+    auto key = luaL_checkstring(L, 1);
+    if (gameGlobalInfo->scenario_settings.find(key) != gameGlobalInfo->scenario_settings.end())
+        lua_pushstring(L, gameGlobalInfo->scenario_settings[key].c_str());
+    else
+        lua_pushstring(L, "");
+    return 1;
+}
+/// string getScenarioSetting(string key)
+/// Returns a scenario setting, or an empty string if the setting is not found.
+REGISTER_SCRIPT_FUNCTION(getScenarioSetting);
 
 static int getGameLanguage(lua_State* L)
 {
     lua_pushstring(L, PreferencesManager::get("language", "en").c_str());
     return 1;
 }
-/// getGameLanguage()
+/// string getGameLanguage()
 /// Returns the language as the string set in game preferences under language key
 REGISTER_SCRIPT_FUNCTION(getGameLanguage);
 
@@ -390,20 +470,20 @@ REGISTER_SCRIPT_FUNCTION(getGameLanguage);
 class ScenarioChanger : public Updatable
 {
 public:
-    ScenarioChanger(string script_name, string variation)
-    : script_name(script_name), variation(variation)
+    ScenarioChanger(string script_name, const std::unordered_map<string, string>& settings)
+    : script_name(script_name), settings(settings)
     {
     }
 
-    virtual void update(float delta)
+    virtual void update(float delta) override
     {
-        gameGlobalInfo->variation = variation;
+        gameGlobalInfo->scenario_settings = settings;
         gameGlobalInfo->startScenario(script_name);
         destroy();
     }
 private:
     string script_name;
-    string variation;
+    std::unordered_map<string, string> settings;
 };
 
 static int setScenario(lua_State* L)
@@ -414,10 +494,10 @@ static int setScenario(lua_State* L)
     // Calling GameGlobalInfo::startScenario is unsafe at this point,
     // as this will destroy the lua state that this function is running in.
     //So use the ScenarioChanger object which will do the change in the update loop. Which is safe.
-    new ScenarioChanger(script_name, variation);
+    new ScenarioChanger(script_name, {{"variation", variation}});
     return 0;
 }
-/// setScenario(script_name, variation_name)
+/// void setScenario(string script_name, std::optional<string> variation_name)
 /// Change the current scenario to a different one.
 REGISTER_SCRIPT_FUNCTION(setScenario);
 
@@ -426,8 +506,9 @@ static int shutdownGame(lua_State* L)
     engine->shutdown();
     return 0;
 }
+/// void shutdownGame()
 /// Shutdown the game.
-/// Calling this function will close the game. Mainly usefull for a headless server setup.
+/// Calling this function will close the game. Mainly useful for a headless server setup.
 REGISTER_SCRIPT_FUNCTION(shutdownGame);
 
 static int pauseGame(lua_State* L)
@@ -435,8 +516,9 @@ static int pauseGame(lua_State* L)
     engine->setGameSpeed(0.0);
     return 0;
 }
+/// void pauseGame()
 /// Pause the game
-/// Calling this function will pause the game. Mainly usefull for a headless server setup.
+/// Calling this function will pause the game. Mainly useful for a headless server setup.
 REGISTER_SCRIPT_FUNCTION(pauseGame);
 
 static int unpauseGame(lua_State* L)
@@ -444,15 +526,27 @@ static int unpauseGame(lua_State* L)
     engine->setGameSpeed(1.0);
     return 0;
 }
+/// void unpauseGame()
 /// Pause the game
-/// Calling this function will pause the game. Mainly usefull for a headless server setup. As the scenario functions are not called when paused.
+/// Calling this function will pause the game. Mainly useful for a headless server setup. As the scenario functions are not called when paused.
 REGISTER_SCRIPT_FUNCTION(unpauseGame);
 
 static int playSoundFile(lua_State* L)
 {
-    soundManager->playSound(luaL_checkstring(L, 1));
+    string filename = luaL_checkstring(L, 1);
+    int n = filename.rfind(".");
+    if (n > -1)
+    {
+        string filename_with_locale = filename.substr(0, n) + "." + PreferencesManager::get("language", "en") + filename.substr(n);
+        if (getResourceStream(filename_with_locale)) {
+            soundManager->playSound(filename_with_locale);
+            return 0;
+        }
+    }
+    soundManager->playSound(filename);
     return 0;
 }
+/// void playSoundFile(string filename)
 /// Play a sound file on the server. Will work with any file supported by SFML (.wav, .ogg, .flac)
 /// Note that the sound is only played on the server. Not on any of the clients.
 REGISTER_SCRIPT_FUNCTION(playSoundFile);
@@ -482,7 +576,8 @@ static int getScanningComplexity(lua_State* L)
 {
     return convert<EScanningComplexity>::returnType(L, gameGlobalInfo->scanning_complexity);
 }
-/// Get the scanning complexity setting (returns an EScanningComplexity representation)
+/// EScanningComplexity getScanningComplexity()
+/// Get the scanning complexity setting
 REGISTER_SCRIPT_FUNCTION(getScanningComplexity);
 
 static int getHackingDifficulty(lua_State* L)
@@ -490,6 +585,7 @@ static int getHackingDifficulty(lua_State* L)
     lua_pushinteger(L, gameGlobalInfo->hacking_difficulty);
     return 1;
 }
+/// int getHackingDifficulty()
 /// Get the hacking difficulty setting (returns an integer between 0 and 3)
 REGISTER_SCRIPT_FUNCTION(getHackingDifficulty);
 
@@ -515,7 +611,8 @@ static int getHackingGames(lua_State* L)
 {
     return convert<EHackingGames>::returnType(L, gameGlobalInfo->hacking_games);
 }
-/// Get the hacking games setting (returns an EHackingGames representation)
+/// EHackingGames getHackingGames()
+/// Get the hacking games setting
 REGISTER_SCRIPT_FUNCTION(getHackingGames);
 
 static int areBeamShieldFrequenciesUsed(lua_State* L)
@@ -523,6 +620,7 @@ static int areBeamShieldFrequenciesUsed(lua_State* L)
     lua_pushboolean(L, gameGlobalInfo->use_beam_shield_frequencies);
     return 1;
 }
+/// bool areBeamShieldFrequenciesUsed()
 /// returns if the "Beam/Shield Frequencies" setting is enabled
 REGISTER_SCRIPT_FUNCTION(areBeamShieldFrequenciesUsed);
 
@@ -531,6 +629,7 @@ static int isPerSystemDamageUsed(lua_State* L)
     lua_pushboolean(L, gameGlobalInfo->use_system_damage);
     return 1;
 }
+/// bool isPerSystemDamageUsed()
 /// returns if the "Per-System Damage" setting is enabled
 REGISTER_SCRIPT_FUNCTION(isPerSystemDamageUsed);
 
@@ -539,6 +638,7 @@ static int isTacticalRadarAllowed(lua_State* L)
     lua_pushboolean(L, gameGlobalInfo->allow_main_screen_tactical_radar);
     return 1;
 }
+/// bool isTacticalRadarAllowed()
 /// returns if the "Tactical Radar" setting is enabled
 REGISTER_SCRIPT_FUNCTION(isTacticalRadarAllowed);
 
@@ -547,6 +647,7 @@ static int isLongRangeRadarAllowed(lua_State* L)
     lua_pushboolean(L, gameGlobalInfo->allow_main_screen_long_range_radar);
     return 1;
 }
+/// bool isLongRangeRadarAllowed()
 /// returns if the "Long Range Radar" setting is enabled
 REGISTER_SCRIPT_FUNCTION(isLongRangeRadarAllowed);
 
@@ -556,7 +657,9 @@ static int onNewPlayerShip(lua_State* L)
     convert<ScriptSimpleCallback>::param(L, idx, gameGlobalInfo->on_new_player_ship);
     return 0;
 }
-/// Register a callback function that is called when a new ship is created on the ship selection screen.
+/// void onNewPlayerShip(ScriptSimpleCallback callback)
+/// Register a callback function that is called when a new ship is created (on the ship selection screen or with the constructor in a lua script).
+/// This callback function is called with the newly created ship as the only parameter.
 REGISTER_SCRIPT_FUNCTION(onNewPlayerShip);
 
 static int allowNewPlayerShips(lua_State* L)
@@ -564,8 +667,8 @@ static int allowNewPlayerShips(lua_State* L)
     gameGlobalInfo->allow_new_player_ships = lua_toboolean(L, 1);
     return 0;
 }
+/// void allowNewPlayerShips(bool allow)
 /// Set if the server is allowed to create new player ships from the ship creation screen.
-/// allowNewPlayerShip(false) -- disallow new player ships to be created
 REGISTER_SCRIPT_FUNCTION(allowNewPlayerShips);
 
 static int getEEVersion(lua_State* L)
@@ -573,5 +676,6 @@ static int getEEVersion(lua_State* L)
     lua_pushinteger(L, VERSION_NUMBER);
     return 1;
 }
+/// string getEEVersion()
 /// Get a string with the current version number, like "20191231"
 REGISTER_SCRIPT_FUNCTION(getEEVersion);

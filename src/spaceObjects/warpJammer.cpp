@@ -9,7 +9,16 @@
 /// A warp jammer.
 REGISTER_SCRIPT_SUBCLASS(WarpJammer, SpaceObject)
 {
+    /// Gets jamming range (circle with jammer in the middle inside which no warp/jump will be possible).
+    REGISTER_SCRIPT_CLASS_FUNCTION(WarpJammer, getRange);
+    /// Sets jamming range (circle with jammer in the middle inside which no warp/jump will be possible).
     REGISTER_SCRIPT_CLASS_FUNCTION(WarpJammer, setRange);
+
+    /// Gets current hull of warpJammer.
+    REGISTER_SCRIPT_CLASS_FUNCTION(WarpJammer, getHull);
+    /// Sets current hull of warpJammer.
+    REGISTER_SCRIPT_CLASS_FUNCTION(WarpJammer, setHull);
+
     /// Set a function that will be called if the warp jammer is taking damage.
     /// First argument given to the function will be the warp jammer, the second the instigator SpaceObject (or nil).
     REGISTER_SCRIPT_CLASS_FUNCTION(WarpJammer, onTakingDamage);
@@ -41,32 +50,19 @@ WarpJammer::~WarpJammer()
 {
 }
 
-void WarpJammer::drawOnRadar(sf::RenderTarget& window, sf::Vector2f position, float scale, float rotation, bool long_range)
+void WarpJammer::drawOnRadar(sp::RenderTarget& renderer, glm::vec2 position, float scale, float rotation, bool long_range)
 {
-    sf::Sprite object_sprite;
-    textureManager.setTexture(object_sprite, "RadarBlip.png");
-    object_sprite.setRotation(getRotation());
-    object_sprite.setPosition(position);
+    glm::u8vec4 color(200, 150, 100, 255);
     if (my_spaceship && my_spaceship->isEnemy(this))
-        object_sprite.setColor(sf::Color(255, 0, 0));
-    else
-        object_sprite.setColor(sf::Color(200, 150, 100));
-    float size = 0.6;
-    object_sprite.setScale(size, size);
-    window.draw(object_sprite);
+        color = glm::u8vec4(255, 0, 0, 255);
+    renderer.drawSprite("radar/blip.png", position, 20, color);
 
     if (long_range)
     {
-        sf::CircleShape range_circle(range * scale);
-        range_circle.setOrigin(range * scale, range * scale);
-        range_circle.setPosition(position);
-        range_circle.setFillColor(sf::Color::Transparent);
+        color = glm::u8vec4(200, 150, 100, 64);
         if (my_spaceship && my_spaceship->isEnemy(this))
-            range_circle.setOutlineColor(sf::Color(255, 0, 0, 64));
-        else
-            range_circle.setOutlineColor(sf::Color(200, 150, 100, 64));
-        range_circle.setOutlineThickness(2.0);
-        window.draw(range_circle);
+            color = glm::u8vec4(255, 0, 0, 64);
+        renderer.drawCircleOutline(position, range*scale, 2.0, color);
     }
 }
 
@@ -106,44 +102,43 @@ void WarpJammer::takeDamage(float damage_amount, DamageInfo info)
     }
 }
 
-bool WarpJammer::isWarpJammed(sf::Vector2f position)
+bool WarpJammer::isWarpJammed(glm::vec2 position)
 {
     foreach(WarpJammer, wj, jammer_list)
     {
-        if (wj->getPosition() - position < wj->range)
+        if (glm::length2(wj->getPosition() - position) < wj->range * wj->range)
             return true;
     }
     return false;
 }
 
-sf::Vector2f WarpJammer::getFirstNoneJammedPosition(sf::Vector2f start, sf::Vector2f end)
+glm::vec2 WarpJammer::getFirstNoneJammedPosition(glm::vec2 start, glm::vec2 end)
 {
-    sf::Vector2f startEndDiff = end - start;
-    float startEndLength = sf::length(startEndDiff);
+    auto startEndDiff = end - start;
+    float startEndLength = glm::length(startEndDiff);
     P<WarpJammer> first_jammer;
     float first_jammer_f = startEndLength;
-    sf::Vector2f first_jammer_q;
+    glm::vec2 first_jammer_q{0, 0};
     foreach(WarpJammer, wj, jammer_list)
     {
-        float f = sf::dot(startEndDiff, wj->getPosition() - start) / startEndLength;
-        if (f < 0.0)
-            f = 0;
-        sf::Vector2f q = start + startEndDiff / startEndLength * f;
-        if ((q - wj->getPosition()) < wj->range)
+        float f_inf = glm::dot(startEndDiff, wj->getPosition() - start) / startEndLength;
+	float f_limited = std::min(std::max(0.0f, f_inf), startEndLength);
+        glm::vec2 q_limited = start + startEndDiff / startEndLength * f_limited;
+        if (glm::length2(q_limited - wj->getPosition()) < wj->range*wj->range)
         {
-            if (!first_jammer || f < first_jammer_f)
+            if (!first_jammer || f_limited < first_jammer_f)
             {
                 first_jammer = wj;
-                first_jammer_f = f;
-                first_jammer_q = q;
+                first_jammer_f = f_limited;
+                first_jammer_q = start + startEndDiff / startEndLength * f_inf;
             }
         }
     }
     if (!first_jammer)
         return end;
 
-    float d = sf::length(first_jammer_q - first_jammer->getPosition());
-    return first_jammer_q + sf::normalize(start - end) * sqrtf(first_jammer->range * first_jammer->range - d * d);
+    float d = glm::length(first_jammer_q - first_jammer->getPosition());
+    return first_jammer_q + glm::normalize(start - end) * sqrtf(first_jammer->range * first_jammer->range - d * d);
 }
 
 void WarpJammer::onTakingDamage(ScriptSimpleCallback callback)
@@ -159,7 +154,7 @@ void WarpJammer::onDestruction(ScriptSimpleCallback callback)
 string WarpJammer::getExportLine()
 {
     string ret = "WarpJammer():setFaction(\"" + getFaction() + "\"):setPosition(" + string(getPosition().x, 0) + ", " + string(getPosition().y, 0) + ")";
-    if (getRange()!=7000.0) {
+    if (getRange() != 7000.0f) {
 	    ret += ":setRange("+string(getRange())+")";
     }
     return ret;

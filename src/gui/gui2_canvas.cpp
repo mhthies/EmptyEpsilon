@@ -1,10 +1,13 @@
 #include "gui2_canvas.h"
 #include "gui2_element.h"
+#include "theme.h"
 
-GuiCanvas::GuiCanvas()
-: click_element(nullptr), focus_element(nullptr)
+
+GuiCanvas::GuiCanvas(RenderLayer* renderLayer)
+: Renderable(renderLayer), click_element(nullptr), focus_element(nullptr)
 {
     enable_debug_rendering = false;
+    theme = GuiTheme::getTheme("default");
 }
 
 //due to a suspected compiler bug this deconstructor needs to be explicitly defined
@@ -12,83 +15,67 @@ GuiCanvas::~GuiCanvas()
 {
 }
 
-void GuiCanvas::render(sf::RenderTarget& window)
+void GuiCanvas::render(sp::RenderTarget& renderer)
 {
-    sf::Vector2f window_size = window.getView().getSize();
-    sf::FloatRect window_rect(0, 0, window_size.x, window_size.y);
+    auto window_size = renderer.getVirtualSize();
+    sp::Rect window_rect(0, 0, window_size.x, window_size.y);
 
-    sf::Vector2f mouse_position = InputHandler::getMousePos();
-
-    drawElements(window_rect, window);
+    runUpdates(this);
+    updateLayout(window_rect);
+    drawElements(mouse_position, window_rect, renderer);
 
     if (enable_debug_rendering)
     {
-        drawDebugElements(window_rect, window);
+        drawDebugElements(window_rect, renderer);
     }
-
-    if (InputHandler::mouseIsPressed(sf::Mouse::Left) || InputHandler::mouseIsPressed(sf::Mouse::Right) || InputHandler::mouseIsPressed(sf::Mouse::Middle))
-    {
-        click_element = getClickElement(mouse_position);
-        if (!click_element)
-            onClick(mouse_position);
-        focus(click_element);
-    }
-    if (InputHandler::mouseIsDown(sf::Mouse::Left) || InputHandler::mouseIsDown(sf::Mouse::Right) || InputHandler::mouseIsDown(sf::Mouse::Middle))
-    {
-        if (previous_mouse_position != mouse_position)
-            if (click_element)
-                click_element->onMouseDrag(mouse_position);
-    }
-    if (InputHandler::mouseIsReleased(sf::Mouse::Left) || InputHandler::mouseIsReleased(sf::Mouse::Right) || InputHandler::mouseIsReleased(sf::Mouse::Middle))
-    {
-        if (click_element)
-        {
-            click_element->onMouseUp(mouse_position);
-            click_element = nullptr;
-        }
-    }
-    previous_mouse_position = mouse_position;
 }
 
-void GuiCanvas::handleKeyPress(sf::Event::KeyEvent key, int unicode)
+bool GuiCanvas::onPointerMove(glm::vec2 position, sp::io::Pointer::ID id)
+{
+    mouse_position = position;
+    return false;
+}
+
+void GuiCanvas::onPointerLeave(sp::io::Pointer::ID id)
+{
+    mouse_position = {-100, -100};
+}
+
+bool GuiCanvas::onPointerDown(sp::io::Pointer::Button button, glm::vec2 position, sp::io::Pointer::ID id)
+{
+    mouse_position = position;
+    click_element = getClickElement(button, position, id);
+    focus(click_element);
+    return click_element != nullptr;
+}
+
+void GuiCanvas::onPointerDrag(glm::vec2 position, sp::io::Pointer::ID id)
+{
+    mouse_position = position;
+    if (click_element)
+        click_element->onMouseDrag(position, id);
+}
+
+void GuiCanvas::onPointerUp(glm::vec2 position, sp::io::Pointer::ID id)
+{
+    mouse_position = position;
+    if (click_element)
+    {
+        click_element->onMouseUp(position, id);
+        click_element = nullptr;
+    }
+}
+
+void GuiCanvas::onTextInput(const string& text)
 {
     if (focus_element)
-        if (focus_element->onKey(key, unicode))
-            return;
-    std::vector<HotkeyResult> hotkey_list = HotkeyConfig::get().getHotkey(key);
-    for(HotkeyResult& result : hotkey_list)
-    {
-        forwardKeypressToElements(result);
-        onHotkey(result);
-    }
-    onKey(key, unicode);
+        focus_element->onTextInput(text);
 }
 
-void GuiCanvas::handleJoystickAxis(unsigned int joystickId, sf::Joystick::Axis axis, float position){
-    for(AxisAction action : joystick.getAxisAction(joystickId, axis, position)){
-        forwardJoystickAxisToElements(action);
-    }
-}
-
-void GuiCanvas::handleJoystickButton(unsigned int joystickId, unsigned int button, bool state){
-    if (state){
-        for(HotkeyResult& action : joystick.getButtonAction(joystickId, button)){
-            forwardKeypressToElements(action);
-            onHotkey(action);
-        }
-    }
-}
-
-void GuiCanvas::onClick(sf::Vector2f mouse_position)
+void GuiCanvas::onTextInput(sp::TextInputEvent e)
 {
-}
-
-void GuiCanvas::onHotkey(const HotkeyResult& key)
-{
-}
-
-void GuiCanvas::onKey(sf::Event::KeyEvent key, int unicode)
-{
+    if (focus_element)
+        focus_element->onTextInput(e);
 }
 
 void GuiCanvas::focus(GuiElement* element)
@@ -115,6 +102,34 @@ void GuiCanvas::unfocusElementTree(GuiElement* element)
         focus_element = nullptr;
     if (click_element == element)
         click_element = nullptr;
-    for(GuiElement* child : element->elements)
+    for(GuiElement* child : element->children)
         unfocusElementTree(child);
+}
+
+void GuiCanvas::runUpdates(GuiContainer* parent)
+{
+    for(auto it = parent->children.begin(); it != parent->children.end(); )
+    {
+        GuiElement* element = *it;
+        if (element->destroyed)
+        {
+            //Find the owning cancas, as we need to remove ourselves if we are the focus or click element.
+            unfocusElementTree(element);
+
+            //Delete it from our list.
+            it = parent->children.erase(it);
+
+            // Free up the memory used by the element.
+            element->owner = nullptr;
+            delete element;
+        }else{
+            element->hover = element->rect.contains(mouse_position);
+
+            element->onUpdate();
+            if (element->isVisible())
+                runUpdates(element);
+
+            it++;
+        }
+    }
 }

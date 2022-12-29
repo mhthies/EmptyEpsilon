@@ -34,9 +34,8 @@ private:
 public:
     PowerManagementScreen(GuiContainer* owner);
 
-    void onDraw(sf::RenderTarget& window) override;
-    virtual void onHotkey(const HotkeyResult& key) override;
-    virtual bool onJoystickAxis(const AxisAction& axisAction) override;
+    void onDraw(sp::RenderTarget& target) override;
+    virtual void onUpdate() override;
 };
 
 #endif//POWER_MANAGEMENT_H

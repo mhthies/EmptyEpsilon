@@ -3,7 +3,6 @@
 #include "logging.h"
 
 DMX512SerialDevice::DMX512SerialDevice()
-: update_thread(&DMX512SerialDevice::updateLoop, this)
 {
     port = nullptr;
     for(int n=0; n<1+512; n++)
@@ -18,7 +17,7 @@ DMX512SerialDevice::~DMX512SerialDevice()
     if (run_thread)
     {
         run_thread = false;
-        update_thread.wait();
+        update_thread.join();
     }
     if (port)
         delete port;
@@ -47,7 +46,7 @@ bool DMX512SerialDevice::configure(std::unordered_map<string, string> settings)
     if (port)
     {
         run_thread = true;
-        update_thread.launch();
+        update_thread = std::move(std::thread(&DMX512SerialDevice::updateLoop, this));
         return true;
     }
     return false;
@@ -57,7 +56,7 @@ bool DMX512SerialDevice::configure(std::unordered_map<string, string> settings)
 void DMX512SerialDevice::setChannelData(int channel, float value)
 {
     if (channel >= 0 && channel < channel_count)
-        data_stream[1+channel] = int((value * 255.0) + 0.5);
+        data_stream[1+channel] = int((value * 255.0f) + 0.5f);
 }
 
 //Return the number of output channels supported by this device.
@@ -83,6 +82,6 @@ void DMX512SerialDevice::updateLoop()
         port->send(data_stream, 1 + channel_count);
 
         //Delay a bit before sending again.
-        sf::sleep(sf::milliseconds(resend_delay));
+        std::this_thread::sleep_for(std::chrono::milliseconds(resend_delay));
     }
 }

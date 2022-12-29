@@ -4,6 +4,8 @@
 #include "particleEffect.h"
 #include "explosionEffect.h"
 #include "pathPlanner.h"
+#include "random.h"
+#include "multiplayer_server.h"
 
 #include "scriptInterface.h"
 
@@ -45,28 +47,14 @@ void Mine::draw3DTransparent()
 {
 }
 
-void Mine::drawOnRadar(sf::RenderTarget& window, sf::Vector2f position, float scale, float rotation, bool long_range)
+void Mine::drawOnRadar(sp::RenderTarget& renderer, glm::vec2 position, float scale, float rotation, bool long_range)
 {
-    sf::Sprite objectSprite;
-    textureManager.setTexture(objectSprite, "RadarBlip.png");
-    objectSprite.setRotation(getRotation());
-    objectSprite.setPosition(position);
-    objectSprite.setScale(0.3, 0.3);
-    window.draw(objectSprite);
+    renderer.drawSprite("radar/blip.png", position, 0.3 * 32);
 }
 
-void Mine::drawOnGMRadar(sf::RenderTarget& window, sf::Vector2f position, float scale, float rotation, bool long_range)
+void Mine::drawOnGMRadar(sp::RenderTarget& renderer, glm::vec2 position, float scale, float rotation, bool long_range)
 {
-    sf::CircleShape hitRadius(trigger_range * scale);
-    hitRadius.setOrigin(trigger_range * scale, trigger_range * scale);
-    hitRadius.setPosition(position);
-    hitRadius.setFillColor(sf::Color::Transparent);
-    if (triggered)
-        hitRadius.setOutlineColor(sf::Color(255, 0, 0, 128));
-    else
-        hitRadius.setOutlineColor(sf::Color(255, 255, 255, 128));
-    hitRadius.setOutlineThickness(3.0);
-    window.draw(hitRadius);
+    renderer.drawCircleOutline(position, trigger_range * scale, 3.0, triggered ? glm::u8vec4(255, 0, 0, 128) : glm::u8vec4(255, 255, 255, 128));
 }
 
 void Mine::update(float delta)
@@ -75,17 +63,17 @@ void Mine::update(float delta)
     {
         particleTimeout -= delta;
     }else{
-        sf::Vector3f pos = sf::Vector3f(getPosition().x, getPosition().y, 0);
-        ParticleEngine::spawn(pos, pos + sf::Vector3f(random(-100, 100), random(-100, 100), random(-100, 100)), sf::Vector3f(1, 1, 1), sf::Vector3f(0, 0, 1), 30, 0, 10.0);
+        glm::vec3 pos = glm::vec3(getPosition().x, getPosition().y, 0);
+        ParticleEngine::spawn(pos, pos + glm::vec3(random(-100, 100), random(-100, 100), random(-100, 100)), glm::vec3(1, 1, 1), glm::vec3(0, 0, 1), 30, 0, 10.0);
         particleTimeout = 0.4;
     }
 
-    if (ejectTimeout > 0.0)
+    if (ejectTimeout > 0.0f)
     {
         ejectTimeout -= delta;
-        setVelocity(sf::vector2FromAngle(getRotation()) * data.speed);
+        setVelocity(vec2FromAngle(getRotation()) * data.speed);
     }else{
-        setVelocity(sf::Vector2f(0, 0));
+        setVelocity(glm::vec2(0, 0));
     }
     if (!triggered)
         return;
@@ -98,7 +86,7 @@ void Mine::update(float delta)
 
 void Mine::collide(Collisionable* target, float force)
 {
-    if (!game_server || triggered || ejectTimeout > 0.0)
+    if (!game_server || triggered || ejectTimeout > 0.0f)
         return;
     P<SpaceObject> hitObject = P<Collisionable>(target);
     if (!hitObject || !hitObject->canBeTargetedBy(nullptr))
@@ -115,7 +103,7 @@ void Mine::eject()
 void Mine::explode()
 {
     DamageInfo info(owner, DT_Kinetic, getPosition());
-    SpaceObject::damageArea(getPosition(), blastRange, damageAtEdge, damageAtCenter, info, blastRange / 2.0);
+    SpaceObject::damageArea(getPosition(), blastRange, damageAtEdge, damageAtCenter, info, blastRange / 2.0f);
 
     P<ExplosionEffect> e = new ExplosionEffect();
     e->setSize(blastRange);

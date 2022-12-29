@@ -2,6 +2,7 @@
 #define SCAN_PROBE_H
 
 #include "spaceObject.h"
+#include "multiplayer_server.h"
 
 class ScanProbe : public SpaceObject, public Updatable
 {
@@ -11,7 +12,7 @@ private:
     // Remaining lifetime in seconds.
     float lifetime;
     // Probe target coordinates.
-    sf::Vector2f target_position;
+    glm::vec2 target_position{0, 0};
     // Whether the probe has arrived to the target_position.
     bool has_arrived;
 public:
@@ -32,13 +33,13 @@ public:
     virtual void update(float delta) override;
     virtual bool canBeTargetedBy(P<SpaceObject> other) override;
     virtual void takeDamage(float damage_amount, DamageInfo info) override;
-    virtual void drawOnRadar(sf::RenderTarget& window, sf::Vector2f position, float scale, float rotation, bool long_range) override;
-    virtual void drawOnGMRadar(sf::RenderTarget& window, sf::Vector2f position, float scale, float rotation, bool long_range) override;
+    virtual void drawOnRadar(sp::RenderTarget& renderer, glm::vec2 position, float scale, float rotation, bool long_range) override;
+    virtual void drawOnGMRadar(sp::RenderTarget& renderer, glm::vec2 position, float scale, float rotation, bool long_range) override;
 
     bool hasArrived() { return has_arrived; }
-    void setTarget(sf::Vector2f target) { target_position = target; }
-    sf::Vector2f getTarget() { return target_position; }
-    P<SpaceObject> getOwner() { return game_server->getObjectById(owner_id); }
+    void setTarget(glm::vec2 target) { target_position = target; }
+    glm::vec2 getTarget() { return target_position; }
+    P<SpaceObject> getOwner() { return game_server ? game_server->getObjectById(owner_id) : nullptr; }
     void setOwner(P<SpaceObject> owner);
 
     void onArrival(ScriptSimpleCallback callback);

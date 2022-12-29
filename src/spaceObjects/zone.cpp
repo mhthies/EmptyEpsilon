@@ -29,7 +29,7 @@ Zone::Zone()
 : SpaceObject(1, "Zone")
 {
     has_weight = false;
-    color = sf::Color(255, 255, 255, 0);
+    color = glm::u8vec4(255, 255, 255, 0);
 
     registerMemberReplication(&outline);
     registerMemberReplication(&triangles);
@@ -37,71 +37,54 @@ Zone::Zone()
     registerMemberReplication(&label);
 }
 
-void Zone::drawOnRadar(sf::RenderTarget& window, sf::Vector2f position, float scale, float rotation, bool long_range)
+void Zone::drawOnRadar(sp::RenderTarget& renderer, glm::vec2 position, float scale, float rotation, bool long_range)
 {
-    if (!long_range || color.a == 0)
+    if (!long_range || color.a == 0 || !outline.size())
         return;
-
-    sf::VertexArray outline_array(sf::LinesStrip, outline.size() + 1);
-    sf::VertexArray triangle_array(sf::Triangles, triangles.size());
-    for(unsigned int n=0; n<outline.size() + 1; n++)
-    {
-        outline_array[n].position = position + sf::rotateVector(outline[n % outline.size()] * scale, -rotation);
-        outline_array[n].color = color;
-        outline_array[n].color.a = 128;
-    }
-    for(unsigned int n=0; n<triangles.size(); n++)
-    {
-        triangle_array[n].position = position + sf::rotateVector(triangles[n] * scale, -rotation);
-        triangle_array[n].color = color;
-        triangle_array[n].color.a = 64;
-    }
-    window.draw(triangle_array);
-    window.draw(outline_array);
+    std::vector<glm::vec2> outline_points;
+    for(auto p : outline)
+        outline_points.push_back(position + rotateVec2(p * scale, -rotation));
+    renderer.drawTriangles(outline_points, triangles, glm::u8vec4(color.r, color.g, color.b, 64));
+    
+    outline_points.push_back(position + rotateVec2(outline[0] * scale, -rotation));
+    renderer.drawLine(outline_points, glm::u8vec4(color.r, color.g, color.b, 128));
 
     if (label.length() > 0)
     {
-        int font_size = getRadius() * scale / label.length();
-        sf::Text text_element(label, *main_font, font_size);
-
-        float x = position.x - text_element.getLocalBounds().width / 2.0 - text_element.getLocalBounds().left;
-        float y = position.y - font_size + font_size * 0.35;
-
-        text_element.setPosition(x, y);
-        text_element.setColor(sf::Color(color.r, color.g, color.b, 128));
-        window.draw(text_element);
+        float font_size = getRadius() * scale / label.length();
+        renderer.drawText(sp::Rect(position.x, position.y, 0, 0), label, sp::Alignment::Center, font_size, main_font, glm::u8vec4(color.r, color.g, color.b, 128));
     }
 }
 
-void Zone::drawOnGMRadar(sf::RenderTarget& window, sf::Vector2f position, float scale, float rotation, bool long_range)
+void Zone::drawOnGMRadar(sp::RenderTarget& renderer, glm::vec2 position, float scale, float rotation, bool long_range)
 {
     if (long_range && color.a == 0)
     {
         color.a = 255;
-        drawOnRadar(window, position, scale, rotation, long_range);
+        drawOnRadar(renderer, position, scale, rotation, long_range);
         color.a = 0;
     }
 }
 
 void Zone::setColor(int r, int g, int b)
 {
-    color = sf::Color(r, g, b);
+    color = glm::u8vec4(r, g, b, 255);
 }
 
-void Zone::setPoints(std::vector<sf::Vector2f> points)
+void Zone::setPoints(const std::vector<glm::vec2>& points)
 {
     triangles.clear();
+    outline = points;
 
-    sf::Vector2f position = centerOfMass(points);
+    glm::vec2 position = centerOfMass(outline);
     float radius = 1;
-    for(auto& p : points)
+    for(auto& p : outline)
     {
         p -= position;
-        radius = std::max(radius, sf::length(p));
+        radius = std::max(radius, glm::length(p));
     }
-
-    outline = points;
-    Triangulate<float>::process(points, triangles);
+    
+    Triangulate::process(outline, triangles);
 
     setPosition(position);
     setRadius(radius);

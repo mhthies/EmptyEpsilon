@@ -9,7 +9,6 @@ class GuiSelfDestructButton;
 class GuiKeyValueDisplay;
 class GuiLabel;
 class GuiSlider;
-class GuiAutoLayout;
 class GuiImage;
 class GuiArrow;
 class GuiToggleButton;
@@ -31,24 +30,25 @@ private:
     GuiSlider* power_slider;
     GuiLabel* coolant_label;
     GuiSlider* coolant_slider;
+    GuiProgressbar* coolant_remaining_bar;
 
     class SystemRow
     {
     public:
-        GuiAutoLayout* layout;
+        GuiElement* row;
         GuiToggleButton* button;
         GuiProgressbar* damage_bar;
         GuiImage* damage_icon;
-        GuiProgressbar* health_max_bar;
         GuiLabel* damage_label;
         GuiProgressbar* heat_bar;
         GuiArrow* heat_arrow;
         GuiImage* heat_icon;
         GuiProgressSlider* power_bar;
         GuiProgressSlider* coolant_bar;
+        GuiImage* coolant_max_indicator;
     };
     std::vector<SystemRow> system_rows;
-    GuiAutoLayout* system_effects_container;
+    GuiElement* system_effects_container;
     std::vector<GuiKeyValueDisplay*> system_effects;
     unsigned int system_effects_index;
     ESystem selected_system;
@@ -64,9 +64,8 @@ private:
 public:
     EngineeringScreen(GuiContainer* owner, ECrewPosition crew_position=engineering);
 
-    virtual void onDraw(sf::RenderTarget& window) override;
-    virtual void onHotkey(const HotkeyResult& key) override;
-    virtual bool onJoystickAxis(const AxisAction& axisAction) override;
+    virtual void onDraw(sp::RenderTarget& target) override;
+    virtual void onUpdate() override;
 };
 
 #endif//ENGINEERING_SCREEN_H

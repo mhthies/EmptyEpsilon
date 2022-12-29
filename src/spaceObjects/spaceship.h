@@ -9,6 +9,8 @@
 #include "spaceStation.h"
 #include "spaceshipParts/beamWeapon.h"
 #include "spaceshipParts/weaponTube.h"
+#include "tween.h"
+
 
 enum EMainScreenSetting
 {
@@ -66,7 +68,7 @@ public:
 
     float getHeatingDelta() const
     {
-        return powf(1.7, power_level - 1.0) - (1.01 + coolant_level * 0.1);
+        return powf(1.7f, power_level - 1.0f) - (1.01f + coolant_level * 0.1f);
     }
 
     float getPowerUserFactor() const
@@ -84,12 +86,12 @@ public:
     constexpr static float combat_maneuver_strafe_max_time = 3.0f; /*< Amount of time we can strafe with a fully charged combat maneuver system */
     constexpr static float warp_charge_time = 4.0f;
     constexpr static float warp_decharge_time = 2.0f;
-    constexpr static float jump_drive_charge_time = 90.0;   /*<Total charge time for the jump drive after a max range jump */
-    constexpr static float jump_drive_energy_per_km_charge = 4.0f;
-    constexpr static float jump_drive_heat_per_jump = 0.35;
-    constexpr static float heat_per_combat_maneuver_boost = 0.2;
-    constexpr static float heat_per_combat_maneuver_strafe = 0.2;
-    constexpr static float heat_per_warp = 0.02;
+    constexpr static float jump_drive_charge_time = 90.0f;   /*<Total charge time for the jump drive after a max range jump */
+    constexpr static float jump_drive_energy_per_km_charge = 2.0f;
+    constexpr static float jump_drive_heat_per_jump = 0.35f;
+    constexpr static float heat_per_combat_maneuver_boost = 0.2f;
+    constexpr static float heat_per_combat_maneuver_strafe = 0.2f;
+    constexpr static float heat_per_warp = 0.02f;
     constexpr static float unhack_time = 180.0f; //It takes this amount of time to go from 100% hacked to 0% hacked for systems.
 
     float energy_level;
@@ -206,15 +208,15 @@ public:
     int32_t target_id;
 
     EDockingState docking_state;
+    DockStyle docked_style = DockStyle::None;
     P<SpaceObject> docking_target; //Server only
-    sf::Vector2f docking_offset; //Server only
+    glm::vec2 docking_offset{0, 0}; //Server only
 
     SpaceShip(string multiplayerClassName, float multiplayer_significant_range=-1);
     virtual ~SpaceShip();
 
-#if FEATURE_3D_RENDERING
+    virtual void draw3D() override;
     virtual void draw3DTransparent() override;
-#endif
     /*!
      * Get this ship's radar signature dynamically modified by the state of its
      * systems and current activity.
@@ -227,8 +229,8 @@ public:
     /*!
      * Draw this ship on the radar.
      */
-    virtual void drawOnRadar(sf::RenderTarget& window, sf::Vector2f position, float scale, float rotation, bool long_range) override;
-    virtual void drawOnGMRadar(sf::RenderTarget& window, sf::Vector2f position, float scale, float rotation, bool long_range) override;
+    virtual void drawOnRadar(sp::RenderTarget& renderer, glm::vec2 position, float scale, float rotation, bool long_range) override;
+    virtual void drawOnGMRadar(sp::RenderTarget& renderer, glm::vec2 position, float scale, float rotation, bool long_range) override;
 
     virtual void update(float delta) override;
     virtual float getShieldRechargeRate(int shield_index) override;
@@ -270,7 +272,7 @@ public:
      * Check if object can dock with this ship.
      * \param object Object that wants to dock.
      */
-    virtual bool canBeDockedBy(P<SpaceObject> obj) override;
+    virtual DockStyle canBeDockedBy(P<SpaceObject> obj) override;
 
     virtual void collide(Collisionable* other, float force) override;
 
@@ -338,16 +340,16 @@ public:
 
     bool isDocked(P<SpaceObject> target) { return docking_state == DS_Docked && docking_target == target; }
     P<SpaceObject> getDockedWith() { if (docking_state == DS_Docked) return docking_target; return NULL; }
-    bool canStartDocking() { return current_warp <= 0.0 && (!has_jump_drive || jump_delay <= 0.0); }
+    bool canStartDocking() { return current_warp <= 0.0f && (!has_jump_drive || jump_delay <= 0.0f); }
     EDockingState getDockingState() { return docking_state; }
     int getWeaponStorage(EMissileWeapons weapon) { if (weapon == MW_None) return 0; return weapon_storage[weapon]; }
     int getWeaponStorageMax(EMissileWeapons weapon) { if (weapon == MW_None) return 0; return weapon_storage_max[weapon]; }
     void setWeaponStorage(EMissileWeapons weapon, int amount) { if (weapon == MW_None) return; weapon_storage[weapon] = amount; }
     void setWeaponStorageMax(EMissileWeapons weapon, int amount) { if (weapon == MW_None) return; weapon_storage_max[weapon] = amount; weapon_storage[weapon] = std::min(int(weapon_storage[weapon]), amount); }
     float getMaxEnergy() { return max_energy_level; }
-    void setMaxEnergy(float amount) { if (amount > 0.0) { max_energy_level = amount;} }
+    void setMaxEnergy(float amount) { if (amount > 0.0f) { max_energy_level = amount;} }
     float getEnergy() { return energy_level; }
-    void setEnergy(float amount) { if ( (amount > 0.0) && (amount <= max_energy_level)) { energy_level = amount; } }
+    void setEnergy(float amount) { if ( (amount > 0.0f) && (amount <= max_energy_level)) { energy_level = amount; } }
     float getSystemHackedLevel(ESystem system) { if (system >= SYS_COUNT) return 0.0; if (system <= SYS_None) return 0.0; return systems[system].hacked_level; }
     void setSystemHackedLevel(ESystem system, float hacked_level) { if (system >= SYS_COUNT) return; if (system <= SYS_None) return; systems[system].hacked_level = std::min(1.0f, std::max(0.0f, hacked_level)); }
     float getSystemHealth(ESystem system) { if (system >= SYS_COUNT) return 0.0; if (system <= SYS_None) return 0.0; return systems[system].health; }
@@ -394,10 +396,10 @@ public:
         has_warp_drive = has_warp;
         if (has_warp_drive)
         {
-            if (warp_speed_per_warp_level < 100)
-                warp_speed_per_warp_level = 1000;
+            if (warp_speed_per_warp_level < 100.0f)
+                warp_speed_per_warp_level = 1000.0f;
         }else{
-            warp_request = 0.0;
+            warp_request = 0;
             warp_speed_per_warp_level = 0;
         }
     }
@@ -443,8 +445,8 @@ public:
     float getBeamWeaponEnergyPerFire(int index) { if (index < 0 || index >= max_beam_weapons) return 0.0; return beam_weapons[index].getEnergyPerFire(); }
     float getBeamWeaponHeatPerFire(int index) { if (index < 0 || index >= max_beam_weapons) return 0.0; return beam_weapons[index].getHeatPerFire(); }
 
-    int getShieldsFrequency(void){ return shield_frequency; }
-    void setShieldsFrequency(float freq) { if ((freq > SpaceShip::max_frequency) || (freq < 0)) return; shield_frequency = freq;}
+    int getShieldsFrequency(){ return shield_frequency; }
+    void setShieldsFrequency(int freq) { if ((freq > SpaceShip::max_frequency) || (freq < 0)) return; shield_frequency = freq;}
 
     int getBeamFrequency(){ return beam_frequency; }
 
@@ -475,8 +477,14 @@ public:
         beam_weapons[index].setBeamTexture(texture);
     }
 
-    void setBeamWeaponEnergyPerFire(int index, float energy) { if (index < 0 || index >= max_beam_weapons) return; return beam_weapons[index].setEnergyPerFire(energy); }
-    void setBeamWeaponHeatPerFire(int index, float heat) { if (index < 0 || index >= max_beam_weapons) return; return beam_weapons[index].setHeatPerFire(heat); }
+    void setBeamWeaponEnergyPerFire(int index, float energy) { if (index < 0 || index >= max_beam_weapons) return; beam_weapons[index].setEnergyPerFire(energy); }
+    void setBeamWeaponHeatPerFire(int index, float heat) { if (index < 0 || index >= max_beam_weapons) return; beam_weapons[index].setHeatPerFire(heat); }
+    void setBeamWeaponArcColor(int index, float r, float g, float b, float fire_r, float fire_g, float fire_b) {
+        if (index < 0 || index >= max_beam_weapons) return;
+        beam_weapons[index].setArcColor(glm::u8vec4(r * 255, g * 255, b * 255, 128));
+        beam_weapons[index].setArcFireColor(glm::u8vec4(fire_r * 255, fire_g * 255, fire_b * 255, 255));
+    }
+    void setBeamWeaponDamageType(int index, EDamageType type) { if (index < 0 || index >= max_beam_weapons) return; beam_weapons[index].setDamageType(type); }
 
     void setWeaponTubeCount(int amount);
     int getWeaponTubeCount();
@@ -491,7 +499,7 @@ public:
     void setTubeLoadTime(int index, float time);
     float getTubeLoadTime(int index);
 
-    void setRadarTrace(string trace) { radar_trace = trace; }
+    void setRadarTrace(string trace) { radar_trace = "radar/" + trace; }
 
     void addBroadcast(int threshold, string message);
 
@@ -510,6 +518,7 @@ REGISTER_MULTIPLAYER_ENUM(EWeaponTubeState);
 REGISTER_MULTIPLAYER_ENUM(EMainScreenSetting);
 REGISTER_MULTIPLAYER_ENUM(EMainScreenOverlay);
 REGISTER_MULTIPLAYER_ENUM(EDockingState);
+REGISTER_MULTIPLAYER_ENUM(DockStyle);
 REGISTER_MULTIPLAYER_ENUM(EScannedState);
 
 string frequencyToString(int frequency);

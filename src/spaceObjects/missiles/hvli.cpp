@@ -13,16 +13,17 @@ HVLI::HVLI()
 : MissileWeapon("HVLI", MissileWeaponData::getDataFor(MW_HVLI))
 {
     setRadarSignatureInfo(0.1, 0.0, 0.0);
+    setCollisionBox({10, 30}); // Make it a bit harder to the HVLI to phase trough smaller enemies
 }
 
 void HVLI::hitObject(P<SpaceObject> object)
 {
     DamageInfo info(owner, DT_Kinetic, getPosition());
     float alive_for = MissileWeaponData::getDataFor(MW_HVLI).lifetime - lifetime;
-    if (alive_for > 2.0)
-        object->takeDamage(category_modifier * 6, info);
+    if (alive_for > 2.0f)
+        object->takeDamage(category_modifier * 10, info);
     else
-        object->takeDamage(category_modifier * 6 * (alive_for / 2.0), info);
+        object->takeDamage(category_modifier * 10 * (alive_for / 2.0f), info);
     P<ExplosionEffect> e = new ExplosionEffect();
     e->setSize(category_modifier * 20);
     e->setPosition(getPosition());

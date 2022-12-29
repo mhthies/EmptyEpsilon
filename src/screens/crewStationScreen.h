@@ -22,7 +22,7 @@ class CrewStationScreen : public GuiCanvas, public Updatable
 {
     P<ThreatLevelEstimate> threat_estimate;
 public:
-    explicit CrewStationScreen(bool with_main_screen);
+    explicit CrewStationScreen(RenderLayer* render_layer, bool with_main_screen);
     virtual void destroy() override;
 
     GuiContainer* getTabContainer();
@@ -30,8 +30,6 @@ public:
     void finishCreation();
 
     virtual void update(float delta) override;
-    virtual void onHotkey(const HotkeyResult& key) override;
-    virtual void onKey(sf::Event::KeyEvent key, int unicode) override;
 
 private:
     GuiElement* main_panel;
@@ -60,7 +58,6 @@ private:
 
     string listHotkeysLimited(string station);
     void tileViewport();
-    std::vector<std::pair<string, string>> listControlsByCategory(string category);
 };
 
 #endif//CREW_STATION_SCREEN_H

@@ -2,28 +2,21 @@
 #define GUI2_PROGRESSSLIDER_H
 
 #include "gui2_element.h"
-#include "gui2_slider.h"
+#include "gui2_progressbar.h"
 
-class GuiProgressSlider : public GuiBasicSlider
+class GuiProgressSlider : public GuiProgressbar
 {
 public:
     typedef std::function<void(float value)> func_t;
-private:
-    sf::Color color;
-    bool drawBackground;
 
-    string text;
-public:
     GuiProgressSlider(GuiContainer* owner, string id, float min_value, float max_value, float start_value, func_t func);
 
-    virtual void onDraw(sf::RenderTarget& window);
-    virtual bool onMouseDown(sf::Vector2f position);
-    virtual void onMouseDrag(sf::Vector2f position);
-    virtual void onMouseUp(sf::Vector2f position);
+    virtual bool onMouseDown(sp::io::Pointer::Button button, glm::vec2 position, sp::io::Pointer::ID id) override;
+    virtual void onMouseDrag(glm::vec2 position, sp::io::Pointer::ID id) override;
+    virtual void onMouseUp(glm::vec2 position, sp::io::Pointer::ID id) override;
 
-    GuiProgressSlider* setText(string text);
-    GuiProgressSlider* setColor(sf::Color color);
-    GuiProgressSlider* setDrawBackground(bool drawBackground);
+private:
+    func_t callback;
 };
 
 #endif//GUI2_PROGRESSSLIDER_H

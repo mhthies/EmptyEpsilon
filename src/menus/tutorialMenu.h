@@ -2,19 +2,19 @@
 #define TUTORIAL_MENU_H
 
 #include "gui/gui2_canvas.h"
+#include "Updatable.h"
 
-class GuiAutoLayout;
 class GuiElement;
 class GuiSlider;
 class GuiLabel;
 class GuiScrollText;
 class GuiButton;
 
-class TutorialMenu : public GuiCanvas
+class TutorialMenu : public GuiCanvas, public Updatable
 {
     string selected_tutorial_filename;
 
-    GuiAutoLayout* container;
+    GuiElement* container;
     GuiElement* bottom_row;
     GuiScrollText* tutorial_description;
     GuiButton* start_tutorial_button;
@@ -25,6 +25,6 @@ private:
 public:
     TutorialMenu();
 
-    void onKey(sf::Event::KeyEvent key, int unicode);
+    virtual void update(float delta) override;
 };
 #endif//TUTORIAL_MENU_H

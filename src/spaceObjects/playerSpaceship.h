@@ -36,7 +36,7 @@ class PlayerSpaceship : public SpaceShip
 public:
     // Power consumption and generation base rates
     constexpr static float default_energy_shield_use_per_second = 1.5f;
-    constexpr static float default_energy_warp_per_second = 1.0f;
+    constexpr static float default_energy_warp_per_second = 1.7f;
     // Total coolant
     constexpr static float max_coolant_per_system = 10.0f;
     float max_coolant;
@@ -58,10 +58,10 @@ public:
     public:
         string prefix;
         string text;
-        sf::Color color;
+        glm::u8vec4 color;
 
         ShipLogEntry() {}
-        ShipLogEntry(string prefix, string text, sf::Color color)
+        ShipLogEntry(string prefix, string text, glm::u8vec4 color)
         : prefix(prefix), text(text), color(color) {}
 
         bool operator!=(const ShipLogEntry& e) { return prefix != e.prefix || text != e.text || color != e.color; }
@@ -81,6 +81,7 @@ public:
         string caption;
         ECrewPosition crew_position;
         ScriptSimpleCallback callback;
+        int order;
 
         bool operator!=(const CustomShipFunction& csf) { return type != csf.type || name != csf.name || caption != csf.caption || crew_position != csf.crew_position; }
     };
@@ -116,7 +117,7 @@ private:
 public:
     std::vector<CustomShipFunction> custom_functions;
 
-    std::vector<sf::Vector2f> waypoints;
+    std::vector<glm::vec2> waypoints;
 
     // Ship functionality
     // Capable of scanning a target
@@ -229,8 +230,8 @@ public:
     void onProbeLink(ScriptSimpleCallback callback);
     void onProbeUnlink(ScriptSimpleCallback callback);
 
-    void addCustomButton(ECrewPosition position, string name, string caption, ScriptSimpleCallback callback);
-    void addCustomInfo(ECrewPosition position, string name, string caption);
+    void addCustomButton(ECrewPosition position, string name, string caption, ScriptSimpleCallback callback, std::optional<int> order);
+    void addCustomInfo(ECrewPosition position, string name, string caption, std::optional<int> order);
     void addCustomMessage(ECrewPosition position, string name, string caption);
     void addCustomMessageWithCallback(ECrewPosition position, string name, string caption, ScriptSimpleCallback callback);
     void removeCustom(string name);
@@ -238,7 +239,7 @@ public:
     ESystem getBeamSystemTarget(){ return beam_system_target; }
     string getBeamSystemTargetName(){ return getSystemName(beam_system_target); }
     // Client command functions
-    virtual void onReceiveClientCommand(int32_t client_id, sf::Packet& packet) override;
+    virtual void onReceiveClientCommand(int32_t client_id, sp::io::DataBuffer& packet) override;
     void commandTargetRotation(float target);
     void commandTurnSpeed(float turnSpeed);
     void commandImpulse(float target);
@@ -269,22 +270,22 @@ public:
     void commandSetBeamFrequency(int32_t frequency);
     void commandSetBeamSystemTarget(ESystem system);
     void commandSetShieldFrequency(int32_t frequency);
-    void commandAddWaypoint(sf::Vector2f position);
+    void commandAddWaypoint(glm::vec2 position);
     void commandRemoveWaypoint(int32_t index);
-    void commandMoveWaypoint(int32_t index, sf::Vector2f position);
+    void commandMoveWaypoint(int32_t index, glm::vec2 position);
     void commandActivateSelfDestruct();
     void commandCancelSelfDestruct();
     void commandConfirmDestructCode(int8_t index, uint32_t code);
     void commandCombatManeuverBoost(float amount);
     void commandCombatManeuverStrafe(float strafe);
-    void commandLaunchProbe(sf::Vector2f target_position);
+    void commandLaunchProbe(glm::vec2 target_position);
     void commandScanDone();
     void commandScanCancel();
     void commandSetAlertLevel(EAlertLevel level);
     void commandHackingFinished(P<SpaceObject> target, string target_system);
     void commandCustomFunction(string name);
 
-    virtual void onReceiveServerCommand(sf::Packet& packet) override;
+    virtual void onReceiveServerCommand(sp::io::DataBuffer& packet) override;
 
     // Template function
     virtual void applyTemplateValues() override;
@@ -317,7 +318,7 @@ public:
     float getNetSystemEnergyUsage();
 
     // Ship's log functions
-    void addToShipLog(string message, sf::Color color);
+    void addToShipLog(string message, glm::u8vec4 color);
     void addToShipLogBy(string message, P<SpaceObject> target);
     const std::vector<ShipLogEntry>& getShipsLog() const;
 
@@ -332,13 +333,13 @@ public:
 
     // Waypoint functions
     int getWaypointCount() { return waypoints.size(); }
-    sf::Vector2f getWaypoint(int index) { if (index > 0 && index <= int(waypoints.size())) return waypoints[index - 1]; return sf::Vector2f(0, 0); }
+    glm::vec2 getWaypoint(int index) { if (index > 0 && index <= int(waypoints.size())) return waypoints[index - 1]; return glm::vec2(0, 0); }
 
     // Ship control code/password setter
     void setControlCode(string code) { control_code = code.upper(); }
 
     // Radar function
-    virtual void drawOnGMRadar(sf::RenderTarget& window, sf::Vector2f position, float scale, float rotation, bool long_range) override;
+    virtual void drawOnGMRadar(sp::RenderTarget& renderer, glm::vec2 position, float scale, float rotation, bool long_range) override;
 
     // Script export function
     virtual string getExportLine() override;
@@ -348,9 +349,11 @@ template<> int convert<EAlertLevel>::returnType(lua_State* L, EAlertLevel l);
 template<> void convert<EAlertLevel>::param(lua_State* L, int& idx, EAlertLevel& al);
 REGISTER_MULTIPLAYER_ENUM(EAlertLevel);
 
-static inline sf::Packet& operator << (sf::Packet& packet, const PlayerSpaceship::CustomShipFunction& csf) { return packet << uint8_t(csf.type) << uint8_t(csf.crew_position) << csf.name << csf.caption; } \
-static inline sf::Packet& operator >> (sf::Packet& packet, PlayerSpaceship::CustomShipFunction& csf) { int8_t tmp; packet >> tmp; csf.type = PlayerSpaceship::CustomShipFunction::Type(tmp); packet >> tmp; csf.crew_position = ECrewPosition(tmp); packet >> csf.name >> csf.caption; return packet; }
+static inline sp::io::DataBuffer& operator << (sp::io::DataBuffer& packet, const PlayerSpaceship::CustomShipFunction& csf) { return packet << uint8_t(csf.type) << uint8_t(csf.crew_position) << csf.name << csf.caption; } \
+static inline sp::io::DataBuffer& operator >> (sp::io::DataBuffer& packet, PlayerSpaceship::CustomShipFunction& csf) { int8_t tmp; packet >> tmp; csf.type = PlayerSpaceship::CustomShipFunction::Type(tmp); packet >> tmp; csf.crew_position = ECrewPosition(tmp); packet >> csf.name >> csf.caption; return packet; }
 
 string alertLevelToString(EAlertLevel level);
 string alertLevelToLocaleString(EAlertLevel level);
+
+static inline bool operator < (const PlayerSpaceship::CustomShipFunction& a, const PlayerSpaceship::CustomShipFunction& b) {return (a.order < b.order);}
 #endif//PLAYER_SPACESHIP_H

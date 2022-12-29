@@ -6,12 +6,11 @@
 #ifndef _MSC_VER
 #include <unistd.h>
 #endif
-#include <json11/json11.hpp>
+#include "io/json.h"
 
-using namespace json11;
+#include "io/http/request.h"
 
 PhilipsHueDevice::PhilipsHueDevice()
-: update_thread(&PhilipsHueDevice::updateLoop, this)
 {
     userfile = "philips_hue.name";
     run_thread = false;
@@ -22,7 +21,7 @@ PhilipsHueDevice::~PhilipsHueDevice()
     if (run_thread)
     {
         run_thread = false;
-        update_thread.wait();
+        update_thread.join();
     }
 }
 
@@ -66,13 +65,13 @@ bool PhilipsHueDevice::configure(std::unordered_map<string, string> settings)
     int retry_counter = 120 / 5;
     while(username == "")
     {
-        sf::Http http(ip_address,port);
+        sp::io::http::Request http(ip_address,port);
 
         LOG(INFO) << "No philips hue username. Going to request one. Be sure to press the button on the hue bridge.";
-        sf::Http::Response response = http.sendRequest(sf::Http::Request("/api", sf::Http::Request::Post, "{\"devicetype\":\"EmptyEpsilon#EmptyEpsilon\"}"));
-        if (response.getStatus() == sf::Http::Response::Ok)
+        auto response = http.post("/api", "{\"devicetype\":\"EmptyEpsilon#EmptyEpsilon\"}");
+        if (response.status == 200) // OK
         {
-            string body = response.getBody();
+            const auto& body = response.body;
             //The body should contain:
             //  [{"success":{"username": "83b7780291a6ceffbe0bd049104df"}}]
             //As we don't have a full json parse, we just cheat.
@@ -99,11 +98,11 @@ bool PhilipsHueDevice::configure(std::unordered_map<string, string> settings)
         }
         else
         {
-            LOG(WARNING) << "Failed to contact philips hue bridge: " << response.getStatus();
-            LOG(WARNING) << response.getBody();
-            if (response.getStatus() == sf::Http::Response::ConnectionFailed)
+            LOG(WARNING) << "Failed to contact philips hue bridge: " << response.status;
+            LOG(WARNING) << response.body;
+            if (response.status < 0)
                 return false;
-            if (response.getStatus() == sf::Http::Response::NotFound)
+            if (response.status == 404) // Not found
                 return false;
         }
 
@@ -114,23 +113,23 @@ bool PhilipsHueDevice::configure(std::unordered_map<string, string> settings)
             LOG(WARNING) << "Philips hue retry count exceeded.";
             return false;
         }
-        sf::sleep(sf::milliseconds(5000));
+        std::this_thread::sleep_for(std::chrono::milliseconds(5000));
     }
 
     if (username != "")
     {
-        sf::Http http(ip_address,port);
-        sf::Http::Response response = http.sendRequest(sf::Http::Request("/api/" + username + "/lights"));
-        if (response.getStatus() != sf::Http::Response::Ok)
+        sp::io::http::Request http(ip_address,port);
+        auto response = http.get(string{ "/api/" } + username + "/lights");
+        if (response.status != 200) // !OK
         {
-            LOG(WARNING) << "Failed to validate username on philips hue bridge: " << response.getStatus();
-            LOG(WARNING) << response.getBody();
+            LOG(WARNING) << "Failed to validate username on philips hue bridge: " << response.status;
+            LOG(WARNING) << response.body;
             username = "";
 
             //Don't delete the username file is the philips hue bridge cannot be accessed, only if it responds with the username not working.
-            if (response.getStatus() == sf::Http::Response::ConnectionFailed)
+            if (response.status < 0)
                 return false;
-            if (response.getStatus() == sf::Http::Response::NotFound)
+            if (response.status == 404) // Not Found
                 return false;
 
             if (userfile != "")
@@ -138,34 +137,42 @@ bool PhilipsHueDevice::configure(std::unordered_map<string, string> settings)
         }
         else
         {
-            std::string body = response.getBody();
+            const auto& body = response.body;
             std::string err;
-            json11::Json hue_json = json11::Json::parse(body,err);
-            LOG(ERROR) << "Json parser returned error " << err;
-
-            light_count = 0;
-            std::map<std::string, json11::Json> jsonMap = hue_json.object_items();
-            for(std::map<std::string, json11::Json>::iterator it = jsonMap.begin(); it != jsonMap.end(); it++) {
-                  int currentInt = std::stoi (it->first,nullptr,10); //TODO: Replace STOI with toInt()
-                  LOG(DEBUG) << "Got key from Hue API " << currentInt;
-                  if (currentInt >= light_count) light_count = currentInt;
-            }
-
-            lights.resize(light_count);
-
-            FILE* f = fopen(userfile.c_str(), "wt");
-            if (f)
+            if (auto json = sp::json::parse(body, err); json)
             {
-                fprintf(f, "%s\n", username.c_str());
-                fclose(f);
+                auto hue_json = json.value();
+                light_count = 0;
+                for (const auto& entry : hue_json.items())
+                {
+                    auto currentInt = string(entry.key()).toInt();
+                    LOG(DEBUG) << "Got key from Hue API " << currentInt;
+                    if (currentInt >= light_count) light_count = currentInt;
+                }
+
+                lights.resize(light_count);
+
+                FILE* f = fopen(userfile.c_str(), "wt");
+                if (f)
+                {
+                    fprintf(f, "%s\n", username.c_str());
+                    fclose(f);
+                }
             }
+            else
+            {
+                LOG(ERROR) << "Json parsing failed: " << err;
+            }
+         
+
+
         }
     }
 
     if (username != "")
     {
         run_thread = true;
-        update_thread.launch();
+        update_thread = std::thread(&PhilipsHueDevice::updateLoop, this);
         return true;
     }
     return false;
@@ -177,7 +184,7 @@ void PhilipsHueDevice::setChannelData(int channel, float value)
     if (light_idx < 0 || light_idx >= light_count)
         return;
 
-    sf::Lock lock(mutex);
+    std::lock_guard<std::mutex> lock(mutex);
     switch(channel % 4)
     {
     case 0: if (lights[light_idx].brightness != value * 254) lights[light_idx].dirty = true; lights[light_idx].brightness = value * 254; break;
@@ -194,7 +201,7 @@ int PhilipsHueDevice::getChannelCount()
 
 void PhilipsHueDevice::updateLoop()
 {
-    sf::Http http(ip_address,port);
+    sp::io::http::Request http(ip_address,port);
 
     while(run_thread)
     {
@@ -204,7 +211,7 @@ void PhilipsHueDevice::updateLoop()
             {
                 LightInfo info;
                 {
-                    sf::Lock lock(mutex);
+                    std::lock_guard<std::mutex> lock(mutex);
                     lights[n].dirty = false;
                     info = lights[n];
                 }
@@ -216,15 +223,15 @@ void PhilipsHueDevice::updateLoop()
                         post_data = "{\"on\":true, \"sat\":"+string(info.saturation)+", \"bri\":"+string(info.brightness)+",\"hue\":"+string(info.hue)+", \"transitiontime\": "+string(info.transitiontime)+"}";
                     else
                         post_data = "{\"on\":false, \"transitiontime\": "+string(info.transitiontime)+"}";
-                    sf::Http::Response response = http.sendRequest(sf::Http::Request("/api/" + username + "/lights/" + string(n + 1) + "/state", sf::Http::Request::Put, post_data));
-                    if (response.getStatus() != sf::Http::Response::Ok)
+                    auto response = http.request("put", string{ "/api/" } + username + "/lights/" + string(n + 1) + "/state", post_data);
+                    if (response.status != 200) // !OK
                     {
-                        LOG(WARNING) << "Failed to set light [" << (n + 1) << "] philips hue bridge: " << response.getStatus();
-                        LOG(WARNING) << response.getBody();
+                        LOG(WARNING) << "Failed to set light [" << (n + 1) << "] philips hue bridge: " << response.status;
+                        LOG(WARNING) << response.body;
                     }
                 }
             }
         }
-        sf::sleep(sf::milliseconds(50));
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
 }

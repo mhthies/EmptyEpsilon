@@ -1,7 +1,8 @@
-#include <SFML/OpenGL.hpp>
+#include <graphics/opengl.h>
 #include "scanProbe.h"
 #include "explosionEffect.h"
 #include "main.h"
+#include "random.h"
 
 #include "scriptInterface.h"
 
@@ -123,7 +124,7 @@ void ScanProbe::update(float delta)
     // Tick down lifetime until expiration, then destroy the probe.
     lifetime -= delta;
 
-    if (lifetime <= 0.0)
+    if (lifetime <= 0.0f)
     {
         // Fire the onExpiration callback, if set.
         if (on_expiration.isSet())
@@ -136,21 +137,21 @@ void ScanProbe::update(float delta)
 
     // The probe moves in a straight line to its destination, independent of
     // physics and at a fixed rate of speed.
-    sf::Vector2f diff = target_position - getPosition();
+    auto diff = target_position - getPosition();
     float movement = delta * probe_speed;
-    float distance = sf::length(diff);
+    float distance = glm::length(diff);
 
     // If the probe's outer radius hasn't reached the target position ...
-    if (diff > getRadius())
+    if (distance > getRadius())
     {
         // The probe is still in transit.
         has_arrived = false;
 
         // Normalize the diff.
-        sf::Vector2f v = normalize(diff);
+        auto v = glm::normalize(diff);
 
         // Update the probe's heading.
-        setHeading(vector2ToAngle(v) + 90.0f);
+        setHeading(vec2ToAngle(v) + 90.0f);
 
         // Move toward the target position at the given rate of speed.
         // However, don't overshoot the target if traveling so fast that the
@@ -178,7 +179,7 @@ void ScanProbe::update(float delta)
 bool ScanProbe::canBeTargetedBy(P<SpaceObject> other)
 {
     // The probe cannot be targeted until it reaches its destination.
-    return (getTarget() - getPosition()) < getRadius();
+    return glm::length2(getTarget() - getPosition()) < getRadius()*getRadius();
 }
 
 void ScanProbe::takeDamage(float damage_amount, DamageInfo info)
@@ -201,33 +202,21 @@ void ScanProbe::takeDamage(float damage_amount, DamageInfo info)
     destroy();
 }
 
-void ScanProbe::drawOnRadar(sf::RenderTarget& window, sf::Vector2f position, float scale, float rotation, bool long_range)
+void ScanProbe::drawOnRadar(sp::RenderTarget& renderer, glm::vec2 position, float scale, float rotation, bool long_range)
 {
     // All probes use the same green icon on radar.
-    sf::Sprite object_sprite;
-    textureManager.setTexture(object_sprite, "ProbeBlip.png");
-    object_sprite.setPosition(position);
-    object_sprite.setColor(sf::Color(96, 192, 128));
-    float size = 0.3;
-    object_sprite.setScale(size, size);
-    window.draw(object_sprite);
+    renderer.drawSprite("radar/probe.png", position, 10, glm::u8vec4(96, 192, 128, 255));
 }
 
-void ScanProbe::drawOnGMRadar(sf::RenderTarget& window, sf::Vector2f position, float scale, float rotation, bool long_range)
+void ScanProbe::drawOnGMRadar(sp::RenderTarget& renderer, glm::vec2 position, float scale, float rotation, bool long_range)
 {
-    SpaceObject::drawOnGMRadar(window, position, scale, rotation, long_range);
+    SpaceObject::drawOnGMRadar(renderer, position, scale, rotation, long_range);
 
     if (long_range)
     {
         // Draw a circle on the GM radar representing the probe's fixed 5U
         // radar radius.
-        sf::CircleShape radar_radius(5000 * scale);
-        radar_radius.setOrigin(5000 * scale, 5000 * scale);
-        radar_radius.setPosition(position);
-        radar_radius.setFillColor(sf::Color::Transparent);
-        radar_radius.setOutlineColor(sf::Color(255, 255, 255, 64));
-        radar_radius.setOutlineThickness(3.0);
-        window.draw(radar_radius);
+        renderer.drawCircleOutline(position, 5000*scale, 3.0, glm::u8vec4(255, 255, 255, 64));
     }
 }
 

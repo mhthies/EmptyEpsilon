@@ -16,7 +16,7 @@ class GuiProgressbar;
 class GuiLabel;
 class GuiPanel;
 
-class MiniGame : public sf::NonCopyable
+class MiniGame : sp::NonCopyable
 {
   public:
     MiniGame(GuiPanel* owner, GuiHackingDialog* parent, int difficulty);
@@ -24,7 +24,7 @@ class MiniGame : public sf::NonCopyable
 
     virtual float getProgress();
     virtual bool isGameComplete();
-    virtual sf::Vector2f getBoardSize();
+    virtual glm::vec2 getBoardSize();
 
     virtual void reset();
     virtual void disable();

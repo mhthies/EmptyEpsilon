@@ -1,12 +1,14 @@
 #include "epsilonServer.h"
 #include "playerInfo.h"
 #include "gameGlobalInfo.h"
+#include "soundManager.h"
+#include "multiplayer_client.h"
 #include "preferenceManager.h"
 #include "GMActions.h"
 #include "main.h"
 
-EpsilonServer::EpsilonServer()
-: GameServer("Server", VERSION_NUMBER)
+EpsilonServer::EpsilonServer(int server_port)
+: GameServer("Server", VERSION_NUMBER, server_port)
 {
     if (game_server)
     {
@@ -16,13 +18,11 @@ EpsilonServer::EpsilonServer()
         info->client_id = 0;
         my_player_info = info;
         engine->setGameSpeed(0.0);
-        for(unsigned int n=0; n<factionInfo.size(); n++)
-            factionInfo[n]->reset();
 
         for(auto proxy : PreferencesManager::get("serverproxy").split(":"))
         {
             if (proxy != "")
-                connectToProxy(sf::IpAddress(proxy));
+                connectToProxy(sp::io::network::Address(proxy));
         }
     }
 }

@@ -1,63 +1,25 @@
 #include "gui2_progressslider.h"
+#include "theme.h"
+
 
 GuiProgressSlider::GuiProgressSlider(GuiContainer* owner, string id, float min_value, float max_value, float start_value, func_t func)
-: GuiBasicSlider(owner, id, min_value, max_value, start_value, func), color(sf::Color(255, 255, 255, 64)), drawBackground(true)
+: GuiProgressbar(owner, id, min_value, max_value, start_value), callback(func)
 {
 }
 
-void GuiProgressSlider::onDraw(sf::RenderTarget& window)
+bool GuiProgressSlider::onMouseDown(sp::io::Pointer::Button button, glm::vec2 position, sp::io::Pointer::ID id)
 {
-    float f = (value - min_value) / (max_value - min_value);
-
-    if (drawBackground)
-        drawStretched(window, rect, "gui/ProgressbarBackground");
-
-    sf::FloatRect fill_rect = rect;
-    if (rect.width >= rect.height)
-    {
-        fill_rect.width *= f;
-        drawStretchedH(window, fill_rect, "gui/ProgressbarFill", color);
-    }
-    else
-    {
-        fill_rect.height *= f;
-        fill_rect.top = rect.top + rect.height - fill_rect.height;
-        drawStretchedV(window, fill_rect, "gui/ProgressbarFill", color);
-    }
-    drawText(window, rect, text, ACenter);
-}
-
-GuiProgressSlider* GuiProgressSlider::setText(string text)
-{
-    this->text = text;
-    return this;
-}
-
-GuiProgressSlider* GuiProgressSlider::setColor(sf::Color color)
-{
-    this->color = color;
-    return this;
-}
-
-GuiProgressSlider* GuiProgressSlider::setDrawBackground(bool drawBackground)
-{
-    this->drawBackground = drawBackground;
-    return this;
-}
-
-bool GuiProgressSlider::onMouseDown(sf::Vector2f position)
-{
-    onMouseDrag(position);
+    onMouseDrag(position, id);
     return true;
 }
 
-void GuiProgressSlider::onMouseDrag(sf::Vector2f position)
+void GuiProgressSlider::onMouseDrag(glm::vec2 position, sp::io::Pointer::ID id)
 {
     float new_value;
-    if (rect.width > rect.height)
-        new_value = (position.x - rect.left+2) / (rect.width-4);
+    if (rect.size.x > rect.size.y)
+        new_value = (position.x - rect.position.x) / (rect.size.x);
     else
-        new_value = (position.y - rect.top+2) / (rect.height-4);
+        new_value = (position.y - rect.position.y) / (rect.size.y);
     new_value = min_value + (max_value - min_value) * new_value;
     if (min_value < max_value)
     {
@@ -74,14 +36,14 @@ void GuiProgressSlider::onMouseDrag(sf::Vector2f position)
     if (value != new_value)
     {
         value = new_value;
-        if (func)
+        if (callback)
         {
-            func_t f = func;
+            func_t f = callback;
             f(value);
         }
     }
 }
 
-void GuiProgressSlider::onMouseUp(sf::Vector2f position)
+void GuiProgressSlider::onMouseUp(glm::vec2 position, sp::io::Pointer::ID id)
 {
 }

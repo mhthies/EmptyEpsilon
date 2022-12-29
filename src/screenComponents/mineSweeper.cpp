@@ -1,3 +1,4 @@
+#include "random.h"
 #include "mineSweeper.h"
 #include "miniGame.h"
 #include "hackingDialog.h"
@@ -16,7 +17,7 @@ MineSweeper::MineSweeper(GuiPanel* owner, GuiHackingDialog* parent, int difficul
         {
             FieldItem* item = new FieldItem(owner, "", "", [this, x, y](bool value) { getFieldItem(x, y)->setValue(!value); onFieldClick(x, y); });
             item->setSize(50, 50);
-            item->setPosition(x * 50 - field_size * 25, 25 + y * 50 - field_size * 25, ACenter);
+            item->setPosition(x * 50 - field_size * 25, 25 + y * 50 - field_size * 25, sp::Alignment::Center);
             board.emplace_back(item);
         }
     }
@@ -80,9 +81,9 @@ void MineSweeper::gameComplete()
     game_complete = true;
 }
 
-sf::Vector2f MineSweeper::getBoardSize()
+glm::vec2 MineSweeper::getBoardSize()
 {
-    return sf::Vector2f(field_size*50, field_size*50);
+    return glm::vec2(field_size*50, field_size*50);
 }
 
 void MineSweeper::onFieldClick(int x, int y)

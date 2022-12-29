@@ -1,6 +1,9 @@
 #include "spaceObject.h"
 #include "factionInfo.h"
 #include "gameGlobalInfo.h"
+#include "preferenceManager.h"
+
+#include <glm/ext/matrix_transform.hpp>
 
 #include "scriptInterface.h"
 /// SpaceObject is the base for every object which can be seen in space.
@@ -119,16 +122,25 @@ REGISTER_SCRIPT_CLASS_NO_CREATE(SpaceObject)
     /// Hails a PlayerSpaceship from this object. The players' comms station is
     /// notified and can accept or deny the hail. If the hail is answered, the
     /// specified message is displayed to the player.
-    /// WARNING/TOFIX: If the PlayerSpaceship refuses the hail, the script
-    /// DOES NOT receive any feedback.
+    /// Returns true when the hail is accepted.
+    /// Returns false when the target player cannot be hailed right now, for
+    /// example because it's already communicating with something else.
+    /// A message will be logged in the comms log about this.
+    /// Requires a target option and message. The message can be an empty
+    /// string.
+    /// Example: obj:sendCommsMessage(player, "Prepare to die")
+    REGISTER_SCRIPT_CLASS_FUNCTION(SpaceObject, sendCommsMessage);
+    /// Hails a PlayerSpaceship from this object. The players' comms station is
+    /// notified and can accept or deny the hail. If the hail is answered, the
+    /// specified message is displayed to the player.
     /// Returns true when the hail is accepted.
     /// Returns false when the target player cannot be hailed right now, for
     /// example because it's already communicating with something else.
     /// Requires a target option and message. The message can be an empty
     /// string.
-    /// Example: obj:sendCommsMessage(player, "Prepare to die")
-    REGISTER_SCRIPT_CLASS_FUNCTION(SpaceObject, sendCommsMessage);
-    /// As sendCommsMessage, but sends an empty string as the message.
+    /// Example: obj:sendCommsMessageNoLog(player, "Prepare to die")
+    REGISTER_SCRIPT_CLASS_FUNCTION(SpaceObject, sendCommsMessageNoLog);
+    /// As sendCommsMessage, but sends an empty string as the message. This will call the object's comms function.
     /// Example: obj:openCommsTo(player)
     REGISTER_SCRIPT_CLASS_FUNCTION(SpaceObject, openCommsTo);
     /// Gets this object's callsign.
@@ -306,16 +318,14 @@ SpaceObject::~SpaceObject()
 
 void SpaceObject::draw3D()
 {
-#if FEATURE_3D_RENDERING
-    model_info.render(getPosition(), getRotation());
-#endif//FEATURE_3D_RENDERING
+    model_info.render(getPosition(), getRotation(), getModelMatrix());
 }
 
-void SpaceObject::drawOnRadar(sf::RenderTarget& window, sf::Vector2f position, float scale, float rotation, bool longRange)
+void SpaceObject::drawOnRadar(sp::RenderTarget& renderer, glm::vec2 position, float scale, float rotation, bool longRange)
 {
 }
 
-void SpaceObject::drawOnGMRadar(sf::RenderTarget& window, sf::Vector2f position, float scale, float rotation, bool longRange)
+void SpaceObject::drawOnGMRadar(sp::RenderTarget& renderer, glm::vec2 position, float scale, float rotation, bool longRange)
 {
 }
 
@@ -457,7 +467,7 @@ bool SpaceObject::isEnemy(P<SpaceObject> obj)
 {
     if (obj)
     {
-        return factionInfo[faction_id]->states[obj->faction_id] == FVF_Enemy;
+        return FactionInfo::getState(faction_id, obj->faction_id) == FVF_Enemy;
     } else {
         return false;
     }
@@ -467,21 +477,21 @@ bool SpaceObject::isFriendly(P<SpaceObject> obj)
 {
     if (obj)
     {
-        return factionInfo[faction_id]->states[obj->faction_id] == FVF_Friendly;
+        return FactionInfo::getState(faction_id, obj->faction_id) == FVF_Friendly;
     } else {
         return false;
     }
 }
 
-void SpaceObject::damageArea(sf::Vector2f position, float blast_range, float min_damage, float max_damage, DamageInfo info, float min_range)
+void SpaceObject::damageArea(glm::vec2 position, float blast_range, float min_damage, float max_damage, DamageInfo info, float min_range)
 {
-    PVector<Collisionable> hitList = CollisionManager::queryArea(position - sf::Vector2f(blast_range, blast_range), position + sf::Vector2f(blast_range, blast_range));
+    PVector<Collisionable> hitList = CollisionManager::queryArea(position - glm::vec2(blast_range, blast_range), position + glm::vec2(blast_range, blast_range));
     foreach(Collisionable, c, hitList)
     {
         P<SpaceObject> obj = c;
         if (obj)
         {
-            float dist = sf::length(position - obj->getPosition()) - obj->getRadius() - min_range;
+            float dist = glm::length(position - obj->getPosition()) - obj->getRadius() - min_range;
             if (dist < 0) dist = 0;
             if (dist < blast_range - min_range)
             {
@@ -493,13 +503,14 @@ void SpaceObject::damageArea(sf::Vector2f position, float blast_range, float min
 
 bool SpaceObject::areEnemiesInRange(float range)
 {
-    PVector<Collisionable> hitList = CollisionManager::queryArea(getPosition() - sf::Vector2f(range, range), getPosition() + sf::Vector2f(range, range));
+    PVector<Collisionable> hitList = CollisionManager::queryArea(getPosition() - glm::vec2(range, range), getPosition() + glm::vec2(range, range));
     foreach(Collisionable, c, hitList)
     {
         P<SpaceObject> obj = c;
         if (obj && isEnemy(obj))
         {
-            if (getPosition() - obj->getPosition() < range + obj->getRadius())
+            auto r = range + obj->getRadius();
+            if (glm::length2(getPosition() - obj->getPosition()) < r*r)
                 return true;
         }
     }
@@ -509,11 +520,12 @@ bool SpaceObject::areEnemiesInRange(float range)
 PVector<SpaceObject> SpaceObject::getObjectsInRange(float range)
 {
     PVector<SpaceObject> ret;
-    PVector<Collisionable> hitList = CollisionManager::queryArea(getPosition() - sf::Vector2f(range, range), getPosition() + sf::Vector2f(range, range));
+    PVector<Collisionable> hitList = CollisionManager::queryArea(getPosition() - glm::vec2(range, range), getPosition() + glm::vec2(range, range));
     foreach(Collisionable, c, hitList)
     {
         P<SpaceObject> obj = c;
-        if (obj && getPosition() - obj->getPosition() < range + obj->getRadius())
+        auto r = range + obj->getRadius();
+        if (obj && glm::length2(getPosition() - obj->getPosition()) < r*r)
         {
             ret.push_back(obj);
         }
@@ -555,8 +567,16 @@ void SpaceObject::addReputationPoints(float amount)
     if (gameGlobalInfo->reputation_points.size() < faction_id)
         return;
     gameGlobalInfo->reputation_points[faction_id] += amount;
-    if (gameGlobalInfo->reputation_points[faction_id] < 0.0)
-        gameGlobalInfo->reputation_points[faction_id] = 0.0;
+    if (gameGlobalInfo->reputation_points[faction_id] < 0.0f)
+        gameGlobalInfo->reputation_points[faction_id] = 0.0f;
+}
+
+void SpaceObject::setCommsScript(string script_name)
+{
+    this->comms_script_name = script_name;
+    if (script_name != "")
+        i18n::load("locale/" + script_name.replace(".lua", "." + PreferencesManager::get("language", "en") + ".po"));
+    this->comms_script_callback.clear();
 }
 
 string SpaceObject::getSectorName()
@@ -580,6 +600,33 @@ bool SpaceObject::sendCommsMessage(P<PlayerSpaceship> target, string message)
         target->addToShipLogBy(message, this);
     }
     return result;
+}
+
+bool SpaceObject::sendCommsMessageNoLog(P<PlayerSpaceship> target, string message)
+{
+    if (!target)
+        return false;
+
+    return target->hailByObject(this, message);
+}
+
+glm::mat4 SpaceObject::getModelMatrix() const
+{
+    auto position = getPosition();
+    auto rotation = getRotation();
+    auto model_matrix = glm::translate(glm::identity<glm::mat4>(), glm::vec3{ position.x, position.y, 0.f });
+    return glm::rotate(model_matrix, glm::radians(rotation), glm::vec3{ 0.f, 0.f, 1.f });
+}
+
+template<> void convert<EDamageType>::param(lua_State* L, int& idx, EDamageType& dt)
+{
+    string str = string(luaL_checkstring(L, idx++)).lower();
+    if (str == "energy")
+        dt = DT_Energy;
+    else if (str == "kinetic")
+        dt = DT_Kinetic;
+    else if (str == "emp")
+        dt = DT_EMP;
 }
 
 // Define a script conversion function for the DamageInfo structure.

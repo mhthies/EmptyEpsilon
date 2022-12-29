@@ -1,8 +1,11 @@
 #ifndef MESH_H
 #define MESH_H
 
-#include <SFML/System.hpp>
+#include "nonCopyable.h"
 #include "stringImproved.h"
+#include "glObjects.h"
+
+#include <glm/vec3.hpp>
 
 struct MeshVertex
 {
@@ -11,16 +14,17 @@ struct MeshVertex
     float uv[2];
 };
 
-class Mesh : public sf::NonCopyable
+class Mesh : sp::NonCopyable
 {
     std::vector<MeshVertex> vertices;
-    uint32_t vbo;
+    std::vector<uint16_t> indices;
+    gl::Buffers<2> vbo_ibo{ gl::Unitialized{} };
+    uint32_t face_count{};
 public:
     explicit Mesh(std::vector<MeshVertex>&& vertices);
-    ~Mesh();
 
     void render(int32_t position_attrib, int32_t texcoords_attrib, int32_t normal_attrib);
-    sf::Vector3f randomPoint();
+    glm::vec3 randomPoint();
 
     static Mesh* getMesh(const string& filename);
 };

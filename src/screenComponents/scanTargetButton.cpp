@@ -22,12 +22,12 @@ void GuiScanTargetButton::onUpdate()
     setVisible(my_spaceship && my_spaceship->getCanScan());
 }
 
-void GuiScanTargetButton::onDraw(sf::RenderTarget& window)
+void GuiScanTargetButton::onDraw(sp::RenderTarget& target)
 {
     if (!my_spaceship)
         return;
 
-    if (my_spaceship->scanning_delay > 0.0)
+    if (my_spaceship->scanning_delay > 0.0f)
     {
         progress->show();
         progress->setValue(my_spaceship->scanning_delay);

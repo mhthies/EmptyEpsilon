@@ -2,8 +2,8 @@
 #define GUI2_ENTRYLIST_H
 
 #include "gui2_element.h"
-#include "gui2_button.h"
 #include "gui2_scrollbar.h"
+
 
 class GuiEntryList : public GuiElement
 {
@@ -26,8 +26,8 @@ protected:
 public:
     GuiEntryList(GuiContainer* owner, string id, func_t func);
 
-    GuiEntryList* setOptions(std::vector<string> options);
-    GuiEntryList* setOptions(std::vector<string> options, std::vector<string> values);
+    GuiEntryList* setOptions(const std::vector<string>& options);
+    GuiEntryList* setOptions(const std::vector<string>& options, const std::vector<string>& values);
 
     void setEntryName(int index, string name);
     void setEntryValue(int index, string value);

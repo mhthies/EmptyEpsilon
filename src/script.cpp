@@ -1,6 +1,8 @@
 #include <i18n.h>
 #include "gameGlobalInfo.h"
+#include "preferenceManager.h"
 #include "script.h"
+#include "resources.h"
 
 /// Object which can be used to create and run another script.
 /// Other scripts have their own lifetime, update and init functions.
@@ -9,7 +11,7 @@
 REGISTER_SCRIPT_CLASS(Script)
 {
     /// Run a script with a certain filename
-    REGISTER_SCRIPT_CLASS_FUNCTION(ScriptObject, run);
+    REGISTER_SCRIPT_CLASS_FUNCTION(Script, run);
     /// Set a global variable in this script instance, this variable can be accessed in the main script.
     REGISTER_SCRIPT_CLASS_FUNCTION(ScriptObject, setVariable);
 }
@@ -25,6 +27,14 @@ Script::Script()
     gameGlobalInfo->addScript(this);
 }
 
+bool Script::run(string filename)
+{
+    // Load the locale file for this script.
+    i18n::load("locale/" + filename.replace(".lua", "." + PreferencesManager::get("language", "en") + ".po"));
+
+    return ScriptObject::run(filename);
+}
+
 static int require(lua_State* L)
 {
     int old_top = lua_gettop(L);
@@ -37,6 +47,9 @@ static int require(lua_State* L)
         lua_pushstring(L, ("Require: Script not found: " + filename).c_str());
         return lua_error(L);
     }
+
+    // Load the locale file for this script.
+    i18n::load("locale/" + filename.replace(".lua", "." + PreferencesManager::get("language", "en") + ".po"));
 
     string filecontents;
     do
@@ -66,7 +79,7 @@ static int require(lua_State* L)
 
     return lua_gettop(L) - old_top;
 }
-/// require(filename)
+/// void require(string filename)
 /// Run the script with the given filename in the same context as the current running script.
 REGISTER_SCRIPT_FUNCTION(require);
 
@@ -80,6 +93,6 @@ static int _(lua_State* L)
         lua_pushstring(L, tr(str_1).c_str());
     return 1;
 }
-/// _(string)
+/// string _(string text, std::optional<string> default)
 /// Translate the given string with the user configured language.
 REGISTER_SCRIPT_FUNCTION(_);
