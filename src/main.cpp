@@ -376,7 +376,7 @@ int main(int argc, char** argv)
         hardware_controller->loadConfiguration(configuration_path + "/hardware.ini");
     }
 
-#ifdef WITH_MIDI
+#if WITH_MIDI
     if (PreferencesManager::get("enable_midi","1") == "1") {
         P<MidiController> midi_controller = new MidiController();
     }
