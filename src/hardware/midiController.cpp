@@ -91,7 +91,7 @@ void MidiController::update(float delta)
     if (midiout->isPortOpen()) {
         // Limit outgoing MIDI update rate to 300ms
         timeSinceUpdate += delta;
-        if (timeSinceUpdate >= 0.3) {
+        if (timeSinceUpdate >= 0.3f) {
             timeSinceUpdate = 0.0;
             sendMidiOut();
         }
@@ -151,13 +151,13 @@ void MidiController::sendMidiOut() {
         // Set faders to power_request
         message[0] = 0b10110000;  // Control change , MIDI channel 0
         message[1] = i+1;  // control channel i+1
-        message[2] = round(ship->systems[systemMap[i]].power_request / 3.0 * 127);  // value (0..127)
+        message[2] = round(ship->systems[systemMap[i]].power_request / 3.0f * 127);  // value (0..127)
         midiout->sendMessage(&message);
 
         // Set encoders to coolant_request
         message[0] = 0b10110000;  // Control change , MIDI channel 0
         message[1] = 10+i;  // control channel 10+i
-        message[2] = round(ship->systems[systemMap[i]].coolant_request / 10.0 * 127);  // value (0..127)
+        message[2] = round(ship->systems[systemMap[i]].coolant_request / 10.0f * 127);  // value (0..127)
         midiout->sendMessage(&message);
 
         // Set button leds according to heat
@@ -174,7 +174,7 @@ void MidiController::sendMidiOut() {
         // Set right encoder rings according to damage
         message[0] = 0b10110000;  // Control change , MIDI channel 0
         message[1] = 18+i;  // control channel
-        message[2] = std::max(0, static_cast<int>(round((1.0 - ship->systems[systemMap[i]].health) * 127)));  // value
+        message[2] = std::max(0, static_cast<int>(round((1.0f - ship->systems[systemMap[i]].health) * 127)));  // value
         midiout->sendMessage(&message);
     }
 }

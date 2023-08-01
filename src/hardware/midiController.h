@@ -34,7 +34,7 @@ class MidiController: public Updatable
     MidiController();
     ~MidiController();
 
-    virtual void update(float delta);
+    void update(float delta) override;
 
     private:
     void sendInitialization();
