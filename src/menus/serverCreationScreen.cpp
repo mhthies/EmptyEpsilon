@@ -65,6 +65,24 @@ ServerSetupScreen::ServerSetupScreen()
     server_port->setSize(GuiElement::GuiSizeMax, GuiElement::GuiSizeMax);
 
     (new GuiLabel(main_panel, "GENERAL_LABEL", tr("Server info"), 30))->addBackground()->setSize(GuiElement::GuiSizeMax, 50);
+
+    string reverse_proxy_value;
+    if((reverse_proxy_value = PreferencesManager::get("serverproxy")) != "")
+    {   
+        GuiPanel* panel = new GuiPanel(main_panel, "SERVERPROXY_MESSAGE_BOX");
+        panel->setSize(GuiElement::GuiSizeMax, 80);
+        //Serverproxy (reverse proxy) is directly configured in options or command line   
+        (new GuiLabel(panel, "SERVERPROXY_LABEL", tr("Server was configured to connect to reverse proxy:"), 30))->setSize(GuiElement::GuiSizeMax, 50);
+        string ips;
+        string sep="";
+        for(auto proxy_ip : reverse_proxy_value.split(":"))
+        {
+            ips = ips + sep + "[" + proxy_ip+ "]";
+            sep = ",";   
+        }
+        (new GuiLabel(panel, "SERVERPROXY_IPS", ips, 30))->setSize(GuiElement::GuiSizeMax, 50)->setPosition(0,30);
+    }
+
     // Server IP row.
     row = new GuiElement(main_panel, "");
     row->setSize(GuiElement::GuiSizeMax, 350)->setAttribute("layout", "horizontal");
@@ -267,6 +285,7 @@ void ServerScenarioSelectionScreen::loadScenarioList(const string& category)
 ServerScenarioOptionsScreen::ServerScenarioOptionsScreen(string filename)
 {
     ScenarioInfo info(filename);
+    scenario_settings = {};
 
     new GuiOverlay(this, "", colorConfig.background);
     (new GuiOverlay(this, "", glm::u8vec4{255,255,255,255}))->setTextureTiled("gui/background/crosses.png");
@@ -286,11 +305,11 @@ ServerScenarioOptionsScreen::ServerScenarioOptionsScreen(string filename)
         }
         (new GuiLabel(container, "", setting.key_localized, 30))->addBackground()->setSize(GuiElement::GuiSizeMax, 50);
         auto selector = new GuiSelector(container, "", [this, info, setting](int index, string value) {
-            gameGlobalInfo->scenario_settings[setting.key] = value;
+            this->scenario_settings[setting.key] = value;
             for(auto& option : setting.options)
                 if (option.value == value)
                     description_per_setting[setting.key]->setText(option.description);
-            start_button->setEnable(gameGlobalInfo->scenario_settings.size() >= info.settings.size());
+            start_button->setEnable(this->scenario_settings.size() >= info.settings.size());
         });
         selector->setSize(GuiElement::GuiSizeMax, 50);
         for(auto& option : setting.options)
@@ -299,7 +318,7 @@ ServerScenarioOptionsScreen::ServerScenarioOptionsScreen(string filename)
             if (option.value == setting.default_option)
             {
                 selector->setSelectionIndex(selector->entryCount() - 1);
-                gameGlobalInfo->scenario_settings[setting.key] = option.value;
+                this->scenario_settings[setting.key] = option.value;
             }
         }
         auto description = new GuiScrollText(container, "", setting.description);
@@ -320,7 +339,7 @@ ServerScenarioOptionsScreen::ServerScenarioOptionsScreen(string filename)
     start_button = new GuiButton(this, "START_SCENARIO", tr("Start scenario"), [this, info, filename]() {
         // Start the selected scenario.
         gameGlobalInfo->scenario = info.name;
-        gameGlobalInfo->startScenario(filename);
+        gameGlobalInfo->startScenario(filename, this->scenario_settings);
 
         // Destroy this screen and move on to ship selection.
         destroy();
@@ -328,5 +347,5 @@ ServerScenarioOptionsScreen::ServerScenarioOptionsScreen(string filename)
         new ScriptErrorRenderer(mouseLayer);
     });
     start_button->setPosition(250, -50, sp::Alignment::BottomCenter)->setSize(300, 50);
-    start_button->setEnable(gameGlobalInfo->scenario_settings.size() >= info.settings.size());
+    start_button->setEnable(scenario_settings.size() >= info.settings.size());
 }

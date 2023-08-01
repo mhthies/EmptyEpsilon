@@ -189,7 +189,7 @@ def translate_type(c_type, name):
     if res is not None:
         return VariadicType(translate_type(res.group(1).strip(), name))
 
-    if c_type in ('EAlertLevel', 'ECrewPosition', 'EMissileSizes', 'EMissileWeapons', 'EScannedState', 'ESystem', 'EDockingState', 'ScriptSimpleCallback'):
+    if c_type in ('EAlertLevel', 'ECrewPosition', 'EMissileSizes', 'EMissileWeapons', 'EScannedState', 'ESystem', 'EMainScreenSetting', 'EMainScreenOverlay', 'EDockingState', 'ScriptSimpleCallback'):
         return EnumType(c_type)
 
     if c_type in ('int', 'float', 'double', 'int32_t', 'int8_t', 'uint32_t', 'uint8_t'):
@@ -379,12 +379,12 @@ class DocumentationGenerator(object):
                     f = definition.addFunction("isValid")
                     f.parameters = ""
                     f.return_type = "boolean"
-                    f.description = "Check if this is still looking at a valid object. Returns false when the objects that this variable references is destroyed."
+                    f.description = "Returns whether this object is still valid. Returns false if this object was destroyed or doesn't exist."
                     f = definition.addFunction("destroy")
                     f.parameters = ""
                     f.description = "Removes this object from the game."
                     f = definition.addMember("typeName")
-                    f.description = 'Returns the class name of this object, this is not a function, but a direct member: if object.typeName == "Mine" then print("MINE!") end'
+                    f.description = 'Returns the class name of this object. This is not a function, but a direct member. Example: if object.typeName == "Mine" then print("MINE!") end'
 
     def generateDocs(self, stream):
         stream.write('<!doctype html><html lang="us"><head><meta charset="utf-8"><title>EmptyEpsilon - Scripting documentation</title>')
@@ -496,7 +496,7 @@ rel="stylesheet"
         stream.write('<div class="section">')
         stream.write("<h1>EmptyEpsilon Scripting Reference</h1>")
         stream.write("<p>This is the EmptyEpsilon script reference for this version of EmptyEpsilon.</p>")
-        stream.write('<p>By no means this is a guide to help you scripting, you should check <a href="http://emptyepsilon.org/">emptyepsilon.org</a> for the guide on scripting. ')
+        stream.write('<p>By no means this is a guide to help you scripting, you should check <a href="https://daid.github.io/EmptyEpsilon/#tabs=4">EmptyEpsilon website</a> for the guide on scripting. ')
         stream.write("As well as check the already existing scenario and ship data files on how to get started.</p>")
         stream.write("</div>\n")
 
@@ -504,21 +504,20 @@ rel="stylesheet"
         stream.write('<div class="section">')
         stream.write("<p>Some of the types in the parameters:</p>")
         stream.write("<ul>\n")
-        stream.write('<li><a name="enum_ScriptSimpleCallback">ScriptSimpleCallback</a> / function: Note that the callback function must reference something global, otherwise you get an error like "??[convert&lt;ScriptSimpleCallback&gt;::param] Upvalue 1 of function is not a table...". Use e.g. `math.abs(0) -- Provides global context for SeriousProton` to do nothing.</li>\n')
-        stream.write('<li><a name="enum_EAlertLevel">EAlertLevel<a/>: "Normal", "YELLOW ALERT", "RED ALERT" (<code>playerSpaceship.cpp</code>)</li>\n')
-        stream.write('<li><a name="enum_ECrewPosition">ECrewPosition</a>: "Helms", "Weapons", "Engineering", "Science", "Relay", "Tactical", "Engineering+", "Operations", "Single", "DamageControl", "PowerManagement", "Database", "AltRelay", "CommsOnly", "ShipLog", (<code>playerInfo.cpp</code>)</li>\n')
-        stream.write('<li><a name="enum_EMissileSizes">EMissileSizes</a>: "small", "medium", "large"</li>\n')
-        stream.write('<li><a name="enum_EMissileWeapons">EMissileWeapons</a>: "Homing", "Nuke", "Mine", "EMP", "HVLI" (<code>spaceship.cpp</code>)</li>\n')
+        stream.write('<li><a name="enum_Color">Color</a>: A string that can either be a hex color code (#rrggbb), three comma-separated rgb integers (rrr,ggg,bbb), or one of the following: "black", "white", "red", "green", "blue", "yellow", "magenta", "cyan". Invalid values default to white.</li>\n')
+        stream.write('<li><a name="enum_EAlertLevel">EAlertLevel<a/>: sets "normal", "yellow", "red" (<code>playerSpaceship.hpp</code>), returns "Normal", "YELLOW ALERT", "RED ALERT" (<code>playerSpaceship.cpp</code>)</li>\n')
+        stream.write('<li><a name="enum_ECrewPosition">ECrewPosition</a>: "Helms", "Weapons", "Engineering", "Science", "Relay", "Tactical", "Engineering+", "Operations", "Single", "DamageControl", "PowerManagement", "Database", "AltRelay", "CommsOnly", "ShipLog" (<code>playerInfo.cpp</code>)</li>\n')
+        stream.write('<li><a name="enum_EDockingState">EDockingState</a>: 0 (not docking), 1 (docking), 2 (docked) (<code>spaceship.h</code>)</li>\n')
+        stream.write('<li><a name="enum_EMainScreenOverlay">EMainScreenOverlay</a>: "hidecomms", "showcomms" (<code>spaceship.hpp</code>)</li>\n')
+        stream.write('<li><a name="enum_EMainScreenSetting">EMainScreenSetting</a>: "front", "back", "left", "right", "target", "tactical", "longrange" (<code>spaceship.hpp</code>)</li>\n')
+        stream.write('<li><a name="enum_EMissileSizes">EMissileSizes</a>: "small", "medium", "large" (<code>missileWeaponData.hpp</code>)</li>\n')
+        stream.write('<li><a name="enum_EMissileWeapons">EMissileWeapons</a>: "Homing", "Nuke", "Mine", "EMP", "HVLI" (<code>missileWeaponData.hpp</code>)</li>\n')
         stream.write('<li><a name="enum_EScannedState">EScannedState</a>: "notscanned", "friendorfoeidentified", "simplescan", "fullscan" (<code>spaceObject.h</code>)</li>\n')
         stream.write('<li><a name="enum_ESystem">ESystem</a>: "reactor", "beamweapons", "missilesystem", "maneuver", "impulse", "warp", "jumpdrive", "frontshield", "rearshield"</li>\n')
-        stream.write("<!--\n")
-        stream.write("<li>EMainScreenOverlay: TODO</li>\n")
-        stream.write("<li>EMainScreenSetting: TODO</li>\n")
-        stream.write("-->\n")
         stream.write('<li><a name="enum_Factions">Factions</a>: "Independent", "Kraylor", "Arlenians", "Exuari", "Ghosts", "Ktlitans", "TSN", "USN", "CUF" (<code>factionInfo.lua</code>)</li>\n')
-        stream.write('<li><a name="enum_Color">Color</a>: A string that can either be a hex color code (#rrggbb), three comma seperated rgb integers (rrr,ggg,bbb) or one of the following: "black", "white", "red", "green", "blue", "yellow", "magenta" or "cyan". Invalid values default to white.</li>\n')
+        stream.write('<li><a name="enum_ScriptSimpleCallback">ScriptSimpleCallback</a> / function: Note that the callback function must reference something global, otherwise you get an error like "??[convert&lt;ScriptSimpleCallback&gt;::param] Upvalue 1 of function is not a table...". Use e.g. `math.abs(0) -- Provides global context for SeriousProton` to do nothing.</li>\n')
         stream.write("</ul>\n")
-        stream.write("<p>Note that most <code>SpaceObject</code>s directly switch to fully scanned, only <code>SpaceShips</code>s go through all the states.</p>")
+        stream.write("<p>Note that most <code>SpaceObject</code>s directly switch to fully scanned, only <code>SpaceShip</code>s go through all the states.</p>")
         stream.write("</div>\n")
 
         stream.write('<div class="section">')

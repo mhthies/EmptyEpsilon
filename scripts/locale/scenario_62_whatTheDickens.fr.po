@@ -9,8 +9,8 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 2.4.3\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"X-Generator: Poedit 3.2.2\n"
 "X-Poedit-SourceCharset: UTF-8\n"
 
 # Scenario name
@@ -38,7 +38,7 @@ msgstr ""
 # Scenario setting
 msgctxt "setting"
 msgid "Enemies"
-msgstr "Ennemis"
+msgstr "Puissance ennemie"
 
 msgctxt "setting"
 msgid "Configures the amount of enemies spawned in the scenario."
@@ -58,7 +58,7 @@ msgstr ""
 
 msgctxt "Enemies"
 msgid "Normal"
-msgstr "Normal"
+msgstr "Normale"
 
 msgctxt "Enemies"
 msgid "Normal goals and/or enemies. Good for a normal crew."
@@ -330,7 +330,7 @@ msgstr ""
 "riches de la communauté de la région de Londres."
 
 #: scripts/scenario_62_whatTheDickens.lua:449
-msgctxt "ammo-comms"
+msgctxt "station-comms"
 msgid "You need to stay docked for that action."
 msgstr "Vous devez rester amarrés à la station pour cette action."
 
@@ -405,20 +405,18 @@ msgstr ""
 #, lua-format
 msgctxt "stationAssist-comms"
 msgid "Can you send a supply drop? (%d rep)"
-msgstr ""
-"Pouvez-vous nous envoyer une cargaison de réapprovisionnement ? (%d rep)"
+msgstr "Pouvez-vous nous envoyer une cargaison de ravitaillement ? (%d rep)"
 
 #: scripts/scenario_62_whatTheDickens.lua:525
 msgctxt "stationAssist-comms"
 msgid "You need to set a waypoint before you can request backup."
 msgstr ""
-"Vous devez définir un marqueur avant de faire une demande de "
-"réapprovisionnement."
+"Vous devez définir un marqueur avant de faire une demande de ravitaillement."
 
 #: scripts/scenario_62_whatTheDickens.lua:527
 msgctxt "stationAssist-comms"
 msgid "To which waypoint should we deliver your supplies?"
-msgstr "À quel marqueur devons-nous envoyer le réapprovisionnement ?"
+msgstr "À quel marqueur devons-nous envoyer le ravitaillement ?"
 
 #: scripts/scenario_62_whatTheDickens.lua:529
 #: scripts/scenario_62_whatTheDickens.lua:555
@@ -433,7 +431,7 @@ msgctxt "stationAssist-comms"
 msgid "We have dispatched a supply ship toward WP %d"
 msgstr ""
 "Nous venons de déployer un vaisseau qui vous déposera la capsule de "
-"réapprovisionnement au marqueur %d."
+"ravitaillement au marqueur %d."
 
 #: scripts/scenario_62_whatTheDickens.lua:539
 #: scripts/scenario_62_whatTheDickens.lua:560

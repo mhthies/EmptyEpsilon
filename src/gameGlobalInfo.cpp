@@ -1,6 +1,7 @@
 #include <i18n.h>
 #include "gameGlobalInfo.h"
 #include "preferenceManager.h"
+#include "scenarioInfo.h"
 #include "scienceDatabase.h"
 #include "multiplayer_client.h"
 #include "soundManager.h"
@@ -177,6 +178,7 @@ void GameGlobalInfo::reset()
     allow_new_player_ships = true;
     global_message = "";
     global_message_timeout = 0.0f;
+    banner_string = "";
 
     //Pause the game
     engine->setGameSpeed(0.0);
@@ -187,7 +189,42 @@ void GameGlobalInfo::reset()
     }
 }
 
-void GameGlobalInfo::startScenario(string filename)
+void GameGlobalInfo::setScenarioSettings(const string filename, std::unordered_map<string, string> new_settings)
+{
+    // Use the parsed scenario metadata.
+    ScenarioInfo info(filename);
+
+    // Set the scenario name.
+    gameGlobalInfo->scenario = info.name;
+    LOG(INFO) << "Configuring settings for scenario " << gameGlobalInfo->scenario;
+
+    // Set each scenario setting to either a matching passed new value, or the
+    // default if there's no match (or no new value).
+    for(auto& setting : info.settings)
+    {
+        // Initialize with defaults.
+        gameGlobalInfo->scenario_settings[setting.key] = setting.default_option;
+
+        // If new settings were passed ...
+        if (!new_settings.empty())
+        {
+            // ... confirm that this setting key exists in the new settings.
+            if (new_settings.find(setting.key) != new_settings.end())
+            {
+                if (new_settings[setting.key] != "")
+                {
+                    // If so, override the default with the new value.
+                    gameGlobalInfo->scenario_settings[setting.key] = new_settings[setting.key];
+                }
+            }
+        }
+
+        // Log scenario setting confirmation.
+        LOG(INFO) << setting.key << " scenario setting set to " << gameGlobalInfo->scenario_settings[setting.key];
+    }
+}
+
+void GameGlobalInfo::startScenario(string filename, std::unordered_map<string, string> new_settings)
 {
     reset();
 
@@ -213,6 +250,10 @@ void GameGlobalInfo::startScenario(string filename)
     int max_cycles = PreferencesManager::get("script_cycle_limit", "0").toInt();
     if (max_cycles > 0)
         script->setMaxRunCycles(max_cycles);
+
+    // Initialize scenario settings.
+    setScenarioSettings(filename, new_settings);
+
     script->run(filename);
     engine->registerObject("scenario", script);
 
@@ -227,6 +268,16 @@ void GameGlobalInfo::destroy()
 {
     reset();
     MultiplayerObject::destroy();
+}
+
+string GameGlobalInfo::getMissionTime() {
+    unsigned int seconds = gameGlobalInfo->elapsed_time;
+    unsigned int minutes = (seconds / 60) % 60;
+    unsigned int hours = (seconds / 60 / 60) % 24;
+    seconds = seconds % 60;
+    char buf[9];
+    std::snprintf(buf, 9, "%02d:%02d:%02d", hours, minutes, seconds);
+    return string(buf);
 }
 
 string getSectorName(glm::vec2 position)
@@ -255,7 +306,10 @@ int getSectorName(lua_State* L)
     return 1;
 }
 /// string getSectorName(float x, float y)
-/// Return the sector name for the point with coordinates (x, y). Compare SpaceObject:getSectorName().
+/// Returns the name of the sector containing the given x/y coordinates.
+/// Coordinates 0,0 are the top-left ("northwest") point of sector F5.
+/// See also SpaceObject:getSectorName().
+/// Example: getSectorName(20000,-40000) -- returns "D6"
 REGISTER_SCRIPT_FUNCTION(getSectorName);
 
 glm::vec2 sectorToXY(string sector)
@@ -308,8 +362,11 @@ int sectorToXY(lua_State* L)
     return 2;
 }
 /// glm::vec2 sectorToXY(string sector_name)
-/// Convert a sector name to x,y coordinates for the top-left of the sector
-/// sectorToXY("A0") sectorToXY("zz-23") sectorToXY("BA12")
+/// Returns the top-left ("northwest") x/y coordinates for the given sector mame.
+/// Examples:
+/// x,y = sectorToXY("A0") -- x = -100000, y = -100000
+/// x,y = sectorToXY("zz-23") -- x = -560000, y = -120000
+/// x,y = sectorToXY("BA12") -- x = 140000, y = 940000
 REGISTER_SCRIPT_FUNCTION(sectorToXY);
 
 static int victory(lua_State* L)
@@ -321,8 +378,9 @@ static int victory(lua_State* L)
     return 0;
 }
 /// void victory(string faction_name)
-/// Called with a faction name as parameter, sets a certain faction as victor and ends the game.
+/// Sets the given faction as the scenario's victor and ends the scenario.
 /// (The GM can unpause the game, but the scenario with its update function is destroyed.)
+/// Example: victory("Exuari") -- ends the scenario, Exuari win
 REGISTER_SCRIPT_FUNCTION(victory);
 
 static int globalMessage(lua_State* L)
@@ -332,8 +390,9 @@ static int globalMessage(lua_State* L)
     return 0;
 }
 /// void globalMessage(string message, std::optional<float> timeout)
-/// Show a global message on the main screens of all active player ships.
-/// The message is shown for 5 sec; new messages replace the old immediately.
+/// Displays a message on the main screens of all active player ships.
+/// The message appears for 5 seconds, but new messages immediately replace any displayed message.
+/// Example: globalMessage("You will soon die!")
 REGISTER_SCRIPT_FUNCTION(globalMessage);
 
 static int setBanner(lua_State* L)
@@ -342,7 +401,8 @@ static int setBanner(lua_State* L)
     return 0;
 }
 /// void setBanner(string banner)
-/// Show a scrolling banner containing this text on the cinematic and top down views.
+/// Displays a scrolling banner containing the given text on the cinematic and top-down views.
+/// Example: setBanner("You will soon die!")
 REGISTER_SCRIPT_FUNCTION(setBanner);
 
 static int getScenarioTime(lua_State* L)
@@ -351,7 +411,9 @@ static int getScenarioTime(lua_State* L)
     return 1;
 }
 /// float getScenarioTime()
-/// Return the elapsed time of the scenario.
+/// Returns the elapsed time of the scenario, in seconds.
+/// This timer stops when the game is paused.
+/// Example: getScenarioTime() -- after two minutes, returns 120.0
 REGISTER_SCRIPT_FUNCTION(getScenarioTime);
 
 static int getPlayerShip(lua_State* L)
@@ -375,7 +437,11 @@ static int getPlayerShip(lua_State* L)
     return convert<P<PlayerSpaceship> >::returnType(L, ship);
 }
 /// P<PlayerSpaceship> getPlayerShip(int index)
-/// Return the player's ship, use -1 to get the first active player ship.
+/// Returns the PlayerSpaceship with the given index.
+/// PlayerSpaceships are 1-indexed.
+/// A new ship is assigned the lowest available index, and a destroyed ship leaves its index vacant.
+/// Pass -1 to return the first active player ship.
+/// Example: getPlayerShip(2) -- returns the second-indexed ship, if it exists
 REGISTER_SCRIPT_FUNCTION(getPlayerShip);
 
 static int getActivePlayerShips(lua_State* L)
@@ -395,7 +461,9 @@ static int getActivePlayerShips(lua_State* L)
     return convert<PVector<PlayerSpaceship>>::returnType(L, ships);
 }
 /// PVector<PlayerSpaceship> getActivePlayerShips()
-/// Return a list of active player ships.
+/// Returns a 1-indexed list of active PlayerSpaceships.
+/// Unlike getPlayerShip()'s index, destroyed ships don't leave gaps.
+/// Example: getActivePlayerShips()[2] -- returns the second-indexed active ship
 REGISTER_SCRIPT_FUNCTION(getActivePlayerShips);
 
 static int getObjectsInRadius(lua_State* L)
@@ -418,7 +486,8 @@ static int getObjectsInRadius(lua_State* L)
     return convert<PVector<SpaceObject> >::returnType(L, objects);
 }
 /// PVector<SpaceObject> getObjectsInRadius(float x, float y, float radius)
-/// Return a list of all space objects at the x,y location within a certain radius.
+/// Returns a list of all SpaceObjects within the given radius of the given x/y coordinates.
+/// Example: getObjectsInRadius(0,0,5000) -- returns all objects within 5U of 0,0
 REGISTER_SCRIPT_FUNCTION(getObjectsInRadius);
 
 static int getAllObjects(lua_State* L)
@@ -426,7 +495,9 @@ static int getAllObjects(lua_State* L)
     return convert<PVector<SpaceObject> >::returnType(L, space_object_list);
 }
 /// PVector<SpaceObject> getAllObjects()
-/// Return a list of all space objects. (Use with care, this could return a very long list which could slow down the game when called every update)
+/// Returns a list of all SpaceObjects.
+/// This can return a very long list and could slow down the game if called every tick.
+/// Example: getAllObjects()
 REGISTER_SCRIPT_FUNCTION(getAllObjects);
 
 static int getScenarioVariation(lua_State* L)
@@ -437,11 +508,10 @@ static int getScenarioVariation(lua_State* L)
         lua_pushstring(L, "None");
     return 1;
 }
-
 // this returns the "variation" scenario setting for backwards compatibility
 /// string getScenarioVariation()
-/// Returns the currently used scenario variation.
-/// Deprecated: Scenario settings are the replacement
+/// [DEPRECATED]
+/// As getScenarioSetting("variation").
 REGISTER_SCRIPT_FUNCTION(getScenarioVariation);
 
 static int getScenarioSetting(lua_State* L)
@@ -454,7 +524,9 @@ static int getScenarioSetting(lua_State* L)
     return 1;
 }
 /// string getScenarioSetting(string key)
-/// Returns a scenario setting, or an empty string if the setting is not found.
+/// Returns the given scenario setting's value, or an empty string if the setting is not found.
+/// Warning: Headless server modes might load scenarios without default setting values.
+/// Example: getScenarioSetting("Difficulty") -- if a scenario has Setting[Difficulty], returns its value, such as "Easy" or "Normal"
 REGISTER_SCRIPT_FUNCTION(getScenarioSetting);
 
 static int getGameLanguage(lua_State* L)
@@ -463,7 +535,8 @@ static int getGameLanguage(lua_State* L)
     return 1;
 }
 /// string getGameLanguage()
-/// Returns the language as the string set in game preferences under language key
+/// Returns the language as the string value of the language key in game preferences.
+/// Example: getGameLanguage() -- returns "en" if the game language is set to English
 REGISTER_SCRIPT_FUNCTION(getGameLanguage);
 
 /** Short lived object to do a scenario change on the update loop. See "setScenario" for details */
@@ -477,8 +550,7 @@ public:
 
     virtual void update(float delta) override
     {
-        gameGlobalInfo->scenario_settings = settings;
-        gameGlobalInfo->startScenario(script_name);
+        gameGlobalInfo->startScenario(script_name, settings);
         destroy();
     }
 private:
@@ -490,15 +562,36 @@ static int setScenario(lua_State* L)
 {
     string script_name = luaL_checkstring(L, 1);
     string variation = luaL_optstring(L, 2, "");
-    //This could be called from a currently active scenario script.
+
+    // Script filename must not be an empty string.
+    if (script_name == "")
+    {
+        LOG(ERROR) << "setScenario() requires a non-empty value.";
+        return 1;
+    }
+
+    if (variation != "")
+    {
+        LOG(WARNING) << "LUA: DEPRECATED setScenario() called with scenario variation. Passing the value as the \"variation\" scenario setting instead.";
+        // Start the scenario, passing the "variation" scenario setting.
+        new ScenarioChanger(script_name, {{"variation", variation}});
+    }
+    else
+    {
+        // Start the scenario with defaults.
+        new ScenarioChanger(script_name, {{}});
+    }
+
+    // This could be called from a currently active scenario script.
     // Calling GameGlobalInfo::startScenario is unsafe at this point,
     // as this will destroy the lua state that this function is running in.
-    //So use the ScenarioChanger object which will do the change in the update loop. Which is safe.
-    new ScenarioChanger(script_name, {{"variation", variation}});
+    // So use the ScenarioChanger object which will do the change in the update loop. Which is safe.
     return 0;
 }
 /// void setScenario(string script_name, std::optional<string> variation_name)
-/// Change the current scenario to a different one.
+/// Launches the given scenario, even if another scenario is running.
+/// Paths are relative to the scripts/ directory.
+/// Example: setScenario("scenario_03_waves.lua") -- launches the scenario at scripts/scenario_03_waves.lua
 REGISTER_SCRIPT_FUNCTION(setScenario);
 
 static int shutdownGame(lua_State* L)
@@ -507,8 +600,9 @@ static int shutdownGame(lua_State* L)
     return 0;
 }
 /// void shutdownGame()
-/// Shutdown the game.
-/// Calling this function will close the game. Mainly useful for a headless server setup.
+/// Shuts down the server.
+/// Use to gracefully shut down a headless server.
+/// Example: shutdownGame()
 REGISTER_SCRIPT_FUNCTION(shutdownGame);
 
 static int pauseGame(lua_State* L)
@@ -517,8 +611,9 @@ static int pauseGame(lua_State* L)
     return 0;
 }
 /// void pauseGame()
-/// Pause the game
-/// Calling this function will pause the game. Mainly useful for a headless server setup.
+/// Pauses the game.
+/// Use to pause a headless server, which doesn't have access to the GM screen.
+/// Example: pauseGame()
 REGISTER_SCRIPT_FUNCTION(pauseGame);
 
 static int unpauseGame(lua_State* L)
@@ -527,8 +622,9 @@ static int unpauseGame(lua_State* L)
     return 0;
 }
 /// void unpauseGame()
-/// Pause the game
-/// Calling this function will pause the game. Mainly useful for a headless server setup. As the scenario functions are not called when paused.
+/// Unpauses the game.
+/// Use to unpause a headless server, which doesn't have access to the GM screen.
+/// Example: unpauseGame()
 REGISTER_SCRIPT_FUNCTION(unpauseGame);
 
 static int playSoundFile(lua_State* L)
@@ -547,8 +643,11 @@ static int playSoundFile(lua_State* L)
     return 0;
 }
 /// void playSoundFile(string filename)
-/// Play a sound file on the server. Will work with any file supported by SFML (.wav, .ogg, .flac)
-/// Note that the sound is only played on the server. Not on any of the clients.
+/// Plays the given audio file on the server.
+/// Paths are relative to the resources/ directory.
+/// Works with any file format supported by SDL, including .wav, .ogg, .flac.
+/// The sound is played only on the server, and not on any clients.
+/// Example: playSoundFile("sfx/laser.wav")
 REGISTER_SCRIPT_FUNCTION(playSoundFile);
 
 template<> int convert<EScanningComplexity>::returnType(lua_State* L, EScanningComplexity complexity)
@@ -577,7 +676,8 @@ static int getScanningComplexity(lua_State* L)
     return convert<EScanningComplexity>::returnType(L, gameGlobalInfo->scanning_complexity);
 }
 /// EScanningComplexity getScanningComplexity()
-/// Get the scanning complexity setting
+/// Returns the running scenario's scanning complexity setting.
+/// Example: getScanningComplexity() -- returns "normal" by default
 REGISTER_SCRIPT_FUNCTION(getScanningComplexity);
 
 static int getHackingDifficulty(lua_State* L)
@@ -586,7 +686,13 @@ static int getHackingDifficulty(lua_State* L)
     return 1;
 }
 /// int getHackingDifficulty()
-/// Get the hacking difficulty setting (returns an integer between 0 and 3)
+/// Returns the running scenario's hacking difficulty setting.
+/// The returned value is an integer between 0 and 3:
+/// 0 = Simple
+/// 1 = Normal
+/// 2 = Difficult (default)
+/// 3 = Fiendish 
+/// Example: getHackingDifficulty() -- returns 2 by default
 REGISTER_SCRIPT_FUNCTION(getHackingDifficulty);
 
 template<> int convert<EHackingGames>::returnType(lua_State* L, EHackingGames game)
@@ -612,7 +718,8 @@ static int getHackingGames(lua_State* L)
     return convert<EHackingGames>::returnType(L, gameGlobalInfo->hacking_games);
 }
 /// EHackingGames getHackingGames()
-/// Get the hacking games setting
+/// Returns the running scenario's hacking difficulty setting.
+/// Example: getHackingGames() -- returns "all" by default
 REGISTER_SCRIPT_FUNCTION(getHackingGames);
 
 static int areBeamShieldFrequenciesUsed(lua_State* L)
@@ -621,7 +728,8 @@ static int areBeamShieldFrequenciesUsed(lua_State* L)
     return 1;
 }
 /// bool areBeamShieldFrequenciesUsed()
-/// returns if the "Beam/Shield Frequencies" setting is enabled
+/// Returns whether the "Beam/Shield Frequencies" setting is enabled in the running scenario.
+/// Example: areBeamShieldFrequenciesUsed() -- returns true by default
 REGISTER_SCRIPT_FUNCTION(areBeamShieldFrequenciesUsed);
 
 static int isPerSystemDamageUsed(lua_State* L)
@@ -630,7 +738,8 @@ static int isPerSystemDamageUsed(lua_State* L)
     return 1;
 }
 /// bool isPerSystemDamageUsed()
-/// returns if the "Per-System Damage" setting is enabled
+/// Returns whether the "Per-System Damage" setting is enabled in the running scenario.
+/// Example: isPerSystemDamageUsed() -- returns true by default
 REGISTER_SCRIPT_FUNCTION(isPerSystemDamageUsed);
 
 static int isTacticalRadarAllowed(lua_State* L)
@@ -639,7 +748,8 @@ static int isTacticalRadarAllowed(lua_State* L)
     return 1;
 }
 /// bool isTacticalRadarAllowed()
-/// returns if the "Tactical Radar" setting is enabled
+/// Returns whether the "Tactical Radar" setting for main screens is enabled in the running scenario.
+/// Example: isTacticalRadarAllowed() -- returns true by default
 REGISTER_SCRIPT_FUNCTION(isTacticalRadarAllowed);
 
 static int isLongRangeRadarAllowed(lua_State* L)
@@ -648,7 +758,8 @@ static int isLongRangeRadarAllowed(lua_State* L)
     return 1;
 }
 /// bool isLongRangeRadarAllowed()
-/// returns if the "Long Range Radar" setting is enabled
+/// Returns whether the "Long Range Radar" setting for main screens is enabled in the running scenario.
+/// Example: isLongRangeRadarAllowed() -- returns true by default
 REGISTER_SCRIPT_FUNCTION(isLongRangeRadarAllowed);
 
 static int onNewPlayerShip(lua_State* L)
@@ -658,8 +769,9 @@ static int onNewPlayerShip(lua_State* L)
     return 0;
 }
 /// void onNewPlayerShip(ScriptSimpleCallback callback)
-/// Register a callback function that is called when a new ship is created (on the ship selection screen or with the constructor in a lua script).
-/// This callback function is called with the newly created ship as the only parameter.
+/// Defines a function to call when a new PlayerSpaceship is created, whether on the ship selection screen or with the constructor in a Lua script.
+/// Passes the newly created PlayerSpaceship.
+/// Example: onNewPlayerShip(function(player) print(player:getCallSign()) end) -- prints the callsign of new PlayerSpaceships to the console
 REGISTER_SCRIPT_FUNCTION(onNewPlayerShip);
 
 static int allowNewPlayerShips(lua_State* L)
@@ -668,7 +780,8 @@ static int allowNewPlayerShips(lua_State* L)
     return 0;
 }
 /// void allowNewPlayerShips(bool allow)
-/// Set if the server is allowed to create new player ships from the ship creation screen.
+/// Defines whether the "Spawn player ship" button appears on the ship creation screen.
+/// Example: allowNewPlayerShips(false) -- removes the button
 REGISTER_SCRIPT_FUNCTION(allowNewPlayerShips);
 
 static int getEEVersion(lua_State* L)
@@ -677,5 +790,6 @@ static int getEEVersion(lua_State* L)
     return 1;
 }
 /// string getEEVersion()
-/// Get a string with the current version number, like "20191231"
+/// Returns a string with the current EmptyEpsilon version number, such as "20221029".
+/// Example: getEEVersion() -- returns 20221029 on EE-2022.10.29
 REGISTER_SCRIPT_FUNCTION(getEEVersion);

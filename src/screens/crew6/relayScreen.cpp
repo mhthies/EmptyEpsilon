@@ -289,11 +289,15 @@ void RelayScreen::onDraw(sp::RenderTarget& renderer)
     {
         // Toggle ship capabilities.
         launch_probe_button->setVisible(my_spaceship->getCanLaunchProbe());
+        launch_probe_button->setEnable(my_spaceship->scan_probe_stock > 0);
         link_to_science_button->setVisible(my_spaceship->getCanLaunchProbe());
         hack_target_button->setVisible(my_spaceship->getCanHack());
 
         info_reputation->setValue(string(my_spaceship->getReputationPoints(), 0));
-        info_clock->setValue(string(gameGlobalInfo->elapsed_time, 0));
+
+        // Update mission clock
+        info_clock->setValue(gameGlobalInfo->getMissionTime());
+
         launch_probe_button->setText(tr("Launch Probe") + " (" + string(my_spaceship->scan_probe_stock) + ")");
     }
 

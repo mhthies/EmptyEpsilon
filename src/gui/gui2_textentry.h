@@ -19,6 +19,7 @@ protected:
     float text_size;
     bool multiline = false;
     bool readonly = false;
+    bool hide_password = false;
     const GuiThemeStyle* front_style;
     const GuiThemeStyle* back_style;
     func_t func;
@@ -33,7 +34,7 @@ public:
     GuiTextEntry(GuiContainer* owner, string id, string text);
     virtual ~GuiTextEntry();
 
-    virtual void onDraw(sp::RenderTarget& window) override;
+    virtual void onDraw(sp::RenderTarget& renderer) override;
     virtual bool onMouseDown(sp::io::Pointer::Button button, glm::vec2 position, sp::io::Pointer::ID id) override;
     virtual void onMouseDrag(glm::vec2 position, sp::io::Pointer::ID id) override;
     virtual void onTextInput(const string& text) override;
@@ -45,6 +46,7 @@ public:
     GuiTextEntry* setText(string text);
     GuiTextEntry* setTextSize(float size);
     GuiTextEntry* setMultiline(bool enabled=true);
+    GuiTextEntry* setHidePassword(bool enabled=true);
     GuiTextEntry* callback(func_t func);
     GuiTextEntry* enterCallback(func_t func);
 

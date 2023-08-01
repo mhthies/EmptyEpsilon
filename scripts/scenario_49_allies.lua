@@ -4313,7 +4313,7 @@ function isAllowedTo(state)
 end
 function handleWeaponRestock(weapon)
     if not player:isDocked(comms_target) then 
-		setCommsMessage(_("ammo-comms", "You need to stay docked for that action."))
+		setCommsMessage(_("station-comms", "You need to stay docked for that action."))
 		return
 	end
     if not isAllowedTo(comms_data.weapons[weapon]) then
@@ -4589,14 +4589,14 @@ function handleUndockedState()
 				end
 			end)	--end station info comms reply branch
 		end	--end public relations if branch
-		addCommsReply(_("station-comms", "Report status"), function()
-			msg = string.format(_("station-comms", "Hull: %d%%\n"), math.floor(comms_target:getHull() / comms_target:getHullMax() * 100))
+		addCommsReply(_("stationAssist-comms", "Report status"), function()
+			msg = string.format(_("stationAssist-comms", "Hull: %d%%\n"), math.floor(comms_target:getHull() / comms_target:getHullMax() * 100))
 			local shields = comms_target:getShieldCount()
 			if shields == 1 then
-				msg = msg .. string.format(_("station-comms", "Shield: %d%%\n"), math.floor(comms_target:getShieldLevel(0) / comms_target:getShieldMax(0) * 100))
+				msg = msg .. string.format(_("stationAssist-comms", "Shield: %d%%\n"), math.floor(comms_target:getShieldLevel(0) / comms_target:getShieldMax(0) * 100))
 			else
 				for n=0,shields-1 do
-					msg = msg .. string.format(_("station-comms", "Shield %s: %d%%\n"), n, math.floor(comms_target:getShieldLevel(n) / comms_target:getShieldMax(n) * 100))
+					msg = msg .. string.format(_("stationAssist-comms", "Shield %s: %d%%\n"), n, math.floor(comms_target:getShieldLevel(n) / comms_target:getShieldMax(n) * 100))
 				end
 			end			
 			setCommsMessage(msg);
@@ -4610,7 +4610,7 @@ function handleUndockedState()
             else
                 setCommsMessage(_("stationAssist-comms", "To which waypoint should we deliver your supplies?"))
                 for n=1,player:getWaypointCount() do
-                    addCommsReply(string.format(_("stationAssist-comms", "Waypoint %i"),n), function()
+                    addCommsReply(string.format(_("stationAssist-comms", "Waypoint %d"),n), function()
 						if player:takeReputationPoints(getServiceCost("supplydrop")) then
 							local position_x, position_y = comms_target:getPosition()
 							local target_x, target_y = player:getWaypoint(n)
@@ -4618,7 +4618,7 @@ function handleUndockedState()
 							script:setVariable("position_x", position_x):setVariable("position_y", position_y)
 							script:setVariable("target_x", target_x):setVariable("target_y", target_y)
 							script:setVariable("faction_id", comms_target:getFactionId()):run("supply_drop.lua")
-							setCommsMessage(string.format(_("stationAssist-comms", "We have dispatched a supply ship toward waypoint %i"),n))
+							setCommsMessage(string.format(_("stationAssist-comms", "We have dispatched a supply ship toward waypoint %d"),n))
 						else
 							setCommsMessage(_("needRep-comms", "Not enough reputation!"))
 						end
@@ -4636,12 +4636,12 @@ function handleUndockedState()
             else
                 setCommsMessage(_("stationAssist-comms", "To which waypoint should we dispatch the reinforcements?"))
                 for n=1,player:getWaypointCount() do
-                    addCommsReply(string.format(_("stationAssist-comms", "Waypoint %i"),n), function()
+                    addCommsReply(string.format(_("stationAssist-comms", "Waypoint %d"),n), function()
 						if player:takeReputationPoints(getServiceCost("reinforcements")) then
 							ship = CpuShip():setFactionId(comms_target:getFactionId()):setPosition(comms_target:getPosition()):setTemplate("Adder MK5"):setScanned(true):orderDefendLocation(player:getWaypoint(n))
 							ship:setCommsScript(""):setCommsFunction(commsShip):onDestruction(humanVesselDestroyed)
 							table.insert(friendlyHelperFleet,ship)
-							setCommsMessage(string.format(_("stationAssist-comms", "We have dispatched %s to assist at waypoint %i"),ship:getCallSign(),n))
+							setCommsMessage(string.format(_("stationAssist-comms", "We have dispatched %s to assist at waypoint %d"),ship:getCallSign(),n))
 						else
 							setCommsMessage(_("needRep-comms", "Not enough reputation!"))
 						end
@@ -4657,12 +4657,12 @@ function handleUndockedState()
             else
                 setCommsMessage(_("stationAssist-comms", "To which waypoint should we dispatch the reinforcements?"))
                 for n=1,player:getWaypointCount() do
-                    addCommsReply(string.format(_("stationAssist-comms", "Waypoint %i"),n), function()
+                    addCommsReply(string.format(_("stationAssist-comms", "Waypoint %d"),n), function()
 						if player:takeReputationPoints(getServiceCost("phobosReinforcements")) then
 							ship = CpuShip():setFactionId(comms_target:getFactionId()):setPosition(comms_target:getPosition()):setTemplate("Phobos T3"):setScanned(true):orderDefendLocation(player:getWaypoint(n))
 							ship:setCommsScript(""):setCommsFunction(commsShip):onDestruction(humanVesselDestroyed)
 							table.insert(friendlyHelperFleet,ship)
-							setCommsMessage(string.format(_("stationAssist-comms", "We have dispatched %s to assist at waypoint %i"),ship:getCallSign(),n))
+							setCommsMessage(string.format(_("stationAssist-comms", "We have dispatched %s to assist at waypoint %d"),ship:getCallSign(),n))
 						else
 							setCommsMessage(_("needRep-comms", "Not enough reputation!"))
 						end
@@ -4678,12 +4678,12 @@ function handleUndockedState()
             else
                 setCommsMessage(_("stationAssist-comms", "To which waypoint should we dispatch the reinforcements?"))
                 for n=1,player:getWaypointCount() do
-                    addCommsReply(string.format(_("stationAssist-comms", "Waypoint %i"),n), function()
+                    addCommsReply(string.format(_("stationAssist-comms", "Waypoint %d"),n), function()
 						if player:takeReputationPoints(getServiceCost("stalkerReinforcements")) then
 							ship = CpuShip():setFactionId(comms_target:getFactionId()):setPosition(comms_target:getPosition()):setTemplate("Stalker Q7"):setScanned(true):orderDefendLocation(player:getWaypoint(n))
 							ship:setCommsScript(""):setCommsFunction(commsShip):onDestruction(humanVesselDestroyed)
 							table.insert(friendlyHelperFleet,ship)
-							setCommsMessage(string.format(_("stationAssist-comms", "We have dispatched %s to assist at waypoint %i"),ship:getCallSign(),n))
+							setCommsMessage(string.format(_("stationAssist-comms", "We have dispatched %s to assist at waypoint %d"),ship:getCallSign(),n))
 						else
 							setCommsMessage(_("needRep-comms", "Not enough reputation!"))
 						end
@@ -4798,9 +4798,9 @@ function friendlyComms(comms_data)
 		else
 			setCommsMessage(_("shipAssist-comms", "Which waypoint should we defend?"))
 			for n=1,player:getWaypointCount() do
-				addCommsReply(string.format(_("shipAssist-comms", "Defend waypoint %i"),n), function()
+				addCommsReply(string.format(_("shipAssist-comms", "Defend waypoint %d"),n), function()
 					comms_target:orderDefendLocation(player:getWaypoint(n))
-					setCommsMessage(string.format(_("shipAssist-comms", "We are heading to assist at waypoint %i."),n))
+					setCommsMessage(string.format(_("shipAssist-comms", "We are heading to assist at waypoint %d."),n))
 					addCommsReply(_("Back"), commsShip)
 				end)
 			end
@@ -5125,7 +5125,7 @@ function neutralComms(comms_data)
 				end	--end sell goods if branch
 			end	--end nearby freighter if branch
 		elseif comms_data.friendlyness > 33 then
-			setCommsMessage(_("trade-comms", "What do you want?"))
+			setCommsMessage(_("shipAssist-comms", "What do you want?"))
 			-- Offer to sell destination information
 			local destRep = random(1,5)
 			addCommsReply(string.format(_("trade-comms", "Where are you headed? (cost: %.1f reputation)"),destRep), function()
@@ -6056,9 +6056,9 @@ function checkDoomsdayEvents(delta)
 		local doomsday_seconds = math.floor(doomsdayTimer % 60)
 		doomsday_status = _("doomsday-tabEngineer&Engineer+", "Doomsday Device:")
 		if doomsday_minutes <= 0 then
-			doomsday_status = string.format("%s %i",doomsday_status,doomsday_seconds)
+			doomsday_status = string.format(_("doomsday-tabEngineer&Engineer+", "%s %i"),doomsday_status,doomsday_seconds)
 		else
-			doomsday_status = string.format("%s %i:%.2i",doomsday_status,doomsday_minutes,doomsday_seconds)
+			doomsday_status = string.format(_("doomsday-tabEngineer&Engineer+", "%s %i:%.2i"),doomsday_status,doomsday_minutes,doomsday_seconds)
 		end
 	end
 	for pidx=1,8 do
@@ -6301,9 +6301,9 @@ function checkSickArlenianAdmiralEvents(delta)
 	local death_seconds = math.floor(admiralTimeToLive % 60)
 	local admiral_status = _("doctor-tabScience&Operations", "Koshenz Death:")
 	if death_minutes <= 0 then
-		admiral_status = string.format("%s %i",admiral_status,death_seconds)
+		admiral_status = string.format(_("doctor-tabScience&Operations", "%s %i"),admiral_status,death_seconds)
 	else
-		admiral_status = string.format("%s %i:%.2i",admiral_status,death_minutes,death_seconds)
+		admiral_status = string.format(_("doctor-tabScience&Operations", "%s %i:%.2i"),admiral_status,death_minutes,death_seconds)
 	end
 	for pidx=1,8 do
 		local p = getPlayerShip(pidx)
@@ -6545,11 +6545,11 @@ function crewFate(p, fatalityChance)
 		p:setRepairCrewCount(p:getRepairCrewCount() - 1)
 		if p:hasPlayerAtPosition("Engineering") then
 			local repairCrewFatality = "repairCrewFatality"
-			p:addCustomMessage("Engineering",repairCrewFatality,_("msgEngineer", "One of your repair crew has perished"))
+			p:addCustomMessage("Engineering",repairCrewFatality,_("repairCrew-msgEngineer", "One of your repair crew has perished"))
 		end
 		if p:hasPlayerAtPosition("Engineering+") then
 			local repairCrewFatalityPlus = "repairCrewFatalityPlus"
-			p:addCustomMessage("Engineering+",repairCrewFatalityPlus,_("msgEngineer+", "One of your repair crew has perished"))
+			p:addCustomMessage("Engineering+",repairCrewFatalityPlus,_("repairCrew-msgEngineer+", "One of your repair crew has perished"))
 		end
 	end
 end--set up players with name, goods, cargo space, reputation and either a warp drive or a jump drive if applicable

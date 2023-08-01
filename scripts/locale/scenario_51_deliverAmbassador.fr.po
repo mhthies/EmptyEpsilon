@@ -10,7 +10,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
-"X-Generator: Poedit 2.4.3\n"
+"X-Generator: Poedit 3.2.2\n"
 "X-Poedit-SourceCharset: UTF-8\n"
 
 # Scenario name
@@ -40,40 +40,38 @@ msgstr ""
 "- Difficulté : Moyenne (variable)\n"
 "- Vaisseaux joueurs : 1\n"
 "\n"
-"Les troubles sur Goltin 7 requièrent les compétences de l'ambassadeur "
-"Gremus.\n"
-"Votre mission : transporter l'ambassadeur partout où il est demandé. Vous "
-"pourrez rencontrer de la résistance.\n"
+"Mission : Les troubles sur Goltin 7 requièrent les compétences de "
+"l'ambassadeur Gremus. Votre mission : transporter l'ambassadeur partout où "
+"il est demandé à bord du Flavia P. Falcon. Vous pourrez rencontrer de la "
+"résistance.\n"
 "\n"
-"Vous ne pilotez pas un destroyer hérissé d'armes. Vous êtes sur un cargo de "
-"transport avec des armes boulonnées pour la mission. Ces armes sont "
-"orientées vers l'arrière pour dissuader les pirates en maraude.\n"
-"Vous ne pourrez pas forcement détruire les ennemis qui pourraient essayer de "
-"vous empêcher d'accomplir votre mission et serez peut-être amené à fuir.\n"
+"Vous ne pilotez pas un destroyer hérissé d'armes mais un cargo de transport "
+"avec des armes boulonnées pour la mission. Ces armes sont orientées vers "
+"l'arrière pour dissuader les pirates en maraude.\n"
+"Vous ne pourrez pas forcement détruire tous les ennemis vous gênant dans "
+"votre mission et serez peut-être amené à fuir.\n"
 "\n"
-"Votre réussite est capitale, c'est pourquoi votre navire a été équipé d'un "
-"système de propulsion à vitesse lumière et d'un seul tube de missiles à "
-"capacité nucléaire.\n"
+"Votre réussite étant capitale, votre vaisseau dispose de la vitesse lumière "
+"et d'1 tube de missiles à capacité nucléaire.\n"
 "Si vous vous perdez ou oubliez vos ordres en cours, renseignez-vous auprès "
 "des stations.\n"
 "\n"
-"Navire joueurs : Flavia P. Falcon.\n"
-"\n"
-"Réglages volume conseillés : musique à 10 % et son à 100 % sur le serveur.\n"
 "Contient du texte audio.\n"
+"Réglages conseillés sur le serveur: musique 10% ; son 100%.\n"
 "\n"
-"Version 4\n"
+"Version 4 - Oct 2020\n"
 "\n"
 "- Titre original : Deliver Ambassador Gremus\n"
-"- Auteur : Xansta\n"
+"- Auteur : Xansta (2018)\n"
 "https://discord.gg/GjqM9Y9yBe\n"
 "- Traduction FR : Muerte\n"
+"- Voix FR : Muerte\n"
 "https://discord.gg/2NPKyMnGwp"
 
 # Scenario setting
 msgctxt "setting"
 msgid "Enemies"
-msgstr "Ennemis"
+msgstr "Puissance ennemie"
 
 msgctxt "setting"
 msgid "Configures the amount of enemies spawned in the scenario."
@@ -89,7 +87,7 @@ msgstr "Moins d'ennemis."
 
 msgctxt "Enemies"
 msgid "Normal"
-msgstr "Normal"
+msgstr "Normale"
 
 msgctxt "Enemies"
 msgid "Normal amount of enemies."
@@ -242,6 +240,18 @@ msgstr ""
 msgctxt "audio-tabRelay&Operations"
 msgid "Mob Action"
 msgstr "Temps restant :"
+
+#: scripts/scenario_51_deliverAmbassador.lua:357
+#, lua-format
+msgctxt "audio-tabRelay&Operations"
+msgid "%s %i"
+msgstr "%s %i"
+
+#: scripts/scenario_51_deliverAmbassador.lua:359
+#, lua-format
+msgctxt "audio-tabRelay&Operations"
+msgid "%s %i:%.2i"
+msgstr "%s %i : %.2i"
 
 #: scripts/scenario_51_deliverAmbassador.lua:437
 msgctxt "audio-incCall"
@@ -810,7 +820,7 @@ msgstr ""
 "sur Goltin 7. "
 
 #: scripts/scenario_51_deliverAmbassador.lua:1077
-msgctxt "ammo-comms"
+msgctxt "station-comms"
 msgid "You need to stay docked for that action."
 msgstr "Vous devez rester amarrés à la station pour cette action."
 
@@ -885,8 +895,7 @@ msgstr ""
 #, lua-format
 msgctxt "stationAssist-comms"
 msgid "Can you send a supply drop? (%d rep)"
-msgstr ""
-"Pouvez-vous nous envoyer une cargaison de réapprovisionnement ? (%d rep)"
+msgstr "Pouvez-vous nous envoyer une cargaison de ravitaillement ? (%d rep)"
 
 #: scripts/scenario_51_deliverAmbassador.lua:1118
 msgctxt "stationAssist-comms"
@@ -911,7 +920,7 @@ msgctxt "stationAssist-comms"
 msgid "We have dispatched a supply ship toward WP %d"
 msgstr ""
 "Nous venons de déployer un vaisseau qui vous déposera la capsule de "
-"réapprovisionnement au marqueur %d."
+"ravitaillement au marqueur %d."
 
 #: scripts/scenario_51_deliverAmbassador.lua:1132
 #: scripts/scenario_51_deliverAmbassador.lua:1153
@@ -933,13 +942,15 @@ msgstr "Vous devez définir un waypoint avant de pouvoir demander des renforts."
 #: scripts/scenario_51_deliverAmbassador.lua:1146
 msgctxt "stationAssist-comms"
 msgid "To which waypoint should we dispatch the reinforcements?"
-msgstr "À quel marqueur devons-nous envoyer le réapprovisionnement ?"
+msgstr "À quel marqueur devons-nous envoyer le ravitaillement ?"
 
 #: scripts/scenario_51_deliverAmbassador.lua:1151
 #, lua-format
 msgctxt "stationAssist-comms"
-msgid "We have dispatched %s to assist at WP %d "
-msgstr "Nous venons d'expédier %s pour vous aider au marqueur %d "
+msgid "We have dispatched %s to assist at WP %d"
+msgstr ""
+"Nous venons de déployer le vaisseau de combat %s pour vous soutenir au "
+"marqueur %d."
 
 #: scripts/scenario_51_deliverAmbassador.lua:1174
 msgctxt "path-comms"

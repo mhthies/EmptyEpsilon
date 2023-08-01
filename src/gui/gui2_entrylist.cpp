@@ -20,6 +20,7 @@ GuiEntryList* GuiEntryList::setOptions(const std::vector<string>& options)
 GuiEntryList* GuiEntryList::setOptions(const std::vector<string>& options, const std::vector<string>& values)
 {
     auto count = std::min(options.size(), values.size());
+    entries.clear();
     entries.reserve(entries.size() + count);
     for(unsigned int n=0; n<count; n++)
     {
@@ -42,6 +43,14 @@ void GuiEntryList::setEntryValue(int index, string value)
     if (index < 0 || index >= (int)entries.size())
         return;
     entries[index].value = value;
+    entriesChanged();
+}
+
+void GuiEntryList::setEntryIcon(int index, string icon_name)
+{
+    if (index < 0 || index >= (int)entries.size())
+        return;
+    entries[index].icon_name = icon_name;
     entriesChanged();
 }
 
@@ -98,6 +107,13 @@ string GuiEntryList::getEntryValue(int index) const
     if (index < 0 || index >= int(entries.size()))
         return "";
     return entries[index].value;
+}
+
+string GuiEntryList::getEntryIcon(int index) const
+{
+    if (index < 0 || index >= int(entries.size()))
+        return "";
+    return entries[index].icon_name;
 }
 
 int GuiEntryList::getSelectionIndex() const

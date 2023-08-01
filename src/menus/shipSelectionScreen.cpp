@@ -1,4 +1,5 @@
 #include "shipSelectionScreen.h"
+#include "shipTemplate.h"
 
 #include "featureDefs.h"
 #include "glObjects.h"
@@ -25,6 +26,7 @@
 #include "gui/gui2_slider.h"
 #include "gui/gui2_textentry.h"
 #include "gui/gui2_togglebutton.h"
+
 #include "preferenceManager.h"
 
 class PasswordDialog : public GuiOverlay
@@ -41,6 +43,18 @@ public:
         label->setPosition(0, 40, sp::Alignment::TopCenter);
         entry = new GuiTextEntry(entry_box, "PASSWORD_ENTRY", "");
         entry->setPosition(20, 0, sp::Alignment::CenterLeft)->setSize(400, 50);
+        entry->setHidePassword();
+        entry->enterCallback([this](string text) {
+            if (confirmation->isVisible())
+            {
+                hide();
+                on_ready();
+            }
+            if (text != "")
+            {
+                checkPassword();
+            }
+        });
         cancel = new GuiButton(entry_box, "PASSWORD_CANCEL_BUTTON", tr("button", "Cancel"), [this]() {
             // Reset the dialog.
             entry->setText("");
@@ -52,22 +66,7 @@ public:
 
         entry_ok = new GuiButton(entry_box, "PASSWORD_ENTRY_OK", tr("Ok"), [this]()
         {
-            string password = entry->getText().upper();
-            if (this->on_password_check(password))
-            {
-                // Notify the player.
-                label->setText(tr("Control code accepted.\nGranting access."));
-                // Reset and hide the password field.
-                entry->setText("");
-                entry->hide();
-                cancel->hide();
-                entry_ok->hide();
-                // Show a confirmation button.
-                confirmation->show();
-            } else {
-                label->setText(tr("Incorrect control code. Re-enter code:"));
-                entry->setText("");
-            }
+            checkPassword();
         });
         entry_ok->setPosition(420, 0, sp::Alignment::CenterLeft)->setSize(160, 50);
 
@@ -80,13 +79,14 @@ public:
         confirmation->setPosition(0, -20, sp::Alignment::BottomCenter)->setSize(250, 50)->hide();
     }
 
-    void open(string label, std::function<bool(string)> on_password_check, std::function<void()> on_ready, std::function<void()> on_cancel)
+    void open(string label, string preset_password, std::function<bool(string)> on_password_check, std::function<void()> on_ready, std::function<void()> on_cancel)
     {
         this->label->setText(label);
         this->on_password_check = on_password_check;
         this->on_ready = on_ready;
         this->on_cancel = on_cancel;
 
+        entry->setText(preset_password);
         entry->show();
         cancel->show();
         entry_ok->show();
@@ -98,11 +98,32 @@ private:
     std::function<void()> on_ready;
     std::function<void()> on_cancel;
 
+    void checkPassword() {
+        string password = entry->getText().upper();
+        if (this->on_password_check(password))
+        {
+            // Notify the player.
+            label->setText(tr("Control code accepted.\nGranting access."));
+            // Reset and hide the password field.
+            entry->setText("");
+            entry->hide();
+            cancel->hide();
+            entry_ok->hide();
+            // Show a confirmation button.
+            confirmation->show();
+        } else {
+            label->setText(tr("Incorrect control code. Re-enter code:"));
+            entry->setText("");
+        }
+    }
+
     GuiLabel* label;
-    GuiTextEntry* entry;
     GuiButton* cancel;
     GuiButton* entry_ok;
     GuiButton* confirmation;
+
+public:
+    GuiTextEntry* entry;
 };
 
 ShipSelectionScreen::ShipSelectionScreen()
@@ -123,7 +144,13 @@ ShipSelectionScreen::ShipSelectionScreen()
     right_container->setSize(GuiElement::GuiSizeMax, GuiElement::GuiSizeMax);
 
     auto right_panel = new GuiPanel(right_container, "DIRECT_OPTIONS_PANEL");
-    right_panel->setPosition(0, 50, sp::Alignment::TopCenter)->setSize(550, 560);
+    if (game_server) {
+    right_panel->setPosition(0, 50, sp::Alignment::TopCenter)->setSize(550, 325);
+	}
+	else
+	{
+	right_panel->setPosition(0, 50, sp::Alignment::TopCenter)->setSize(550, 560);
+	}
     auto right_content = new GuiElement(right_panel, "");
     right_content->setMargins(50)->setPosition(0, 0)->setSize(GuiElement::GuiSizeMax, GuiElement::GuiSizeMax)->setAttribute("layout", "vertical");
 
@@ -133,7 +160,8 @@ ShipSelectionScreen::ShipSelectionScreen()
             if (gameGlobalInfo->gm_control_code.length() > 0)
             {
                 LOG(INFO) << "Player selected gm mode, which has a control code.";
-                password_dialog->open(tr("Enter the GM control code:"), [this](string code) {
+                focus(password_dialog->entry);
+                password_dialog->open(tr("Enter the GM control code:"), "", [this](string code) {
                     return code == gameGlobalInfo->gm_control_code;
                 }, [this](){
                     my_player_info->commandSetShipId(-1);
@@ -159,7 +187,8 @@ ShipSelectionScreen::ShipSelectionScreen()
         if (gameGlobalInfo->gm_control_code.length() > 0)
         {
             LOG(INFO) << "Player selected Spectate mode, which has a control code.";
-            password_dialog->open(tr("Enter the GM control code:"), [this](string code) {
+            focus(password_dialog->entry);
+            password_dialog->open(tr("Enter the GM control code:"), "", [this](string code) {
                 return code == gameGlobalInfo->gm_control_code;
             }, [this](){
                 my_player_info->commandSetShipId(-1);
@@ -246,6 +275,10 @@ ShipSelectionScreen::ShipSelectionScreen()
     if (game_server && gameGlobalInfo->allow_new_player_ships)
     {
         (new GuiPanel(left_container, "CREATE_SHIP_BOX"))->setPosition(0, 50, sp::Alignment::TopCenter)->setSize(550, 700);
+        auto right_panel_2 = new GuiPanel(right_container, "PLAYER_SHIP_INFO_BOX");
+        right_panel_2->setPosition(0, 400, sp::Alignment::TopCenter)->setSize(550, 350);
+        playership_info = new GuiScrollText(right_panel_2, "PLAYERSHIP_INFO", tr("Ship info..."));
+        playership_info->setPosition(0, 10, sp::Alignment::TopCenter)->setSize(520, 400);
     }
 
     // Player ship selection panel
@@ -269,11 +302,13 @@ ShipSelectionScreen::ShipSelectionScreen()
                 left_container->hide();
                 right_container->hide();
                 // Show the control code entry dialog.
-                password_dialog->open(tr("Enter this ship's control code:"), [this, ship](string code) {
+                focus(password_dialog->entry);
+                password_dialog->open(tr("Enter this ship's control code:"), my_player_info->last_ship_password, [this, ship](string code) {
                     return ship && ship->control_code == code;
                 }, [this, ship](){
                     my_player_info->commandSetShipId(ship->getMultiplayerId());
                     crew_position_selection_overlay->show();
+                    my_player_info->last_ship_password = ship->control_code;
                     left_container->show();
                     right_container->show();
                 }, [this](){
@@ -297,11 +332,15 @@ ShipSelectionScreen::ShipSelectionScreen()
     // If this is the server, add buttons and a selector to create player ships.
     if (game_server && gameGlobalInfo->allow_new_player_ships)
     {
-        GuiSelector* ship_template_selector = new GuiSelector(left_container, "CREATE_SHIP_SELECTOR", nullptr);
+        GuiSelector* ship_template_selector = new GuiSelector(left_container, "CREATE_SHIP_SELECTOR", [this](int index, string value)
+        {
+			P<ShipTemplate> ship_template = ShipTemplate::getTemplate(value);
+			playership_info->setText(ship_template->getDescription());
+        });
+
         // List only ships with templates designated for player use.
         std::vector<string> template_names = ShipTemplate::getTemplateNameList(ShipTemplate::PlayerShip);
         std::sort(template_names.begin(), template_names.end());
-
         for(string& template_name : template_names)
         {
             P<ShipTemplate> ship_template = ShipTemplate::getTemplate(template_name);
@@ -311,6 +350,8 @@ ShipSelectionScreen::ShipSelectionScreen()
         }
         ship_template_selector->setSelectionIndex(0);
         ship_template_selector->setPosition(0, 630, sp::Alignment::TopCenter)->setSize(490, 50);
+        P<ShipTemplate> ship_template = ShipTemplate::getTemplate(ship_template_selector->getSelectionValue());
+        playership_info->setText(ship_template->getDescription());
 
         // Spawn a ship of the selected template near 0,0 and give it a random
         // heading.
@@ -381,7 +422,7 @@ void ShipSelectionScreen::update(float delta)
         P<PlayerSpaceship> ship = gameGlobalInfo->getPlayerShip(n);
         if (ship)
         {
-            string ship_name = ship->getFaction() + " " + ship->getTypeName() + " " + ship->getCallSign();
+            string ship_name = ship->getLocaleFaction() + " " + ship->getTypeName() + " " + ship->getCallSign();
 
             int index = player_ship_list->indexByValue(string(n));
             // If a player ship isn't in already in the list, add it.
@@ -405,6 +446,8 @@ void ShipSelectionScreen::update(float delta)
                 player_ship_list->removeEntry(player_ship_list->indexByValue(string(n)));
         }
     }
+
+
 
     // If there aren't any player ships, show a label stating so.
     if (player_ship_list->entryCount() > 0)

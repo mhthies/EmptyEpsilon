@@ -226,7 +226,7 @@ function addCommsReplySupply(args)
         string.format(args.request .. " " .. _("ammo-comms", "(%d rep each)"), price),
         function()
             if not comms_source:isDocked(comms_target) then
-                setCommsMessage(_("ammo-comms", "You need to stay docked for that action."))
+                setCommsMessage(_("station-comms", "You need to stay docked for that action."))
                 return
             end
             if not comms_source:takeReputationPoints(price * (comms_source:getWeaponStorageMax(missile_type) - comms_source:getWeaponStorage(missile_type))) then
@@ -338,7 +338,7 @@ function update(delta)
     if (not gallipoli:isValid()) then
         shipyard_kraylor:sendCommsMessage(
             crusader,
-            _([[Well done, Crusader!
+            _("incCall", [[Well done, Crusader!
 
 The pathetic Human flagship has been disabled. Go for the victory!]])
         )
@@ -350,7 +350,7 @@ The pathetic Human flagship has been disabled. Go for the victory!]])
     if (not crusader:isValid()) then
         shipyard_human:sendCommsMessage(
             gallipoli,
-            _([[Good job, Captain!
+            _("incCall", [[Good job, Captain!
 
 With the Kraylor flagship out of the way, we can land the final blow!]])
         )
