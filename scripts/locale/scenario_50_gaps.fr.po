@@ -10,7 +10,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
-"X-Generator: Poedit 3.2.2\n"
+"X-Generator: Poedit 3.5\n"
 "X-Poedit-Basepath: .\n"
 "X-Poedit-SourceCharset: UTF-8\n"
 
@@ -31,17 +31,17 @@ msgstr ""
 "- Difficulté : Difficile (variable)\n"
 "- Vaisseaux joueurs : 1 à plusieurs\n"
 "\n"
-"À l'aide du Nautilus de classe \"Poseur de mines\", déployez des mines sur "
-"les voies spatiales qui pourraient être utilisées par les ennemis "
-"envahisseurs pour attaquer votre station.\n"
+"Mission : À bord de votre \"Poseur de mines\", protégez les voies spatiales "
+"qui mènent à votre station des ennemis envahisseurs.\n"
 "\n"
-"Version 1 - nov 2021\n"
+"Version 1 - Nov. 2021\n"
 "\n"
 "- Titre original : Close the Gaps\n"
-"- Auteur : Xansta\n"
-"https://discord.gg/GjqM9Y9yBe\n"
-"- Traduction FR : Muerte\n"
-"https://discord.gg/2NPKyMnGwp"
+"- Auteur : Xansta (2018)\n"
+"- Traduction FR : Muerte (Mai 24)\n"
+"\n"
+"Communauté française et anglophone sur Discord USN https://discord.gg/"
+"TVxuxn7ZYW : feedback sur les scénarios, aide, sessions de jeu tous les we."
 
 # Scenario setting
 msgctxt "setting"
@@ -253,7 +253,7 @@ msgid ""
 "well as other independent clients on a contract basis"
 msgstr ""
 "Nous fabriquons des moteurs à impulsions, à vitesse lumière et pour "
-"téléporteurs pour la flotte de la marine humaine ainsi que pour d'autres "
+"téléporteurs pour la flotte de la Marine humaine ainsi que pour d'autres "
 "clients indépendants sur une base contractuelle."
 
 #: scripts/scenario_50_gaps.lua:578
@@ -1421,7 +1421,7 @@ msgstr ""
 #: scripts/scenario_50_gaps.lua:2290
 msgctxt "ammo-comms"
 msgid "I need ordnance restocked"
-msgstr "Nous avons besoin de nous réapprovisionner en munitions."
+msgstr "Nous avons besoin de nous réapprovisionner en munitions"
 
 #: scripts/scenario_50_gaps.lua:2291
 msgctxt "ammo-comms"
@@ -1436,7 +1436,7 @@ msgstr "Pouvez-vous nous fournir des armes nucléaires (nuke) ? ("
 #: scripts/scenario_50_gaps.lua:2297
 msgctxt "ammo-comms"
 msgid "We really need some nukes ("
-msgstr "Nous avons vraiment besoin d'armes nucléaires (nuke). ("
+msgstr "Nous avons vraiment besoin d'armes nucléaires (nuke) ("
 
 #: scripts/scenario_50_gaps.lua:2299 scripts/scenario_50_gaps.lua:2311
 #: scripts/scenario_50_gaps.lua:2323 scripts/scenario_50_gaps.lua:2342
@@ -1449,7 +1449,7 @@ msgstr "%s%d rép chacun)"
 #: scripts/scenario_50_gaps.lua:2307
 msgctxt "ammo-comms"
 msgid "Please re-stock our EMP missiles. ("
-msgstr "Veuillez réapprovisionner nos missiles EMP. ("
+msgstr "Veuillez réapprovisionner nos missiles EMP ("
 
 #: scripts/scenario_50_gaps.lua:2309
 msgctxt "ammo-comms"
@@ -1469,7 +1469,7 @@ msgstr "Avez-vous des missiles homing supplémentaires ? ("
 #: scripts/scenario_50_gaps.lua:2332
 msgctxt "ammo-comms"
 msgid "We could use some mines. ("
-msgstr "Nous pourrions avoir besoin de quelques mines. ("
+msgstr "Nous pourrions avoir besoin de quelques mines ("
 
 #: scripts/scenario_50_gaps.lua:2334
 msgctxt "ammo-comms"
@@ -1479,17 +1479,17 @@ msgstr "Concernant les mines ? ("
 #: scripts/scenario_50_gaps.lua:2336
 msgctxt "ammo-comms"
 msgid "More mines ("
-msgstr "Plus de mines. ("
+msgstr "Plus de mines ("
 
 #: scripts/scenario_50_gaps.lua:2338
 msgctxt "ammo-comms"
 msgid "All the mines we can take. ("
-msgstr "Toutes les mines que nous pouvons prendre. ("
+msgstr "Toutes les mines que nous pouvons prendre ("
 
 #: scripts/scenario_50_gaps.lua:2340
 msgctxt "ammo-comms"
 msgid "Mines! What else? ("
-msgstr "Des mines ! Quoi d'autre? ("
+msgstr "Des mines ! Quoi d'autre ? ("
 
 #: scripts/scenario_50_gaps.lua:2350
 msgctxt "ammo-comms"
@@ -1787,7 +1787,7 @@ msgstr "Que montrent les capteurs pour la brèche ouest ?"
 #, lua-format
 msgctxt "trade-comms"
 msgid "Recruit repair crew member for %i reputation"
-msgstr "Recruter un membre de l'équipe de réparation pour %i réputation"
+msgstr "Recruter un membre de l'équipe de réparation pour %i rép"
 
 #: scripts/scenario_50_gaps.lua:2473 scripts/scenario_50_gaps.lua:2489
 #: scripts/scenario_50_gaps.lua:3445
@@ -1798,7 +1798,7 @@ msgstr "Réputation insuffisante."
 #: scripts/scenario_50_gaps.lua:2476 scripts/scenario_50_gaps.lua:2492
 msgctxt "trade-comms"
 msgid "Repair crew member hired"
-msgstr "Réparateur embauché"
+msgstr "Réparateur embauché."
 
 #: scripts/scenario_50_gaps.lua:2498
 msgctxt "station-comms"
@@ -2332,7 +2332,7 @@ msgstr "Qu'avez-vous comme marchandises à vendre ou à échanger ?"
 #, lua-format
 msgctxt "trade-comms"
 msgid "   %14s: %2i, %3i\n"
-msgstr "   %14s: %2i, %3i\n"
+msgstr "   %14s : %2i, %3i\n"
 
 #: scripts/scenario_50_gaps.lua:2930
 msgctxt "helpfullWarning-comms"
@@ -2435,7 +2435,7 @@ msgstr ""
 #, lua-format
 msgctxt "stationAssist-comms"
 msgid "Can you send a supply drop? (%d rep)"
-msgstr "Pouvez-vous nous envoyer une cargaison de ravitaillement ? (%d rep)"
+msgstr "Pouvez-vous nous envoyer une cargaison de ravitaillement ? (%d rép)"
 
 #: scripts/scenario_50_gaps.lua:3126
 msgctxt "stationAssist-comms"
@@ -2553,7 +2553,7 @@ msgstr "Défendez le marqueur %d"
 #, lua-format
 msgctxt "shipAssist-comms"
 msgid "We are heading to assist at WP %d."
-msgstr "Nous partons pour défendre le marqueur %d."
+msgstr "Nous partons immédiatement défendre le marqueur %d."
 
 #: scripts/scenario_50_gaps.lua:3287
 msgctxt "shipAssist-comms"
@@ -2610,7 +2610,7 @@ msgstr "%s Missiles : %d/%d\n"
 #, lua-format
 msgctxt "shipAssist-comms"
 msgid "Dock at %s"
-msgstr "Amarrez-vous à %s."
+msgstr "Amarrez-vous à %s"
 
 #: scripts/scenario_50_gaps.lua:3320
 #, lua-format
@@ -2784,7 +2784,7 @@ msgstr "Acheté"
 #, lua-format
 msgctxt "trade-comms"
 msgid "Where are you headed? (cost: %f reputation)"
-msgstr "Où allez-vous ? (coût : %f réputation)"
+msgstr "Où allez-vous ? (coût : %f rép)"
 
 #: scripts/scenario_50_gaps.lua:3507
 msgctxt "trade-comms"
@@ -2808,7 +2808,6 @@ msgid ""
 "Good day."
 msgstr ""
 "Nous n'avons rien pour vous.\n"
-"\n"
 "Bonne journée."
 
 #: scripts/scenario_50_gaps.lua:3862

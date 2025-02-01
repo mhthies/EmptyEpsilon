@@ -52,7 +52,7 @@ require("place_station_scenario_utility.lua")
 -- Initialization --
 --------------------
 function init()
-	scenario_version = "0.0.1"
+	scenario_version = "1.0.2"
 	print(string.format("     -----     Scenario: Omicron     -----     Version %s     -----",scenario_version))
 	print(_VERSION)
 	spawn_enemy_diagnostic = false
@@ -1254,7 +1254,7 @@ function updatePlayerSoftTemplate(p)
 	local system_types = {"reactor","beamweapons","missilesystem","maneuver","impulse","warp","jumpdrive","frontshield","rearshield"}
 	p.normal_coolant_rate = {}
 	p.normal_power_rate = {}
-	for _, system in ipairs(system_types) do
+	for idx, system in ipairs(system_types) do
 		p.normal_coolant_rate[system] = p:getSystemCoolantRate(system)
 		p.normal_power_rate[system] = p:getSystemPowerRate(system)
 	end
@@ -1695,6 +1695,7 @@ function constructEnvironment()
 					local mwj = WarpJammer():setPosition(barrier_center_x + mwj_x, barrier_center_y + mwj_y):setRange(warp_jammer_a.range + 1200):setFaction(station:getFaction())
 					warp_jammer_info[station:getFaction()].count = warp_jammer_info[station:getFaction()].count + 1
 					mwj:setCallSign(string.format("%sWJ%i",warp_jammer_info[station:getFaction()].id,warp_jammer_info[station:getFaction()].count))
+					mwj.range = warp_jammer_a.range + 1200
 					table.insert(warp_jammer_list,mwj)
 					local nd_angle = random(0,360)
 					local bn_x, bn_y = vectorFromAngle(nd_angle,random(1000,4000))
@@ -1774,6 +1775,7 @@ function constructEnvironment()
 					local mwj = WarpJammer():setPosition(barrier_center_x + mwj_x, barrier_center_y + mwj_y):setRange(warp_jammer_a.range + 1200):setFaction(station:getFaction())
 					warp_jammer_info[station:getFaction()].count = warp_jammer_info[station:getFaction()].count + 1
 					mwj:setCallSign(string.format("%sWJ%i",warp_jammer_info[station:getFaction()].id,warp_jammer_info[station:getFaction()].count))
+					mwj.range = warp_jammer_a.range + 1200
 					table.insert(warp_jammer_list,mwj)
 					local nd_angle = random(0,360)
 					local bn_x, bn_y = vectorFromAngle(nd_angle,random(1000,4000))
@@ -1829,7 +1831,7 @@ function constructEnvironment()
 	local ly = {center_y + l1_y, center_y + l1_y + l2_y, center_y + l1_y + l3_y}
 	local leader = {leader_1, leader_2, leader_3}
 	for i=1,3 do
-		for _, form in ipairs(fly_formation[form_choice[difficulty]]) do
+		for idx, form in ipairs(fly_formation[form_choice[difficulty]]) do
 			local ship = ship_template[template].create(selected_faction,template)
 			local form_x, form_y = vectorFromAngleNorth(attack_angle + form.angle, form.dist * formation_spacing)
 			local form_prime_x, form_prime_y = vectorFromAngle(form.angle, form.dist * formation_spacing)
@@ -2373,7 +2375,7 @@ function placeSensorBuoy(axis)
 			buoy_type = tableRemoveRandom(buoy_type_list)
 			if buoy_type == "station" then
 				local selected_stations = {}
-				for _, station in ipairs(station_list) do
+				for idx, station in ipairs(station_list) do
 					table.insert(selected_stations,station)
 				end
 				for i=1,3 do
@@ -2391,7 +2393,7 @@ function placeSensorBuoy(axis)
 			end
 			if buoy_type == "transport" then
 				local selected_transports = {}
-				for _, transport in ipairs(transport_list) do
+				for idx, transport in ipairs(transport_list) do
 					table.insert(selected_transports,transport)
 				end
 				for i=1,3 do
@@ -2770,7 +2772,7 @@ function expeditionMaintenance(delta)
 			if fleet_count < expedition_count then
 				if #station_list > expedition_count then
 					local avail_station = {}
-					for _, station in ipairs(station_list) do
+					for idx, station in ipairs(station_list) do
 						if station.expedition_fleet == nil or #station.expedition_fleet < 1 then
 							table.insert(avail_station,station)
 						end
@@ -2800,7 +2802,7 @@ function expeditionMaintenance(delta)
 					template =  expedition_follower_templates[math.random(1,#expedition_follower_templates)]
 					local formation_list = {"Vac","V","V4","A","-","X"}
 					local selected_formation = formation_list[math.random(1,#formation_list)]
-					for _, form in ipairs(fly_formation[selected_formation]) do
+					for idx, form in ipairs(fly_formation[selected_formation]) do
 						local ship = ship_template[template].create(selected_faction,template)
 						local form_x, form_y = vectorFromAngleNorth(expedition_angle + form.angle, form.dist * formation_spacing)
 						local form_prime_x, form_prime_y = vectorFromAngle(form.angle, form.dist * formation_spacing)
@@ -2996,11 +2998,20 @@ end
 function warpJammerMaintenance()
 	if #warp_jammer_list > 0 then
 		for wj_index, wj in ipairs(warp_jammer_list) do
+			local set_default_range = false
 			if wj ~= nil and wj:isValid() then
 				if wj.reset_time ~= nil then
 					if getScenarioTime() > wj.reset_time then
+						if wj.range == nil then
+							wj.range = wj:getRange()
+							print("warp jammer did not have range value set, so setting it to current value:")
+							set_default_range = true
+						end
 						wj:setRange(wj.range)
 						wj.reset_time = nil
+						if set_default_range then
+							print("warp jammer call sign:",wj:getCallSign())
+						end
 					end
 				end
 			else
@@ -4743,7 +4754,7 @@ if #accessible_warp_jammers > 0 then
     end
     if isAllowedTo(comms_target.comms_data.services.servicejonque) then
     	addCommsReply(_("stationAssist-comms","Please send a service jonque for repairs"), function()
-    		local out = string.format(_("stationAssist-comms","Would you like the service jonque to come to you directly or would you prefer to set up a rendez-vous via a waypoint? Either way, you will need %.1f reputation."),getServiceCost("servicejonque"))
+    		local out = string.format(_("stationAssist-comms","Would you like the service jonque to come to you directly or would you prefer to set up a rendezvous via a waypoint? Either way, you will need %.1f reputation."),getServiceCost("servicejonque"))
     		addCommsReply("Direct",function()
     			if comms_source:takeReputationPoints(getServiceCost("servicejonque")) then
 					ship = serviceJonque(comms_target:getFaction()):setPosition(comms_target:getPosition()):setCallSign(generateCallSign(nil,comms_target:getFaction())):setScanned(true):orderDefendTarget(comms_source)
@@ -4791,7 +4802,7 @@ if #accessible_warp_jammers > 0 then
     			out = out .. _("stationAssist-comms","\n\nNote: if you want to use a waypoint, you will have to back out and set one and come back.")
     		else
     			for n=1,comms_source:getWaypointCount() do
-    				addCommsReply(string.format(_("stationAssist-comms","Rendez-vous at waypoint %d"),n),function()
+    				addCommsReply(string.format(_("stationAssist-comms","Rendezvous at waypoint %d"),n),function()
     					if comms_source:takeReputationPoints(getServiceCost("servicejonque")) then
     						ship = serviceJonque(comms_target:getFaction()):setPosition(comms_target:getPosition()):setCallSign(generateCallSign(nil,comms_target:getFaction())):setScanned(true):orderDefendLocation(comms_source:getWaypoint(n))
 							ship.comms_data = {
@@ -4829,7 +4840,7 @@ if #accessible_warp_jammers > 0 then
 									neutral = math.max(comms_target.comms_data.reputation_cost_multipliers.friend,comms_target.comms_data.reputation_cost_multipliers.neutral/2)
 								},
 							}
-    						setCommsMessage(string.format(_("stationAssist-comms","We have dispatched %s to rendez-vous at waypoint %d"),ship:getCallSign(),n))
+    						setCommsMessage(string.format(_("stationAssist-comms","We have dispatched %s to rendezvous at waypoint %d"),ship:getCallSign(),n))
     					else
 							setCommsMessage(_("needRep-comms", "Not enough reputation!"));
     					end
@@ -5031,7 +5042,7 @@ function medicalBaseLocationAssistanceComms()
 					end)
 				else
 					addCommsReply(string.format(_("mission3th-comms","In what sector is %s located?"),station_regional_hq:getCallSign()), function()
-						setCommsMessage(string.format("%s is located in sector %s.",station_regional_hq:getCallSign(),station_regional_hq:getSectorName()))
+						setCommsMessage(string.format(_("mission3th-comms","%s is located in sector %s."),station_regional_hq:getCallSign(),station_regional_hq:getSectorName()))
 					end)
 					addCommsReply(string.format(_("mission3th-comms","In what sector is %s located?"),station_medical_research:getCallSign()), function()
 						setCommsMessage(string.format(_("mission3th-comms","%s is located in sector %s."),station_medical_research:getCallSign(),station_medical_research:getSectorName()))
@@ -5190,7 +5201,7 @@ function friendlyComms(comms_data)
 				if comms_source.cargo > 0 then
 					for good, goodData in pairs(comms_data.goods) do
 						if goodData.quantity > 0 then
-							addCommsReply(string.format(_("trade-comms", "Buy one %s for %i reputation"),good,math.floor(good_data.cost)), function()
+							addCommsReply(string.format(_("trade-comms", "Buy one %s for %i reputation"),good,math.floor(goodData.cost)), function()
 								if comms_source:takeReputationPoints(goodData.cost) then
 									goodData.quantity = goodData.quantity - 1
 									if comms_source.goods == nil then
@@ -5215,7 +5226,7 @@ function friendlyComms(comms_data)
 					if shipType:find("Goods") ~= nil or shipType:find("Equipment") ~= nil then
 						for good, goodData in pairs(comms_data.goods) do
 							if goodData.quantity > 0 then
-								addCommsReply(string.format(_("trade-comms", "Buy one %s for %i reputation"),good,math.floor(good_data.cost)), function()
+								addCommsReply(string.format(_("trade-comms", "Buy one %s for %i reputation"),good,math.floor(goodData.cost)), function()
 									if comms_source:takeReputationPoints(goodData.cost) then
 										goodData.quantity = goodData.quantity - 1
 										if comms_source.goods == nil then
@@ -5854,7 +5865,7 @@ function neutralComms(comms_data)
 					if shipType:find("Goods") ~= nil or shipType:find("Equipment") ~= nil then
 						for good, goodData in pairs(comms_data.goods) do
 							if goodData.quantity > 0 then
-								addCommsReply(string.format(_("trade-comms", "Buy one %s for %i reputation"),good,math.floor(good_data.cost)), function()
+								addCommsReply(string.format(_("trade-comms", "Buy one %s for %i reputation"),good,math.floor(goodData.cost)), function()
 									if comms_source:takeReputationPoints(goodData.cost) then
 										goodData.quantity = goodData.quantity - 1
 										if comms_source.goods == nil then
@@ -7009,18 +7020,18 @@ function cargoInventory(delta)
 	end
 end
 function playerShipCargoInventory(p)
-	p:addToShipLog(string.format(_("inventory-shipLog","%s Current cargo:"),p:getCallSign()),"Yellow")
+	p:addToShipLog(string.format(_("inventory-shipLog", "%s Current cargo:"),p:getCallSign()),"Yellow")
 	local goodCount = 0
 	if p.goods ~= nil then
 		for good, goodQuantity in pairs(p.goods) do
 			goodCount = goodCount + 1
-			p:addToShipLog(string.format("     %s: %i",good,goodQuantity),"Yellow")
+			p:addToShipLog(string.format(_("inventory-shipLog", "     %s: %i"),good,goodQuantity),"Yellow")
 		end
 	end
 	if goodCount < 1 then
 		p:addToShipLog(_("inventory-shipLog","     Empty"),"Yellow")
 	end
-	p:addToShipLog(string.format(_("inventory-shipLog","Available space: %i"),p.cargo),"Yellow")
+	p:addToShipLog(string.format(_("inventory-shipLog", "Available space: %i"),p.cargo),"Yellow")
 end
 --		Generate call sign functions
 function generateCallSign(prefix,faction)
@@ -9505,6 +9516,11 @@ function checkFreighter()
 									string.format("")
 									sendRepairCrewToFreighter(p)
 								end)
+								p.send_repair_crew_to_freighter_dmg = "send_repair_crew_to_freighter_dmg"
+								p:addCustomButton("DamageControl",p.send_repair_crew_to_freighter_dmg,_("crewTransfer-buttonDamageControl", "Send Repair Crew"),function()
+									string.format("")
+									sendRepairCrewToFreighter(p)
+								end)
 							end
 							critical_transport:setSystemHealthMax("impulse",.01)
 							critical_transport:setSystemHealthMax("jumpdrive",.01)
@@ -9558,6 +9574,7 @@ function getRepairCrewFromFreighter(p)
 						for pidx2, p2 in ipairs(getActivePlayerShips()) do
 							p2:removeCustom(p2.get_repair_crew_from_freighter_eng)
 							p2:removeCustom(p2.get_repair_crew_from_freighter_plus)
+							p2:removeCustom(p2.get_repair_crew_from_freighter_dmg)
 						end
 					end
 				end
@@ -9614,6 +9631,7 @@ function sendRepairCrewToFreighter(p)
 							p2:addToShipLog(string.format(_("crewTransfer-shipLog", "%s has transported one of her repair crew to %s. They report that the engines should be fixed in a minute or two."),p:getCallSign(),critical_transport:getCallSign()),"Magenta")
 							p2:removeCustom(p2.send_repair_crew_to_freighter_eng)
 							p2:removeCustom(p2.send_repair_crew_to_freighter_plus)
+							p2:removeCustom(p2.send_repair_crew_to_freighter_dmg)
 							p2.get_repair_crew_from_freighter_eng = "get_repair_crew_from_freighter_eng"
 							p2:addCustomButton("Engineering",p2.get_repair_crew_from_freighter_eng,_("crewTransfer-buttonEngineer", "Get Repair Crew"),function()
 								string.format("")
@@ -9621,6 +9639,11 @@ function sendRepairCrewToFreighter(p)
 							end)
 							p2.get_repair_crew_from_freighter_plus = "get_repair_crew_from_freighter_plus"
 							p2:addCustomButton("Engineering+",p2.get_repair_crew_from_freighter_plus,_("crewTransfer-buttonEngineer+", "Get Repair Crew"),function()
+								string.format("")
+								getRepairCrewFromFreighter(p2)
+							end)
+							p2.get_repair_crew_from_freighter_dmg = "get_repair_crew_from_freighter_dmg"
+							p2:addCustomButton("DamageControl",p2.get_repair_crew_from_freighter_dmg,_("crewTransfer-buttonEngineer+", "Get Repair Crew"),function()
 								string.format("")
 								getRepairCrewFromFreighter(p2)
 							end)
@@ -9841,7 +9864,7 @@ function availableForComms(p)
 		return false
 	end
 	if p:isCommsChatOpenToPlayer() then
-		return
+		return false
 	end
 	if p:isCommsScriptOpen() then
 		return false

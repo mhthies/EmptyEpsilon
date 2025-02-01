@@ -152,7 +152,6 @@ set(GUI_LIB_SOURCES
     src/gui/hotkeyConfig.cpp
     src/gui/joystickConfig.cpp
     src/gui/mouseRenderer.cpp
-    src/gui/scriptError.cpp
     src/gui/gui2_slider.cpp
     src/gui/gui2_togglebutton.cpp
     src/gui/gui2_arrow.cpp
@@ -217,7 +216,6 @@ set(GUI_LIB_SOURCES
     src/gui/hotkeyConfig.h
     src/gui/joystickConfig.h
     src/gui/mouseRenderer.h
-    src/gui/scriptError.h
 )
 
 set(MAIN_SOURCES
@@ -260,6 +258,7 @@ set(MAIN_SOURCES
     src/menus/shipSelectionScreen.cpp
     src/menus/autoConnectScreen.cpp
     src/menus/hotkeyMenu.cpp
+    src/menus/luaConsole.cpp
     src/screens/cinematicViewScreen.cpp
     src/screens/crewStationScreen.cpp
     src/screens/topDownScreen.cpp
@@ -414,6 +413,7 @@ set(MAIN_SOURCES
     src/menus/serverCreationScreen.h
     src/menus/shipSelectionScreen.h
     src/menus/tutorialMenu.h
+    src/menus/luaConsole.h
     src/mesh.h
     src/missileWeaponData.h
     src/modelData.h
@@ -661,7 +661,7 @@ if(PYTHONINTERP_FOUND)
 endif()
 
 add_custom_target(update_locale
-    COMMAND xgettext --keyword=tr:1c,2 --keyword=tr:1 --keyword=trMark:1c,2 --keyword=trMark:1 --omit-header -d resources/locale/main.en ${MAIN_SOURCES} ${GUI_LIB_SOURCES}
+    COMMAND xgettext --keyword=tr:1c,2 --keyword=tr:1 --keyword=trMark:1c,2 --keyword=trMark:1 --add-comments=TRANSLATORS --omit-header -d resources/locale/main.en ${MAIN_SOURCES} ${GUI_LIB_SOURCES}
     COMMAND python3 update_locale.py
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 
@@ -766,7 +766,10 @@ set(CPACK_INSTALL_CMAKE_PROJECTS
 
 include(CPack)
 
+configure_file(io.github.daid.EmptyEpsilon.metainfo.xml.in io.github.daid.EmptyEpsilon.metainfo.xml)
+
 if(UNIX AND NOT APPLE AND NOT STEAMSDK)
-  install(FILES EmptyEpsilon.desktop DESTINATION "share/applications")
-  install(FILES logo.png DESTINATION "share/icons/hicolor/1024x1024/apps" RENAME "EmptyEpsilon.png")
+  install(FILES io.github.daid.EmptyEpsilon.desktop DESTINATION "share/applications")
+  install(FILES logo512.png DESTINATION "share/icons/hicolor/512x512/apps" RENAME "io.github.daid.EmptyEpsilon.png")
+  install(FILES ${CMAKE_CURRENT_BINARY_DIR}/io.github.daid.EmptyEpsilon.metainfo.xml DESTINATION "share/metainfo")
 endif()

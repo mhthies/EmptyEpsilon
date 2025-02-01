@@ -10,7 +10,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
-"X-Generator: Poedit 3.2.2\n"
+"X-Generator: Poedit 3.5\n"
 "X-Poedit-Basepath: .\n"
 "X-Poedit-SourceCharset: UTF-8\n"
 
@@ -25,28 +25,23 @@ msgid ""
 "Version 8"
 msgstr ""
 "- Durée approx. : ***mn (variable)\n"
-"- Difficulté :  ***  (variable)\n"
+"- Difficulté : *** (variable)\n"
 "- Vaisseaux joueurs : 1 à plusieurs\n"
-"\n"
-"TRADUCTION EN COURS DE RELECTURE\n"
 "\n"
 "Mission : Patrouillez entre 3 stations dans le quadrant Delta pour vous "
 "protéger des ennemis.\n"
 "\n"
 "Contient du texte audio. (non traduit)\n"
 "\n"
-"Version 8 - Oct 2020\n"
+"Version 8 - Oct. 2020\n"
 "\n"
 "- Titre original : Delta quadrant patrol duty\n"
 "- Auteur : Xansta (2018)\n"
-"https://discord.gg/GjqM9Y9yBe\n"
-"- Traduction FR : Muerte\n"
-"https://discord.gg/2NPKyMnGwp\n"
+"- Traduction FR : Muerte (Juin 23)\n"
+"TRADUCTION EN COURS DE RELECTURE\n"
 "\n"
-"Sur le Discord USN : https://discord.gg/PntGG3a vous pouvez rejoindre la "
-"communauté anglophone et jouer des parties en ligne. Il y en a tous les "
-"samedis à 17h00 heure française. Tous les niveaux d'expérience sont les "
-"bienvenus."
+"Communauté française et anglophone sur Discord USN https://discord.gg/"
+"TVxuxn7ZYW : feedback sur les scénarios, aide, sessions de jeu tous les we."
 
 # Scenario setting
 msgctxt "setting"
@@ -191,46 +186,68 @@ msgid "Thirty minute time limit"
 msgstr "Délai de 30 minutes."
 
 #: scripts/scenario_54_PatrolDuty.lua:155
+#: scripts/scenario_54_PatrolDuty.lua:6591
+#: scripts/scenario_54_PatrolDuty.lua:7285
+#: scripts/scenario_54_PatrolDuty.lua:8112
 msgctxt "buttonGM"
 msgid "Start plot 2 sick Kojak"
 msgstr "Intrigue 2 Kojak malade"
 
 #: scripts/scenario_54_PatrolDuty.lua:156
+#: scripts/scenario_54_PatrolDuty.lua:6615
+#: scripts/scenario_54_PatrolDuty.lua:7372
+#: scripts/scenario_54_PatrolDuty.lua:7392
+#: scripts/scenario_54_PatrolDuty.lua:7416
+#: scripts/scenario_54_PatrolDuty.lua:8118
 msgctxt "buttonGM"
 msgid "Start p 3 McNabbit ride"
 msgstr "Int. 3 Balade McNabbit"
 
 #: scripts/scenario_54_PatrolDuty.lua:157
+#: scripts/scenario_54_PatrolDuty.lua:6631
+#: scripts/scenario_54_PatrolDuty.lua:8124
 msgctxt "buttonGM"
 msgid "St p4 Lisbon's stowaway"
 msgstr "Int4 Clandestin Lisbon"
 
 #: scripts/scenario_54_PatrolDuty.lua:158
+#: scripts/scenario_54_PatrolDuty.lua:6638
+#: scripts/scenario_54_PatrolDuty.lua:8129
 msgctxt "buttonGM"
 msgid "Start plot 5"
 msgstr "Intrigue 5"
 
 #: scripts/scenario_54_PatrolDuty.lua:159
+#: scripts/scenario_54_PatrolDuty.lua:6599
+#: scripts/scenario_54_PatrolDuty.lua:8134
 msgctxt "buttonGM"
 msgid "Strt plot 8 Sheila dies"
 msgstr "Intrigue 8 Sheila meurt"
 
 #: scripts/scenario_54_PatrolDuty.lua:160
+#: scripts/scenario_54_PatrolDuty.lua:6607
+#: scripts/scenario_54_PatrolDuty.lua:8139
 msgctxt "buttonGM"
 msgid "Start plot 9 ambush"
 msgstr "Intrigue 10 Embuscade"
 
 #: scripts/scenario_54_PatrolDuty.lua:161
+#: scripts/scenario_54_PatrolDuty.lua:6623
+#: scripts/scenario_54_PatrolDuty.lua:8144
 msgctxt "buttonGM"
 msgid "Start plot 10 ambush"
 msgstr "Intrigue 9 Embuscade"
 
 #: scripts/scenario_54_PatrolDuty.lua:162
+#: scripts/scenario_54_PatrolDuty.lua:6765
+#: scripts/scenario_54_PatrolDuty.lua:8154
 msgctxt "buttonGM"
 msgid "Skip to defend U.P."
 msgstr "Passer pour défendre UP"
 
 #: scripts/scenario_54_PatrolDuty.lua:163
+#: scripts/scenario_54_PatrolDuty.lua:6899
+#: scripts/scenario_54_PatrolDuty.lua:8164
 msgctxt "buttonGM"
 msgid "Skip to destroy S.C."
 msgstr "Passer pour détruire SC"
@@ -278,7 +295,7 @@ msgid ""
 "well as other independent clients on a contract basis"
 msgstr ""
 "Nous fabriquons des moteurs à impulsions, à vitesse lumière et pour "
-"téléporteurs pour la flotte de la marine humaine ainsi que pour d'autres "
+"téléporteurs pour la flotte de la Marine humaine ainsi que pour d'autres "
 "clients indépendants sur une base contractuelle."
 
 #: scripts/scenario_54_PatrolDuty.lua:356
@@ -1751,7 +1768,7 @@ msgstr "Pouvez-vous nous fournir des armes nucléaires (nuke) ? ("
 #: scripts/scenario_54_PatrolDuty.lua:4348
 msgctxt "ammo-comms"
 msgid "We really need some nukes ("
-msgstr "Nous avons vraiment besoin d'armes nucléaires. (nuke) ("
+msgstr "Nous avons vraiment besoin d'armes nucléaires (nuke) ("
 
 #: scripts/scenario_54_PatrolDuty.lua:4350
 #: scripts/scenario_54_PatrolDuty.lua:4363
@@ -1766,7 +1783,7 @@ msgstr "%s%d rép chacun)"
 #: scripts/scenario_54_PatrolDuty.lua:4359
 msgctxt "ammo-comms"
 msgid "Please re-stock our EMP missiles. ("
-msgstr "Veuillez réapprovisionner nos missiles EMP. ("
+msgstr "Veuillez réapprovisionner nos missiles EMP ("
 
 #: scripts/scenario_54_PatrolDuty.lua:4361
 msgctxt "ammo-comms"
@@ -1776,7 +1793,7 @@ msgstr "Avez-vous des EMP ? ("
 #: scripts/scenario_54_PatrolDuty.lua:4371
 msgctxt "ammo-comms"
 msgid "Do you have spare homing missiles for us? ("
-msgstr "Des missiles homing de rechange pour nous ? ("
+msgstr "Des missiles à tête chercheuse (homing) pour nous ? ("
 
 #: scripts/scenario_54_PatrolDuty.lua:4373
 msgctxt "ammo-comms"
@@ -1786,7 +1803,7 @@ msgstr "Avez-vous des missiles homing supplémentaires ? ("
 #: scripts/scenario_54_PatrolDuty.lua:4383
 msgctxt "ammo-comms"
 msgid "We could use some mines. ("
-msgstr "Nous pourrions avoir besoin de quelques mines. ("
+msgstr "Nous pourrions avoir besoin de quelques mines ("
 
 #: scripts/scenario_54_PatrolDuty.lua:4385
 msgctxt "ammo-comms"
@@ -2000,7 +2017,7 @@ msgstr "Précédent"
 #, lua-format
 msgctxt "trade-comms"
 msgid "Recruit repair crew member for %i reputation"
-msgstr "Recruter un membre de l'équipe de réparation pour %i réputation."
+msgstr "Recruter un membre de l'équipe de réparation pour %i rép"
 
 #: scripts/scenario_54_PatrolDuty.lua:4455
 #: scripts/scenario_54_PatrolDuty.lua:4471
@@ -2169,7 +2186,7 @@ msgid ""
 "and is learning the broader area. The master knows the local and the broader "
 "area but can't be bothered with the local area'"
 msgstr ""
-"L'employée vous répond d'une voix assomante :\n"
+"L'employée vous répond d'une voix assommante :\n"
 "\n"
 "\"L'apprenti connaît bien la région proche mais apprend encore les régions "
 "les plus éloignées. Le maître, lui, connaît bien toutes les régions "
@@ -2195,7 +2212,7 @@ msgstr ""
 #, lua-format
 msgctxt "cartographyOffice-comms"
 msgid "Examine station list (%i rep)"
-msgstr "Examiner la liste des stations (%i rep)"
+msgstr "Examiner la liste des stations (%i rép)"
 
 #: scripts/scenario_54_PatrolDuty.lua:4607
 #: scripts/scenario_54_PatrolDuty.lua:4664
@@ -2245,7 +2262,7 @@ msgstr ""
 #, lua-format
 msgctxt "cartographyOffice-comms"
 msgid "Talk to apprentice cartographer (%i rep)"
-msgstr "Parler à l'apprenti cartographe (%i rep)"
+msgstr "Parler à l'apprenti cartographe (%i rép)"
 
 #: scripts/scenario_54_PatrolDuty.lua:4653
 msgctxt "cartographyOffice-comms"
@@ -2394,7 +2411,8 @@ msgid ""
 "Goods or components available for sale: quantity, cost in reputation\n"
 msgstr ""
 "Station %s :\n"
-"Marchandises ou composants à vendre : quantité, coût en rép. :\n"
+"Marchandises ou composants disponibles à la vente : (quantité, coût en "
+"réputation)\n"
 
 #: scripts/scenario_54_PatrolDuty.lua:4761
 #, lua-format
@@ -2406,8 +2424,7 @@ msgstr "     %s: %i, %i\n"
 msgctxt "trade-comms"
 msgid "Goods or components station will buy: price in reputation\n"
 msgstr ""
-"\n"
-"Marchandises ou composants que la station achète : prix en rép.\n"
+"Marchandises ou composants que la station achètera : (prix en réputation)\n"
 
 #: scripts/scenario_54_PatrolDuty.lua:4766
 #: scripts/scenario_54_PatrolDuty.lua:4775
@@ -2420,9 +2437,7 @@ msgstr "     %s : %i\n"
 #, lua-format
 msgctxt "trade-comms"
 msgid "Current cargo aboard %s:\n"
-msgstr ""
-"\n"
-"Cargaison actuelle à bord du %s :\n"
+msgstr "Cargaison actuelle à bord du %s :\n"
 
 #: scripts/scenario_54_PatrolDuty.lua:4779
 msgctxt "trade-comms"
@@ -2433,9 +2448,7 @@ msgstr "     Vide\n"
 #, lua-format
 msgctxt "trade-comms"
 msgid "Available Space: %i, Available Reputation: %i\n"
-msgstr ""
-"\n"
-"Espace disponible : %i, Rép. disponible : %i\n"
+msgstr "Espace disponible : %i, Rép. disponible : %i\n"
 
 #: scripts/scenario_54_PatrolDuty.lua:4784
 #: scripts/scenario_54_PatrolDuty.lua:5879
@@ -3017,7 +3030,7 @@ msgid ""
 "   %14s: %2i, %3i"
 msgstr ""
 "\n"
-"   %14s: %2i, %3i"
+"   %14s : %2i, %3i"
 
 #: scripts/scenario_54_PatrolDuty.lua:5435
 msgctxt "helpfullWarning-comms"
@@ -3145,12 +3158,12 @@ msgstr "Défendez le marqueur %d"
 #, lua-format
 msgctxt "shipAssist-comms"
 msgid "We are heading to assist at WP %d."
-msgstr "Nous partons pour défendre le marqueur %d."
+msgstr "Nous partons immédiatement défendre le marqueur %d."
 
 #: scripts/scenario_54_PatrolDuty.lua:5718
 msgctxt "shipAssist-comms"
 msgid "Assist me"
-msgstr "Aidez-nous"
+msgstr "Aidez-nous !"
 
 #: scripts/scenario_54_PatrolDuty.lua:5719
 msgctxt "shipAssist-comms"
@@ -3332,7 +3345,7 @@ msgstr "Oui ?"
 #: scripts/scenario_54_PatrolDuty.lua:5801
 msgctxt "trade-comms"
 msgid "Do you have cargo you might sell?"
-msgstr "Auriez-vous de la cargaison à vendre ?"
+msgstr "Auriez-vous des marchandises à vendre ?"
 
 #: scripts/scenario_54_PatrolDuty.lua:5803
 msgctxt "trade-comms"
@@ -3347,7 +3360,7 @@ msgstr ", "
 #: scripts/scenario_54_PatrolDuty.lua:5815
 msgctxt "trade-comms"
 msgid "nothing"
-msgstr "Rien du tout."
+msgstr "rien du tout."
 
 #: scripts/scenario_54_PatrolDuty.lua:5823
 msgctxt "trade-comms"
@@ -3378,7 +3391,7 @@ msgstr "Réputation insuffisante pour acheter"
 #, lua-format
 msgctxt "trade-comms"
 msgid "Where are you headed? (cost: %f reputation)"
-msgstr "Où allez-vous ? (coût : %f réputation)"
+msgstr "Où allez-vous ? (coût : %f rép)"
 
 #: scripts/scenario_54_PatrolDuty.lua:5959
 msgctxt "trade-comms"
@@ -3414,7 +3427,7 @@ msgid ""
 msgstr ""
 "Bienvenue dans le quadrant Delta, équipage du %s,\n"
 "Dans cette région, les stations indépendantes sont plus nombreuses que les "
-"stations de la marine humaine, mais elles comptent toutes sur nous pour les "
+"stations de la Marine humaine, mais elles comptent toutes sur nous pour les "
 "protéger."
 
 #: scripts/scenario_54_PatrolDuty.lua:6508
@@ -4037,7 +4050,7 @@ msgstr ""
 "[Commandante Lisbon] Merci de m'avoir ramené mon Francis. Je vous confie mes "
 "recherches sur l'algorithme de refroidissement du système des faisceaux "
 "laser. Apportez-le à la station Utopia Planitia afin qu'ils puissent le "
-"décrypter et qu'il puisse être appliqué aux vaisseaux de la marine humaine."
+"décrypter et qu'il puisse être appliqué aux vaisseaux de la Marine humaine."
 
 #: scripts/scenario_54_PatrolDuty.lua:7532
 #, lua-format
@@ -4058,7 +4071,7 @@ msgstr ""
 "[Utopia Planitia] Nous avons bien reçu les recherches de la commandante "
 "Lisbon sur le système de refroidissement des faisceaux laser. La mise à "
 "niveau est maintenant opérationnelle et disponible pour tous les vaisseaux "
-"de la marine humaine."
+"de la Marine humaine."
 
 #: scripts/scenario_54_PatrolDuty.lua:7773
 #, lua-format

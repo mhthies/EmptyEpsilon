@@ -19,12 +19,22 @@
 --			Default to 1 (normal) if not already defined
 --		table station_priority:
 --			Defined here if not already defined. See populateStationPool
+--		table station_template_chance:
+--			Defined here if not already defined. The value is the modification of the 
+--			chance out of 100 that a station will have a service based on station template.
+--		table faction_station_service_chance:
+--			Defined here if not already defined. The value is the modification of the 
+--			chance out of 100 that a station will have a service based on station faction.
+--		string sizeTemplate:
+--			Set to the station template size if the station size is selected randomly
 
 --	placeStation returns the station placed or nil if there was an error. 
-function placeStation(x,y,name,faction,size)
+--	placeStation sets the global sizeTemplate if selected randomly via szt
+function placeStation(x,y,name,faction,size,diagnostic)
 	--x and y are the position of the station
 	--name should be the name of the station or the name of the station group
 	--		omit name to get random station from groups in priority order. See pickStation
+	--		Special values across groups: Random, RandomHumanNeutral, RandomGenericSinister
 	--faction is the faction of the station
 	--		omit faction and global variable stationFaction will be used. 
 	--			If stationFaction is not defined, faction will be set to Independent
@@ -40,7 +50,7 @@ function placeStation(x,y,name,faction,size)
 	end
 	local group, station = pickStation(name)
 	if group == nil then 
-		print("Sub function placeName did not return a name. Nil is not valid")
+		print("place station error: Sub function pick station did not return a group name. Nil is not valid")
 		return nil 
 	end
 	station:setPosition(x,y)
@@ -49,41 +59,94 @@ function placeStation(x,y,name,faction,size)
 	else
 		if stationFaction ~= nil then
 			station:setFaction(stationFaction)
+			faction = stationFaction
 		else
 			station:setFaction("Independent")
+			faction = "Independent"
 		end
 	end
-	local station_size_templates = {
-		["Small Station"] = 0,
-		["Medium Station"] = 20,
-		["Large Station"] = 30,
-		["Huge Station"] = 40,
-	}
+	if station_template_chance == nil then
+		station_template_chance = {
+			["Small Station"] = 0,
+			["Medium Station"] = 20,
+			["Large Station"] = 30,
+			["Huge Station"] = 40,
+		}
+	end
+	if faction_station_service_chance == nil then
+		faction_station_service_chance = {
+			["Human Navy"] = 0,
+			["Kraylor"] = 0,
+			["Independent"] = 0,
+			["Arlenians"] = 0,
+			["Ghosts"] = 0,
+			["Ktlitans"] = 0,
+			["Exuari"] = 0,
+			["TSN"] = 0,
+			["USN"] = 0,
+			["CUF"] = 0,
+		}
+	end
 	if size == nil then
 		station:setTemplate(szt())
 	else
-		if station_size_templates[size] ~= nil then
+		if station_template_chance[size] ~= nil then
 			station:setTemplate(size)
 		else
 			station:setTemplate(szt())
 		end
 	end
+	if diagnostic == nil then
+		diagnostic = false
+	else
+		diagnostic = true
+	end
 	--Randomize the availability of some station services. Unless you write your station 
 	--communication routines to take advantage of these, they'll be ignored,
 	--except for the last three. See below.
-	local size_matters = station_size_templates[station:getTypeName()] or 0
-	station.comms_data.probe_launch_repair =	random(1,100) <= (20 + size_matters)
-	station.comms_data.scan_repair =			random(1,100) <= (30 + size_matters)
-	station.comms_data.hack_repair =			random(1,100) <= (10 + size_matters)
-	station.comms_data.combat_maneuver_repair =	random(1,100) <= (15 + size_matters)
-	station.comms_data.self_destruct_repair =	random(1,100) <= (25 + size_matters)
-	station.comms_data.jump_overcharge =		random(1,100) <= (5 + size_matters)
+	local size_matters = station_template_chance[station:getTypeName()] or 0
+	local faction_matters = faction_station_service_chance[faction] or 0
+	if station.comms_data.service_cost == nil then
+		station.comms_data.service_cost = {}
+	end
+	station.comms_data.probe_launch_repair =	random(1,100) <= (20 + size_matters + faction_matters)
+	if station.comms_data.probe_launch_repair then
+		station.comms_data.service_cost.probe_launch_repair = math.random(2,8)
+	end
+	station.comms_data.scan_repair =			random(1,100) <= (30 + size_matters + faction_matters)
+	if station.comms_data.scan_repair then
+		station.comms_data.service_cost.scan_repair = math.random(2,8)
+	end
+	station.comms_data.hack_repair =			random(1,100) <= (10 + size_matters + faction_matters)
+	if station.comms_data.hack_repair then
+		station.comms_data.service_cost.hack_repair = math.random(2,8)
+	end
+	station.comms_data.combat_maneuver_repair =	random(1,100) <= (15 + size_matters + faction_matters)
+	if station.comms_data.combat_maneuver_repair then
+		station.comms_data.service_cost.combat_maneuver_repair = math.random(2,8)
+	end
+	station.comms_data.self_destruct_repair =	random(1,100) <= (25 + size_matters + faction_matters)
+	if station.comms_data.self_destruct_repair then
+		station.comms_data.service_cost.self_destruct_repair = math.random(2,8)
+	end
+	station.comms_data.jump_overcharge =		random(1,100) <= (5 + size_matters + faction_matters)
 	--If you want a station where the players can dock to provide energy,
 	--repair hull and restock scan probes, you'll want to set these to true after
 	--the station gets placed. 
-	station:setSharesEnergyWithDocked(random(1,100) <= (50 + size_matters))
-	station:setRepairDocked(random(1,100) <= (55 + size_matters))
-	station:setRestocksScanProbes(random(1,100) <= (45 + size_matters))
+	station:setSharesEnergyWithDocked(random(1,100) <= (50 + size_matters + faction_matters))
+	station:setRepairDocked(random(1,100) <= (55 + size_matters + faction_matters))
+	station:setRestocksScanProbes(random(1,100) <= (45 + size_matters + faction_matters))
+	--	more repair services
+	station.comms_data.system_repair = {}
+	station.comms_data.coolant_pump_repair = {}
+	local system_list = {"reactor","beamweapons","missilesystem","maneuver","impulse","warp","jumpdrive","frontshield","rearshield"}
+	for i, system in ipairs(system_list) do
+		local chance = 60 + size_matters + faction_matters
+		local eval = random(1,100)
+		station.comms_data.system_repair[system] = eval <= chance
+		eval = random(1,100)
+		station.comms_data.coolant_pump_repair[system] = eval <= chance
+	end
 	return station
 end
 function pickStation(name)
@@ -96,7 +159,7 @@ function pickStation(name)
 	local station = nil
 	if name == nil then
 		--default to random in priority order
-		for _, group in ipairs(station_priority) do
+		for idx, group in ipairs(station_priority) do
 			if station_pool[group] ~= nil then
 				for station, details in pairs(station_pool[group]) do
 					table.insert(station_selection_list,station)
@@ -107,10 +170,16 @@ function pickStation(name)
 						station = SpaceStation():setCommsScript(""):setCommsFunction(commsStation):setCallSign(selected_station_name):setDescription(station_pool[group][selected_station_name].description)
 						station.comms_data = station_pool[group][selected_station_name]
 						station_pool[group][selected_station_name] = nil
+						if diagnostic then
+							print("place station diagnostic: pick station returned group:",group,"...and station:",station,station:getCallSign(),"name is nil")
+						end
 						return group, station
 					end
 				end
 			end
+		end
+		if diagnostic then
+			print("place station diagnostic: pick station returned nothing, station selection lists empty, all groups exhausted, name is nil")
 		end
 	else
 		if name == "Random" then
@@ -128,7 +197,13 @@ function pickStation(name)
 				end
 				station.comms_data = selected_station.station_details
 				station_pool[selected_station.group][selected_station.station_name] = nil
+				if diagnostic then
+					print("place station diagnostic: pick station returned group:",selected_station.group,"...and station:",station,station:getCallSign(),"name is Random")
+				end
 				return selected_station.group, station
+			end
+			if diagnostic then
+				print("place station diagnostic: pick station returned nothing, station selection lists empty, all groups exhausted, name is Random")
 			end
 		elseif name == "RandomHumanNeutral" then
 			for group, list in pairs(station_pool) do
@@ -146,7 +221,13 @@ function pickStation(name)
 				end
 				station.comms_data = selected_station.station_details
 				station_pool[selected_station.group][selected_station.station_name] = nil
+				if diagnostic then
+					print("place station diagnostic: pick station returned group:",selected_station.group,"...and station:",station,station:getCallSign(),"name is RandomHumanNeutral")
+				end
 				return selected_station.group, station
+			end
+			if diagnostic then
+				print("place station diagnostic: pick station returned nothing, station selection lists that are not Generic and not Sinister are empty, name is RandomHumanNeutral")
 			end
 		elseif name == "RandomGenericSinister" then
 			for group, list in pairs(station_pool) do
@@ -164,7 +245,13 @@ function pickStation(name)
 				end
 				station.comms_data = selected_station.station_details
 				station_pool[selected_station.group][selected_station.station_name] = nil
+				if diagnostic then
+					print("place station diagnostic: pick station returned group:",selected_station.group,"...and station:",station,station:getCallSign(),"name is RandomGenericSinister")
+				end
 				return selected_station.group, station
+			end
+			if diagnostic then
+				print("place station diagnostic: pick station returned nothing, station selection lists Generic and Sinister are empty, name is RandomGenericSinister")
 			end
 		else
 			if station_pool[name] ~= nil then
@@ -179,7 +266,13 @@ function pickStation(name)
 					end
 					station.comms_data = selected_station.station_details
 					station_pool[name][selected_station.station_name] = nil
+					if diagnostic then
+					print("place station diagnostic: pick station returned group (which was passed in):",name,"...and station:",station,station:getCallSign())
+					end
 					return name, station
+				end
+				if diagnostic then
+					print("place station diagnostic: pick station returned nothing, station selection list provided:",name,"...was empty")
 				end
 			else
 				for group, list in pairs(station_pool) do
@@ -194,7 +287,7 @@ function pickStation(name)
 					end
 				end
 				--name not found in any group
-				print("Name provided not found in groups or stations, nor is it an accepted specialized name, like Random, RandomHumanNeutral or RandomGenericSinister")
+				print("place station error: Name provided to place station not found in groups or stations, nor is it an accepted specialized name, like Random, RandomHumanNeutral or RandomGenericSinister")
 				return nil
 			end
 		end
@@ -3158,6 +3251,43 @@ function populateStationPool()
 			["Scarlet Citadel"] =	{goods = {}, description = "", general = "", history = ""},
 			["Stahlstadt"] =	{goods = {}, description = "", general = "", history = ""},
 			["Ticonderoga"] =	{goods = {}, description = "", general = "", history = ""},
+			["Uruk"] =	{goods = {}, description = "", general = "", history = ""},
+			["Ashoka"] =	{goods = {}, description = "", general = "", history = ""},
+			["Lanka"] =	{goods = {}, description = "", general = "", history = ""},
+			["Oberon"] =	{goods = {}, description = "", general = "", history = ""},
+			["R. U. Sirius"] =	{goods = {}, description = "", general = "", history = ""},
+			["Villa Straylight"] =	{goods = {}, description = "", general = "", history = ""},
+			["Tycho"] =	{goods = {}, description = "", general = "", history = ""},
+			["Iapetus"] =	{goods = {}, description = "", general = "", history = ""},
+			["Laconia"] =	{goods = {}, description = "", general = "", history = ""},
+			["Castila"] =	{goods = {}, description = "", general = "", history = ""},
+			["Eudoxia"] =	{goods = {}, description = "", general = "", history = ""},
+			["Fusang"] =	{goods = {}, description = "", general = "", history = ""},
+			["Gedara"] =	{goods = {}, description = "", general = "", history = ""},
+			["Gewitter"] =	{goods = {}, description = "", general = "", history = ""},
+			["Ragnar Anchorage"] =	{goods = {}, description = "", general = "", history = ""},
+			["Black Hammer"] =	{goods = {}, description = "", general = "", history = ""},
+			["Blood Razor"] =	{goods = {}, description = "", general = "", history = ""},
+			["Amorris"] =	{goods = {}, description = "", general = "", history = ""},
+			["Sayblohn"] =	{goods = {}, description = "", general = "", history = ""},
+			["Kauronia"] =	{goods = {}, description = "", general = "", history = ""},
+			["Solar Terror"] =	{goods = {}, description = "", general = "", history = ""},
+			["Takonda"] =	{goods = {}, description = "", general = "", history = ""},
+			["Taraloon"] =	{goods = {}, description = "", general = "", history = ""},
+			["Jagomir"] =	{goods = {}, description = "", general = "", history = ""},
+			["Laakteen Depot"] =	{goods = {}, description = "", general = "", history = ""},
+			["Nelori"] =	{goods = {}, description = "", general = "", history = ""},
+			["Yarrum"] =	{goods = {}, description = "", general = "", history = ""},
+			["Enthra"] =	{goods = {}, description = "", general = "", history = ""},
+			["Woxoxit"] =	{goods = {}, description = "", general = "", history = ""},
+			["Vosak"] =	{goods = {}, description = "", general = "", history = ""},
+			["Maranga"] =	{goods = {}, description = "", general = "", history = ""},
+			["Mewudoh"] =	{goods = {}, description = "", general = "", history = ""},
+			["Jeuaiei"] =	{goods = {}, description = "", general = "", history = ""},
+			["Mada"] =	{goods = {}, description = "", general = "", history = ""},
+			["Tandorian"] =	{goods = {}, description = "", general = "", history = ""},
+			["Jaq"] =	{goods = {}, description = "", general = "", history = ""},
+			["Kuzukoh"] =	{goods = {}, description = "", general = "", history = ""},
 		},
 	}
 	--If you want one group to have a higher priority, simply define station_priority.
@@ -3175,7 +3305,7 @@ function populateStationPool()
 	end
 	for group, list in pairs(station_pool) do
 		local already_inserted = false
-		for _, previous_group in ipairs(station_priority) do
+		for idx, previous_group in ipairs(station_priority) do
 			if group == previous_group then
 				already_inserted = true
 				break

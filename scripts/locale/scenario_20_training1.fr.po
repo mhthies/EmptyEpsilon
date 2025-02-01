@@ -10,7 +10,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
-"X-Generator: Poedit 2.4.3\n"
+"X-Generator: Poedit 3.5\n"
 "X-Poedit-SourceCharset: UTF-8\n"
 
 # Scenario name
@@ -19,52 +19,61 @@ msgstr "Entrainement : Croiseur"
 
 # Scenario description
 msgid ""
-"Basic Training Cource\n"
+"Basic Training Course\n"
 "\n"
 "Objective: Destroy all enemy ships in the area.\n"
 "\n"
 "Description:\n"
-"During this training your will learn to coordinate the actions of your crew "
-"and destoy an Exuari training ground.\n"
+"During this training you will learn to coordinate the actions of your crew "
+"and destroy an Exuari training ground.\n"
 "\n"
 "Your ship is a Phobos light cruiser - the most common vessel in the navy.\n"
 "\n"
 "This is a short mission for inexperienced players."
 msgstr ""
 "- Durée approx. : 1h\n"
-"- Difficulté : Facile\n"
+"- Difficulté : Très facile\n"
 "- Vaisseaux joueurs : 1 à plusieurs\n"
 "\n"
-"Cours d'initiation\n"
+"Mission : Au cours de ce tout 1er entraînement, vous apprendrez à coordonner "
+"les actions de votre équipage et à détruire une flotte d'entraînement "
+"Éxuarie docile.\n"
 "\n"
-"Objectif : Détruire tous les vaisseaux ennemis de la zone.\n"
-"\n"
-"Description:\n"
-"Au cours de ce tout 1er entraînement, vous apprendrez à coordonner les "
-"actions de votre équipage et à détruire une flotte d'entraînement Exuari.\n"
-"\n"
-"Votre vaisseau est un croiseur léger Phobos - le navire le plus courant de "
-"la marine.\n"
-"\n"
-"Cet entrainement est parfaitement adapté aux joueurs inexpérimentés.\n"
+"Version 1 - Avr. 2023\n"
 "\n"
 "- Titre original : Training: Cruiser\n"
-"- Auteur : Piglit\n"
-"https://discord.gg/GjqM9Y9yBe\n"
-"- Traduction FR : Muerte\n"
-"https://discord.gg/2NPKyMnGwp"
+"- Auteur : Piglit (2021) Révisé par Oznogon\n"
+"- Traduction FR : Muerte (Mai 24)\n"
+"\n"
+"Communauté française et anglophone sur Discord USN https://discord.gg/"
+"TVxuxn7ZYW : feedback sur les scénarios, aide, sessions de jeu tous les we."
 
-#: scripts/scenario_20_training1.lua:130
+#: scripts/scenario_20_training1.lua:36
+msgctxt "scienceDescription-shipname"
+msgid "Exuari transport"
+msgstr "Un vaisseau de transport Éxuari."
+
+#: scripts/scenario_20_training1.lua:40
+msgctxt "scienceDescription-shipname"
+msgid "Exuari freighter"
+msgstr "Un vaisseau-cargo Éxuari."
+
+#: scripts/scenario_20_training1.lua:44
+msgctxt "scienceDescription-shipname"
+msgid "Exuari shuttle"
+msgstr "Une navette Éxuarie."
+
+#: scripts/scenario_20_training1.lua:79
 msgctxt "goal-incCall"
 msgid ""
 "This is Commander Saberhagen.\n"
 "\n"
-"In this training mission you will practice the basic controls of a Phobos "
+"In this training mission, you will practice the basic controls of a Phobos "
 "light cruiser.\n"
 "Since this is not a tutorial, you will be on your own to decide how to "
 "destroy all enemy targets in an Exuari training ground.\n"
 "There will be not much resistance, so you can try different approaches and "
-"tactics savely.\n"
+"tactics safely.\n"
 "\n"
 "Here's your chance to beat up some helpless opponents.\n"
 "Commander Saberhagen out."
@@ -82,17 +91,17 @@ msgstr ""
 "Voici votre chance de battre des adversaires impuissants.\n"
 "Briefing terminé."
 
-#: scripts/scenario_20_training1.lua:148
+#: scripts/scenario_20_training1.lua:97
 msgctxt "msgMainscreen-bonusTarget"
 msgid "escaped."
 msgstr "échappé."
 
-#: scripts/scenario_20_training1.lua:150
+#: scripts/scenario_20_training1.lua:99
 msgctxt "msgMainscreen-bonusTarget"
 msgid "destroyed."
 msgstr "détruit."
 
-#: scripts/scenario_20_training1.lua:152
+#: scripts/scenario_20_training1.lua:101
 #, lua-format
 msgctxt "msgMainscreen"
 msgid ""

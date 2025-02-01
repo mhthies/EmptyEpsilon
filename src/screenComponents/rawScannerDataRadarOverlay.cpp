@@ -105,18 +105,13 @@ void RawScannerDataRadarOverlay::onDraw(sp::RenderTarget& renderer)
         float b = random(-1, 1);
 
         // ... and then modify the bands' values based on the object's signature.
-        // Biological signatures amplify the red and green bands.
-        r += signatures[n].biological * 30;
+        // Biological signatures amplify the green band.
         g += signatures[n].biological * 30;
 
-        // Electrical signatures amplify the red and blue bands.
+        // Electrical signatures amplify the red band.
         r += random(-20, 20) * signatures[n].electrical;
-        b += random(-20, 20) * signatures[n].electrical;
 
-        // Gravitational signatures amplify all bands, but especially modify
-        // the green and blue bands.
-        r = r * (1.0f - signatures[n].gravity);
-        g = g * (1.0f - signatures[n].gravity) + 40 * signatures[n].gravity;
+        // Gravitational signatures amplify the blue band.
         b = b * (1.0f - signatures[n].gravity) + 40 * signatures[n].gravity;
 
         // Apply the values to the radar bands.
@@ -171,7 +166,7 @@ void RawScannerDataRadarOverlay::onDraw(sp::RenderTarget& renderer)
     a_b.push_back(a_b.front());
 
     // Draw each band as a line.
-    renderer.drawLineBlendAdd(a_r, glm::u8vec4(255, 0, 0, 255));
-    renderer.drawLineBlendAdd(a_g, glm::u8vec4(0, 255, 0, 255));
-    renderer.drawLineBlendAdd(a_b, glm::u8vec4(0, 0, 255, 255));
+    renderer.drawLineBlendAdd(a_r, glm::u8vec4(255, 45, 84, 255)); // red
+    renderer.drawLineBlendAdd(a_g, glm::u8vec4(65, 255, 81, 255)); // green
+    renderer.drawLineBlendAdd(a_b, glm::u8vec4(70, 120, 255, 255)); // blue
 }
